@@ -1,0 +1,198 @@
+// Guion de demo de la sustentación (BRIEF §16), automatizado con cinco pestañas del mismo
+// navegador. Sirve para ensayar y para comprobar que todo el flujo funciona sin tropiezos.
+// Uso: con la app corriendo, `npm run e2e` (E2E_URL para otra dirección, HEADED=1 para verlo).
+import { addDish, BASE, check, joinTable, launch, visible, watch } from "./helpers.mjs";
+
+const browser = await launch();
+const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } });
+const errors = [];
+const tab = async (name, width = 360, height = 780) => {
+  const p = watch(await ctx.newPage(), name, errors);
+  await p.setViewportSize({ width, height });
+  return p;
+};
+const recsOf = (p) => p.locator("section[aria-labelledby=recomendados] h3").allTextContents();
+
+// 0. Datos limpios
+const hub = await tab("Hub", 1280, 900);
+await hub.goto(`${BASE}/?demo=1`);
+await hub.getByRole("button", { name: /Reiniciar datos/ }).click();
+await hub.getByRole("button", { name: "Sí, reiniciar" }).click();
+
+// 1. Hora simulada: Almuerzo
+await hub.getByRole("radio", { name: /Almuerzo/ }).click();
+check("1. Hora simulada en Almuerzo", await visible(hub.getByText("Ahora: Almuerzo (simulada)")));
+await hub.keyboard.press("Escape");
+
+// 2. Pestaña A: Ana, alergia a lácteos
+const ana = await tab("Ana");
+await ana.goto(`${BASE}/mesa/3`);
+await ana.getByLabel("¿Cómo te llamamos?").fill("Ana");
+await ana.getByRole("button", { name: /Ver la carta/ }).click();
+await ana.waitForURL("**/menu");
+const before = await (async () => {
+  await ana.getByRole("dialog").waitFor();
+  return recsOf(ana);
+})();
+await ana.getByRole("dialog").getByRole("button", { name: "Lácteos", exact: true }).click();
+await ana
+  .getByRole("dialog")
+  .getByRole("button", { name: /Guardar/ })
+  .click();
+await ana.getByRole("dialog").waitFor({ state: "detached" });
+const after = await recsOf(ana);
+check(
+  "2. Los recomendados cambian con la alergia",
+  JSON.stringify(before) !== JSON.stringify(after),
+  after.join(", "),
+);
+check("2. No se recomienda la Clásica 27 (tiene lácteos)", !after.includes("Clásica 27"));
+await ana.goto(`${BASE}/mesa/3/plato/clasica-27`);
+check(
+  "2. La ficha de la Clásica 27 avisa de los lácteos",
+  await visible(ana.getByRole("alert").filter({ hasText: "Tiene lácteos" })),
+);
+
+// 3. Pestaña B: Luis; carrito compartido en vivo; Luis envía
+const luis = await tab("Luis");
+await joinTable(luis, 3, "Luis");
+await addDish(ana, 3, "pollo-crispy", { note: "Sin pepinillos" });
+await addDish(ana, 3, "limonada-de-coco");
+await addDish(luis, 3, "clasica-27", { variant: "Doble" });
+await addDish(luis, 3, "aros-de-cebolla");
+await ana.goto(`${BASE}/mesa/3/carrito`);
+await luis.goto(`${BASE}/mesa/3/carrito`);
+const cartA = await ana
+  .getByText(/Total del carrito/)
+  .locator("..")
+  .innerText();
+const cartL = await luis
+  .getByText(/Total del carrito/)
+  .locator("..")
+  .innerText();
+check("3. Ana y Luis ven el mismo carrito", cartA === cartL, cartA.replace(/\n/g, " "));
+await luis.getByRole("button", { name: "Enviar pedido" }).click();
+check(
+  "3. Confirmación por comensal",
+  (await luis.getByLabel("Platos por comensal").textContent()) === "Ana 2 · Luis 2",
+);
+await luis.getByRole("button", { name: /Sí, enviar/ }).click();
+await luis.waitForURL("**/pedido");
+await ana.waitForTimeout(300);
+check("3. Ana ve que Luis envió el pedido", await visible(ana.getByText("Luis envió el pedido")));
+
+// 4. Pestaña C: mesero Carlos; quitar un ítem por Agotado; confirmar
+const carlos = await tab("Carlos", 768, 1024);
+await carlos.goto(`${BASE}/mesero?mesero=carlos`);
+const ticket = carlos.getByRole("article", { name: /Mesa 3 · Ronda 1/ });
+await ticket.waitFor();
+check("4. Llega el ticket consolidado", (await ticket.locator("li").count()) >= 4);
+await ticket
+  .getByRole("listitem")
+  .filter({ hasText: "Aros de cebolla" })
+  .getByRole("button", { name: "Ajustar" })
+  .click();
+await carlos.getByRole("dialog").getByRole("radio", { name: "Agotado" }).click();
+await carlos.getByRole("dialog").getByRole("button", { name: "Quitar del pedido" }).click();
+await ana.goto(`${BASE}/mesa/3/pedido`);
+check(
+  "4. El cliente ve el ajuste con motivo",
+  await visible(ana.getByText(/El mesero quitó Aros de cebolla/).first()),
+);
+await carlos.getByRole("button", { name: /Confirmar y enviar a cocina/ }).click();
+
+// 5. Pestaña D: cocina; en preparación y listo; mesero entrega
+const cocina = await tab("Cocina", 1280, 800);
+await cocina.goto(`${BASE}/cocina`);
+await cocina.getByRole("button", { name: "Empezar a preparar" }).click();
+await ana.waitForTimeout(300);
+check(
+  "5. La línea de tiempo avanza a En preparación",
+  (await ana.locator('[aria-current="step"]').innerText()).startsWith("En preparación"),
+);
+await cocina.getByRole("button", { name: "Marcar listo" }).click();
+await carlos.waitForTimeout(300);
+check(
+  "5. El mesero recibe el aviso de listo",
+  await visible(carlos.getByText("Mesa 3 · Ronda 1 está listo")),
+);
+await carlos.getByRole("button", { name: "Marcar entregado" }).click();
+await ana.waitForTimeout(300);
+check(
+  "5. El cliente ve Entregado",
+  await visible(ana.getByText("Entregado. ¡Buen provecho!").first()),
+);
+
+// 6. Calificar platos y dar 2 estrellas al servicio
+await ana.getByRole("link", { name: /Califica tu experiencia/ }).click();
+await ana.waitForURL("**/calificar");
+for (const [dish, stars] of [
+  ["Pollo crispy", 5],
+  ["Limonada de coco", 4],
+]) {
+  await ana
+    .getByRole("radiogroup", { name: `Calificación de ${dish}` })
+    .getByRole("radio", { name: new RegExp(`^${stars} estrellas`) })
+    .click();
+}
+await ana.getByRole("button", { name: /Enviar 2 calificaciones/ }).click();
+await ana.getByText(/¿Cómo te atendió Carlos\?/).waitFor();
+await ana
+  .getByRole("radiogroup", { name: "Calificación del servicio" })
+  .getByRole("radio", { name: /^2 estrellas/ })
+  .click();
+await ana.getByRole("button", { name: "Enviar calificación" }).click();
+check("6. Calificación enviada", await visible(ana.getByText("¡Gracias, Ana!")));
+
+// 7. Pestaña E: administrador
+const admin = await tab("Admin", 1366, 900);
+await admin.goto(`${BASE}/admin`);
+check(
+  "7. Aparece la alerta de servicio bajo de la Mesa 3",
+  await visible(admin.getByText("Servicio bajo en la Mesa 3").first()),
+);
+await admin.goto(`${BASE}/admin/ventas`);
+check("7. Ventas por franja", await visible(admin.getByText("Platos más pedidos por franja")));
+await admin.goto(`${BASE}/admin/calificaciones`);
+check("7. Reseñas y ranking", await visible(admin.getByText("Ranking de platos")));
+await admin.goto(`${BASE}/admin/platos/nuevo`);
+await admin.getByLabel("Nombre", { exact: true }).fill("Burger del Chef");
+await admin.getByLabel("Categoría").selectOption("hamburguesas");
+await admin.getByLabel("Precio").fill("28900");
+await admin.getByLabel("Ingrediente", { exact: true }).fill("Carne madurada");
+await admin
+  .getByLabel("Subir fotos del plato")
+  .setInputFiles({
+    name: "chef.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DAwMDAxMDAwMDAAAAhIAIBx2YkIAAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+await admin.getByText("Principal").waitFor();
+await admin.getByRole("button", { name: /^Almuerzo/ }).click();
+await admin.getByRole("switch", { name: "Destacado por la casa" }).click();
+await admin.getByRole("button", { name: "Crear plato" }).click();
+await admin.waitForURL("**/admin/platos");
+const sara = await tab("Sara");
+await joinTable(sara, 2, "Sara");
+check(
+  "7. El plato nuevo sale de primero en los recomendados",
+  (await recsOf(sara))[0] === "Burger del Chef",
+  (await recsOf(sara)).join(", "),
+);
+
+// 8. Cierre: Vista 3D — próximamente
+await sara.goto(`${BASE}/mesa/2/plato/clasica-27`);
+check(
+  "8. Botón “Vista 3D — próximamente”",
+  await sara.getByRole("button", { name: "Vista 3D — próximamente" }).isDisabled(),
+);
+
+// Limpieza: hora automática
+await hub.goto(`${BASE}/?demo=1`);
+await hub.getByRole("radio", { name: /Automática/ }).click();
+
+check("Sin errores de consola", errors.length === 0, errors.join(" | "));
+await browser.close();
