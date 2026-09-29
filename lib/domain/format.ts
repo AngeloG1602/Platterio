@@ -84,3 +84,17 @@ export function formatElapsed(ms: number): string {
 export function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
+
+/** Tiempo relativo corto: "hace un momento", "hace 5 min", "hace 2 h", "ayer 8:40 p. m.", "lunes 28 de sept. 9:10 a. m." */
+export function formatRelative(date: Date, now: Date): string {
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return "hace un momento";
+  if (minutes < 60) return `hace ${minutes} min`;
+  const sameDay = date.toDateString() === now.toDateString();
+  if (sameDay) return `hace ${Math.floor(minutes / 60)} h`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return `ayer ${formatTime(date)}`;
+  return `${formatDay(date)} ${formatTime(date)}`;
+}

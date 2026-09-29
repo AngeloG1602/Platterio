@@ -9,6 +9,7 @@ import { findOpenSession } from "@/lib/domain/session";
 import { consolidateTicket } from "@/lib/domain/ticket";
 import { tableOverview } from "@/lib/domain/waiter";
 import { kitchenBoard } from "@/lib/domain/kitchen";
+import { ratableDishes, waiterForTable } from "@/lib/domain/feedback";
 import type { Allergen, Order, TableSession, TimeSlot } from "@/lib/domain/types";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
@@ -211,4 +212,24 @@ export function useWaiterBoard(waiterId: string | null) {
 export function useKitchenBoard() {
   const orders = useAppStore((s) => s.orders);
   return useMemo(() => kitchenBoard(orders), [orders]);
+}
+
+/* ——— Calificaciones ——— */
+
+/** Platos entregados que este comensal puede calificar, con lo que ya calificó. */
+export function useRatableDishes(session: TableSession, dinerId: string) {
+  const orders = useAppStore((s) => s.orders);
+  const ratings = useAppStore((s) => s.dishRatings);
+  const dishes = useDishes();
+  return useMemo(
+    () => ratableDishes({ session, orders, dishes, ratings, dinerId }),
+    [session, orders, dishes, ratings, dinerId],
+  );
+}
+
+/** Calificación de servicio de la visita (una por sesión) y el mesero de la mesa. */
+export function useServiceFeedback(session: TableSession) {
+  const rating = useAppStore((s) => s.serviceRatings.find((r) => r.sessionId === session.id));
+  const waiter = useAppStore((s) => waiterForTable(s.waiters, session.tableId));
+  return { rating, waiter };
 }

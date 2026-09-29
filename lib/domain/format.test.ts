@@ -5,6 +5,7 @@ import {
   formatDay,
   formatElapsed,
   formatPriceDelta,
+  formatRelative,
   formatSlotRange,
   formatTime,
   plural,
@@ -52,5 +53,16 @@ describe("fechas y horas", () => {
   it("pluraliza", () => {
     expect(plural(1, "plato", "platos")).toBe("1 plato");
     expect(plural(3, "plato", "platos")).toBe("3 platos");
+  });
+});
+
+describe("tiempo relativo", () => {
+  const now = new Date(2026, 8, 29, 14, 0);
+  it("dice cuánto hace en palabras cortas", () => {
+    expect(formatRelative(new Date(2026, 8, 29, 13, 59, 40), now)).toBe("hace un momento");
+    expect(formatRelative(new Date(2026, 8, 29, 13, 45), now)).toBe("hace 15 min");
+    expect(formatRelative(new Date(2026, 8, 29, 9, 30), now)).toBe("hace 4 h");
+    expect(formatRelative(new Date(2026, 8, 28, 20, 40), now)).toBe("ayer 8:40 p. m.");
+    expect(formatRelative(new Date(2026, 8, 26, 9, 10), now)).toBe("sábado 26 de sept. 9:10 a. m.");
   });
 });

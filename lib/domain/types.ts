@@ -153,6 +153,8 @@ export interface DishRating {
   stars: Stars;
   comment?: string;
   createdAt: string;
+  /** Comensal que calificó (extensión del mockup, para no duplicar). */
+  dinerId?: string;
 }
 
 export interface ServiceRating {
@@ -161,6 +163,8 @@ export interface ServiceRating {
   waiterId: string;
   stars: Stars;
   createdAt: string;
+  /** Comensal que calificó (extensión del mockup). */
+  dinerId?: string;
 }
 
 export type AlertType = "servicio_bajo" | "sin_confirmar";

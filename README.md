@@ -32,6 +32,8 @@ npm run dev        # http://localhost:3000
 - `/mesero` — Selector de mesero, mapa de mesas, confirmar, ajustar, rechazar, entregar y liberar.
   Con `?mesero=carlos` o `?mesero=daniela` entra directo.
 - `/cocina` — Tablero de cocina en modo oscuro: confirmados, en preparación y listos.
+- `/mesa/[numero]/calificar` — Calificar platos y servicio por separado.
+- `/admin` — Panel del administrador (por ahora: alertas de servicio).
 
 ## Estructura
 
@@ -55,6 +57,6 @@ reemplaza esa capa, no las pantallas.
 - [x] Fase 2 — Pedido
 - [x] Fase 3 — Mesero
 - [x] Fase 4 — Cocina y estados
-- [ ] Fase 5 — Calificaciones
+- [x] Fase 5 — Calificaciones
 - [ ] Fase 6 — Administrador
 - [ ] Fase 7 — Pulido

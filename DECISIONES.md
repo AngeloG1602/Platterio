@@ -168,3 +168,26 @@ pueden cambiar sin rehacer pantallas.
     de cada paso. Las rondas anteriores muestran una barra de progreso compacta con su estado.
     Una ronda rechazada termina en "Rechazado" después de "Pendiente de confirmación".
     `Order.preparingAt` (extensión) guarda la hora de "En preparación".
+
+## Fase 5 — Calificaciones
+
+50. **Qué platos califica cada quien.** Solo platos de rondas entregadas (regla 7), uno por plato
+    y ronda. Primero los que pidió el comensal; debajo, "También en la mesa", los de los demás,
+    por si quiere opinar. Si el comensal no pidió nada a su nombre, ve todos los de la mesa.
+51. **Estrellas obligatorias, platos opcionales.** Se puede dejar un plato sin calificar. Pero un
+    comentario sin estrellas no se envía: la pantalla lo marca y pide las estrellas. Los
+    comentarios tienen hasta 280 caracteres. Cada comensal califica un plato una sola vez por
+    ronda (`DishRating.dinerId`, extensión).
+52. **Servicio: una vez por visita.** La calificación del servicio es una por sesión de mesa
+    (regla 8), no una por comensal. Si Ana ya calificó, Luis ve "El servicio ya fue calificado".
+    Se asocia al mesero asignado a la mesa y guarda quién calificó (`ServiceRating.dinerId`).
+53. **Alerta de servicio bajo.** Una calificación por debajo del umbral (menos de 3 estrellas por
+    defecto) crea una alerta `servicio_bajo` con la mesa, el mesero y las estrellas. El panel la
+    muestra al instante con un toast, y se puede marcar como resuelta o reabrir. El canal de
+    WhatsApp aparece como "Próximamente".
+54. **Cuándo se invita a calificar.** El ticket muestra "Califica tu experiencia" en cuanto hay
+    algo entregado. La barra del menú lo muestra cuando todas las rondas terminaron y aún no se
+    calificó el servicio.
+55. **Panel del administrador en esta fase.** Se construyó la estructura (marca Platterio y menú
+    lateral) y el bloque de alertas del Resumen. Las demás secciones aparecen marcadas "Fase 6"
+    y se activan en la próxima fase.

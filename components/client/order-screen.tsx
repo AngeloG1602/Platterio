@@ -1,13 +1,23 @@
 "use client";
 
-import { Ban, CircleAlert, Clock, Plus, ReceiptText, ShoppingBag } from "lucide-react";
+import {
+  Ban,
+  ChevronRight,
+  CircleAlert,
+  Clock,
+  Heart,
+  Plus,
+  ReceiptText,
+  ShoppingBag,
+  Star,
+} from "lucide-react";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Price } from "@/components/ui/price";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useTicket } from "@/lib/data";
+import { useRatableDishes, useServiceFeedback, useTicket } from "@/lib/data";
 import { cartCount } from "@/lib/domain/cart";
 import { formatTime, plural } from "@/lib/domain/format";
 import { STATUS_MESSAGE } from "@/lib/domain/orderStatus";
@@ -60,6 +70,8 @@ function OrderTicket({ ctx }: { ctx: TableContext }) {
       ) : (
         <div className="flex flex-col gap-4 px-4 pt-4 pb-10">
           <LatestStatus round={latest} ctx={ctx} />
+
+          <RateCallout ctx={ctx} />
 
           {pendingInCart > 0 && (
             <Link
@@ -242,5 +254,37 @@ function OrderSkeleton() {
       <Skeleton className="h-36 rounded-2xl" />
       <Skeleton className="h-56 rounded-2xl" />
     </div>
+  );
+}
+
+/** Invitación a calificar cuando ya hay algo entregado (US-30, US-31). */
+function RateCallout({ ctx }: { ctx: TableContext }) {
+  const ratable = useRatableDishes(ctx.session, ctx.diner.id);
+  const { rating } = useServiceFeedback(ctx.session);
+  if (ratable.length === 0) return null;
+  const done = !rating ? false : ratable.every((r) => r.existing);
+  if (done) {
+    return (
+      <p className="text-success-ink flex items-center gap-2 text-[15px] font-medium">
+        <Heart className="size-4 fill-current" aria-hidden /> ¡Gracias por calificar tu experiencia!
+      </p>
+    );
+  }
+  return (
+    <Link
+      href={`${ctx.base}/calificar`}
+      className="bg-ink text-bg shadow-card flex items-center gap-4 rounded-2xl p-4 transition active:scale-[0.99]"
+    >
+      <span className="bg-bg/12 flex size-11 shrink-0 items-center justify-center rounded-full">
+        <Star className="size-5 fill-[#E9A23B] text-[#E9A23B]" aria-hidden />
+      </span>
+      <span className="flex-1">
+        <span className="block text-[16px] font-semibold">Califica tu experiencia</span>
+        <span className="text-bg/75 block text-[13px]">
+          Tus platos y el servicio, por separado. Toma un minuto.
+        </span>
+      </span>
+      <ChevronRight className="size-5" aria-hidden />
+    </Link>
   );
 }

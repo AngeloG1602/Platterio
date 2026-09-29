@@ -4,6 +4,12 @@ import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
 import { addToCart, cartCount, removeCartItem, updateCartItem } from "@/lib/domain/cart";
 import { submitRound } from "@/lib/domain/orders";
+import {
+  rateDishes,
+  ratableDishes,
+  rateService,
+  type DishRatingDraft,
+} from "@/lib/domain/feedback";
 import { transitionOrder, type Actor } from "@/lib/domain/orderStatus";
 import { adjustOrderItem, releaseSession, type ItemAdjustment } from "@/lib/domain/waiter";
 import type { Order, OrderStatus } from "@/lib/domain/types";
@@ -304,4 +310,69 @@ export const waiterActions = {
 export const kitchenActions = {
   start: (orderId: string) => moveOrder(orderId, "en_preparacion", "cocina"),
   ready: (orderId: string) => moveOrder(orderId, "listo", "cocina"),
+};
+
+/* ——— Calificaciones (US-30, US-31, US-34) ——— */
+
+export const feedbackActions = {
+  rateDishes(
+    tableId: string,
+    drafts: DishRatingDraft[],
+  ): ActionResult & { count?: number; dishId?: string } {
+    const { state, session, diner } = mine(tableId);
+    if (!session || !diner) return { ok: false, error: "Primero entra a la mesa" };
+    const history = [...state.dishRatings];
+    const ratable = ratableDishes({
+      session,
+      orders: state.orders,
+      dishes: state.dishes,
+      ratings: history,
+      dinerId: diner.id,
+    });
+    const result = rateDishes({
+      drafts,
+      ratable,
+      dinerId: diner.id,
+      now: nowIso(),
+      newId: () => newId("resena"),
+    });
+    if (!result.ok) return result;
+    if (result.ratings.length)
+      useAppStore.setState((s) => ({ dishRatings: [...s.dishRatings, ...result.ratings] }));
+    return { ok: true, count: result.ratings.length };
+  },
+  rateService(tableId: string, stars: number): ActionResult & { lowAlert?: boolean } {
+    const { state, session, diner } = mine(tableId);
+    if (!session || !diner) return { ok: false, error: "Primero entra a la mesa" };
+    const result = rateService({
+      session,
+      orders: state.orders,
+      existing: state.serviceRatings,
+      waiters: state.waiters,
+      stars,
+      threshold: state.restaurant.serviceAlertThreshold,
+      dinerId: diner.id,
+      now: nowIso(),
+      newId,
+    });
+    if (!result.ok) return result;
+    useAppStore.setState((s) => ({
+      serviceRatings: [...s.serviceRatings, result.rating],
+      alerts: result.alert ? [...s.alerts, result.alert] : s.alerts,
+    }));
+    return { ok: true, lowAlert: Boolean(result.alert) };
+  },
+};
+
+export const alertActions = {
+  resolve(alertId: string) {
+    useAppStore.setState((s) => ({
+      alerts: s.alerts.map((a) => (a.id === alertId ? { ...a, resolved: true } : a)),
+    }));
+  },
+  reopen(alertId: string) {
+    useAppStore.setState((s) => ({
+      alerts: s.alerts.map((a) => (a.id === alertId ? { ...a, resolved: false } : a)),
+    }));
+  },
 };
