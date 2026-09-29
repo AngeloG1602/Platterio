@@ -7,7 +7,8 @@ import { ratingStatsByDish } from "@/lib/domain/ratings";
 import { recommend } from "@/lib/domain/recommender";
 import { findOpenSession } from "@/lib/domain/session";
 import { consolidateTicket } from "@/lib/domain/ticket";
-import type { Allergen, TableSession, TimeSlot } from "@/lib/domain/types";
+import { tableOverview } from "@/lib/domain/waiter";
+import type { Allergen, Order, TableSession, TimeSlot } from "@/lib/domain/types";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
 import { HISTORY_CATALOG } from "./seed";
@@ -172,4 +173,34 @@ export function useOpenTableNumbers(): number[] {
         .map((t) => t.number),
     [sessions, tables],
   );
+}
+
+/* ——— Mesero ——— */
+
+export function useWaiter(waiterId: string | null) {
+  return useAppStore((s) => s.waiters.find((w) => w.id === waiterId));
+}
+
+/** Mesas del mesero con su estado, y las rondas que requieren su atención. */
+export function useWaiterBoard(waiterId: string | null) {
+  const waiter = useWaiter(waiterId);
+  const tables = useTables();
+  const sessions = useAppStore((s) => s.sessions);
+  const orders = useAppStore((s) => s.orders);
+  return useMemo(() => {
+    const mine = tables
+      .filter((t) => waiter?.tableIds.includes(t.id))
+      .sort((a, b) => a.number - b.number);
+    const overviews = mine.map((t) => tableOverview(t, sessions, orders));
+    const byCreated = (a: Order, b: Order) => a.createdAt.localeCompare(b.createdAt);
+    return {
+      waiter,
+      overviews,
+      pending: overviews.flatMap((o) => o.pending).sort(byCreated),
+      ready: overviews
+        .flatMap((o) => o.ready)
+        .sort((a, b) => (a.readyAt ?? "").localeCompare(b.readyAt ?? "")),
+      inKitchen: overviews.flatMap((o) => o.inKitchen).sort(byCreated),
+    };
+  }, [waiter, tables, sessions, orders]);
 }

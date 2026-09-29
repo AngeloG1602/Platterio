@@ -11,7 +11,7 @@ import { useTicket } from "@/lib/data";
 import { cartCount } from "@/lib/domain/cart";
 import { formatTime, plural } from "@/lib/domain/format";
 import { STATUS_MESSAGE } from "@/lib/domain/orderStatus";
-import type { TicketRound } from "@/lib/domain/ticket";
+import { describeAdjustment, type TicketRound } from "@/lib/domain/ticket";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
 import { LiveDot, ScreenHeader } from "./screen-header";
@@ -159,16 +159,15 @@ function RoundCard({ round, myDinerId }: { round: TicketRound; myDinerId: string
 
       {round.adjustments.length > 0 && (
         <ul className="mt-3 flex flex-col gap-2">
-          {round.adjustments.map(({ item, dish }) => (
+          {round.adjustments.map(({ item, dish, variant }) => (
             <li
               key={item.id}
               className="bg-warning-soft text-ink flex gap-2 rounded-lg px-3 py-2.5 text-sm"
             >
               <CircleAlert className="text-warning-ink mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
-                El mesero {item.removed ? "quitó" : "ajustó"}{" "}
-                <span className="font-semibold">{dish?.name ?? "un plato"}</span>
-                {item.adjustReason ? `: ${item.adjustReason}` : ""}
+                <span className="font-semibold">{describeAdjustment({ item, dish, variant })}</span>
+                {item.adjustReason ? ` · Motivo: ${item.adjustReason}` : ""}
               </span>
             </li>
           ))}
@@ -208,7 +207,7 @@ function RoundCard({ round, myDinerId }: { round: TicketRound; myDinerId: string
                 </div>
                 {!rejected && (
                   <Price
-                    value={lineTotal}
+                    value={item.removed ? item.unitPrice * item.qty : lineTotal}
                     className={cn("text-[15px]", item.removed && "line-through")}
                   />
                 )}

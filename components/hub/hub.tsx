@@ -37,7 +37,7 @@ import { formatDay, formatTime, plural } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
 
 /** Qué vistas ya están construidas. Se activa cada una al cerrar su fase. */
-const READY = { cliente: true, mesero: false, cocina: false, admin: false } as const;
+const READY = { cliente: true, mesero: true, cocina: false, admin: false } as const;
 const PHASE = { cliente: 1, mesero: 3, cocina: 4, admin: 6 } as const;
 
 const SCRIPT = [
@@ -310,12 +310,14 @@ function WaiterList() {
       {waiters.map((w) => {
         const numbers = tables.filter((t) => w.tableIds.includes(t.id)).map((t) => t.number);
         return (
-          <li
-            key={w.id}
-            className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px]"
-          >
-            <span className="text-ink font-semibold">{w.name}</span> · Mesas{" "}
-            {numbers.length ? `${numbers[0]}–${numbers[numbers.length - 1]}` : "—"}
+          <li key={w.id}>
+            <Link
+              href={`/mesero?mesero=${w.id}`}
+              className="bg-surface-2 text-ink-soft hover:bg-accent-soft inline-flex min-h-11 items-center gap-1 rounded-full px-3.5 text-[13px] transition-colors"
+            >
+              <span className="text-ink font-semibold">{w.name}</span>· Mesas{" "}
+              {numbers.length ? `${numbers[0]}–${numbers[numbers.length - 1]}` : "—"}
+            </Link>
           </li>
         );
       })}

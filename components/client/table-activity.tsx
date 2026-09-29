@@ -1,10 +1,12 @@
 "use client";
 
 import { Send, ShoppingBag } from "lucide-react";
+import { STATUS_MESSAGE } from "@/lib/domain/orderStatus";
+import { describeAdjustment } from "@/lib/domain/ticket";
 import { useEffect, useRef } from "react";
 import { toast } from "@/components/ui/toaster";
 import { useDishes, useSessionOrders } from "@/lib/data";
-import type { CartItem } from "@/lib/domain/types";
+import type { CartItem, Order } from "@/lib/domain/types";
 import type { TableContext } from "./table-gate";
 
 /**
@@ -16,6 +18,7 @@ export function useTableActivity({ session, diner }: TableContext) {
   const orders = useSessionOrders(session.id);
   const prevCart = useRef<Map<string, CartItem> | null>(null);
   const prevOrders = useRef<Set<string> | null>(null);
+  const prevStates = useRef<Map<string, Order> | null>(null);
 
   useEffect(() => {
     const current = new Map(session.cart.map((i) => [i.id, i]));
@@ -52,4 +55,48 @@ export function useTableActivity({ session, diner }: TableContext) {
       });
     }
   }, [orders, session.diners, diner.id]);
+
+  // Cambios del mesero y de la cocina: estado de la ronda y ajustes con motivo (US-26, US-29).
+  useEffect(() => {
+    const before = prevStates.current;
+    prevStates.current = new Map(orders.map((o) => [o.id, o]));
+    if (!before) return;
+    for (const order of orders) {
+      const prev = before.get(order.id);
+      if (!prev) continue;
+      for (const item of order.items) {
+        const old = prev.items.find((i) => i.id === item.id);
+        if (
+          !old ||
+          !item.adjustReason ||
+          (old.adjustReason === item.adjustReason &&
+            old.qty === item.qty &&
+            old.variantId === item.variantId &&
+            old.removed === item.removed)
+        )
+          continue;
+        const dish = dishes.find((d) => d.id === item.dishId);
+        toast.warning(
+          describeAdjustment({
+            item,
+            dish,
+            variant: dish?.variants.find((v) => v.id === item.variantId),
+          }),
+          {
+            id: `ajuste-${item.id}-${item.qty}-${item.variantId}-${item.removed}`,
+            description: `Motivo: ${item.adjustReason}`,
+          },
+        );
+      }
+      if (prev.status === order.status) continue;
+      const title = `Ronda ${order.round}: ${STATUS_MESSAGE[order.status]}`;
+      const id = `estado-${order.id}-${order.status}`;
+      if (order.status === "rechazado")
+        toast.error(title, {
+          id,
+          description: order.rejectReason ? `Motivo: ${order.rejectReason}` : undefined,
+        });
+      else toast.success(title, { id });
+    }
+  }, [orders, dishes]);
 }

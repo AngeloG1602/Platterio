@@ -4,6 +4,9 @@ import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
 import { addToCart, cartCount, removeCartItem, updateCartItem } from "@/lib/domain/cart";
 import { submitRound } from "@/lib/domain/orders";
+import { transitionOrder, type Actor } from "@/lib/domain/orderStatus";
+import { adjustOrderItem, releaseSession, type ItemAdjustment } from "@/lib/domain/waiter";
+import type { Order, OrderStatus } from "@/lib/domain/types";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
 import type { Allergen } from "@/lib/domain/types";
@@ -52,6 +55,9 @@ export const deviceActions = {
   },
   setWaiter(waiterId: string | null) {
     useDeviceStore.setState({ waiterId });
+  },
+  setWaiterSound(waiterSound: boolean) {
+    useDeviceStore.setState({ waiterSound });
   },
 };
 
@@ -223,4 +229,79 @@ export const demoDinerActions = {
       dishName: dish.variants.length > 1 ? `${dish.name} (${variant.name})` : dish.name,
     };
   },
+};
+
+/* ——— Estados del pedido ——— */
+
+function replaceOrder(order: Order) {
+  useAppStore.setState((s) => ({ orders: s.orders.map((o) => (o.id === order.id ? order : o)) }));
+}
+
+/** Única puerta de escritura para cambiar el estado de un pedido (usa la máquina de estados). */
+function moveOrder(orderId: string, to: OrderStatus, actor: Actor, reason?: string): ActionResult {
+  const order = useAppStore.getState().orders.find((o) => o.id === orderId);
+  if (!order) return { ok: false, error: "No encontramos ese pedido" };
+  const result = transitionOrder(order, to, actor, nowIso(), reason);
+  if (!result.ok) return result;
+  replaceOrder(result.order);
+  return { ok: true };
+}
+
+/** El mesero seleccionado en esta pestaña solo actúa sobre sus mesas. */
+function checkWaiterTable(tableId: string): ActionResult {
+  const { waiterId } = useDeviceStore.getState();
+  const waiter = useAppStore.getState().waiters.find((w) => w.id === waiterId);
+  if (!waiter) return { ok: false, error: "Elige quién eres antes de continuar" };
+  if (!waiter.tableIds.includes(tableId))
+    return { ok: false, error: "Esa mesa no está asignada a ti" };
+  return { ok: true };
+}
+
+function withOrderTable(orderId: string, fn: () => ActionResult): ActionResult {
+  const order = useAppStore.getState().orders.find((o) => o.id === orderId);
+  if (!order) return { ok: false, error: "No encontramos ese pedido" };
+  const check = checkWaiterTable(order.tableId);
+  return check.ok ? fn() : check;
+}
+
+export const waiterActions = {
+  confirm: (orderId: string) =>
+    withOrderTable(orderId, () => moveOrder(orderId, "confirmado", "mesero")),
+  reject: (orderId: string, reason: string) =>
+    withOrderTable(orderId, () => moveOrder(orderId, "rechazado", "mesero", reason)),
+  deliver: (orderId: string) =>
+    withOrderTable(orderId, () => moveOrder(orderId, "entregado", "mesero")),
+  adjustItem(
+    orderId: string,
+    itemId: string,
+    change: ItemAdjustment,
+    reason: string,
+  ): ActionResult {
+    return withOrderTable(orderId, () => {
+      const state = useAppStore.getState();
+      const order = state.orders.find((o) => o.id === orderId)!;
+      const item = order.items.find((i) => i.id === itemId);
+      const dish = state.dishes.find((d) => d.id === item?.dishId);
+      const result = adjustOrderItem(order, itemId, change, reason, dish);
+      if (!result.ok) return result;
+      replaceOrder(result.order);
+      return { ok: true };
+    });
+  },
+  releaseTable(tableId: string): ActionResult {
+    const check = checkWaiterTable(tableId);
+    if (!check.ok) return check;
+    const state = useAppStore.getState();
+    const session = findOpenSession(state.sessions, tableId);
+    if (!session) return { ok: false, error: "La mesa ya estaba libre" };
+    const result = releaseSession(session, state.orders, nowIso());
+    if (!result.ok) return result;
+    replaceSession(session, result.session);
+    return { ok: true };
+  },
+};
+
+export const kitchenActions = {
+  start: (orderId: string) => moveOrder(orderId, "en_preparacion", "cocina"),
+  ready: (orderId: string) => moveOrder(orderId, "listo", "cocina"),
 };

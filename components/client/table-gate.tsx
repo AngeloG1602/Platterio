@@ -3,7 +3,8 @@
 import { QrCode } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { toast } from "@/components/ui/toaster";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useHydrated, useMyDiner, useTableByNumber } from "@/lib/data";
@@ -63,10 +64,20 @@ export function TableGate({
   const access = useTableAccess(numero);
   const router = useRouter();
   const shouldRedirect = access.status === "guest";
+  const wasReady = useRef(false);
 
   useEffect(() => {
-    if (shouldRedirect) router.replace(`/mesa/${numero}`);
-  }, [shouldRedirect, numero, router]);
+    if (access.status === "ready") wasReady.current = true;
+    if (!shouldRedirect) return;
+    // Si estaba dentro y la sesión desapareció, el mesero liberó la mesa.
+    if (wasReady.current) {
+      toast.success("La mesa se liberó. ¡Gracias por venir!", {
+        id: "mesa-liberada",
+        description: "Si vuelves a escanear el QR se abre una visita nueva.",
+      });
+    }
+    router.replace(`/mesa/${numero}`);
+  }, [access.status, shouldRedirect, numero, router]);
 
   if (access.status === "invalid") return <InvalidTable />;
   if (access.status !== "ready") return <>{fallback}</>;

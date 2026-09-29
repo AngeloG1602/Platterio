@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DISHES } from "@/lib/data/catalog";
 import { addToCart, countByDiner, removeCartItem, updateCartItem } from "./cart";
 import { submitRound } from "./orders";
-import { consolidateTicket } from "./ticket";
+import { consolidateTicket, describeAdjustment } from "./ticket";
 import type { Order, TableSession } from "./types";
 
 const NOW = "2026-09-28T12:30:00.000Z";
@@ -273,5 +273,36 @@ describe("ticket de la mesa", () => {
     expect(ticket.rounds[1]!.subtotal).toBe(0);
     expect(ticket.total).toBe(65300 + 19800);
     expect(ticket.itemCount).toBe(5);
+  });
+});
+
+describe("aviso de ajustes al cliente", () => {
+  const clasica = DISHES.find((d) => d.id === "clasica-27")!;
+  const base = {
+    id: "x",
+    dishId: "clasica-27",
+    variantId: "doble",
+    qty: 1,
+    dinerId: "ana",
+    unitPrice: 29900,
+  };
+  const line = (item: typeof base & Record<string, unknown>) => ({
+    item,
+    dish: clasica,
+    variant: clasica.variants.find((v) => v.id === item.variantId),
+  });
+  it("describe quitar, cantidad y variante", () => {
+    expect(describeAdjustment(line({ ...base, removed: true, adjustReason: "Agotado" }))).toBe(
+      "El mesero quitó Clásica 27",
+    );
+    expect(
+      describeAdjustment(line({ ...base, adjustedFrom: { qty: 2, variantId: "doble" } })),
+    ).toBe("El mesero cambió Clásica 27 de 2 a 1");
+    expect(
+      describeAdjustment(line({ ...base, adjustedFrom: { qty: 1, variantId: "sencilla" } })),
+    ).toBe("El mesero cambió Clásica 27 de Sencilla a Doble");
+    expect(
+      describeAdjustment(line({ ...base, adjustedFrom: { qty: 2, variantId: "sencilla" } })),
+    ).toBe("El mesero cambió Clásica 27: 2× Sencilla → 1× Doble");
   });
 });

@@ -29,6 +29,8 @@ npm run dev        # http://localhost:3000
 - `/mesa/[numero]/plato/[id]` — Ficha del plato con variantes, ingredientes, alérgenos y nota.
 - `/mesa/[numero]/carrito` — Carrito compartido de la mesa, en vivo, y envío con confirmación.
 - `/mesa/[numero]/pedido` — Ticket de la mesa: rondas, estado, comensales y total.
+- `/mesero` — Selector de mesero, mapa de mesas, confirmar, ajustar, rechazar, entregar y liberar.
+  Con `?mesero=carlos` o `?mesero=daniela` entra directo.
 
 ## Estructura
 
@@ -50,7 +52,7 @@ reemplaza esa capa, no las pantallas.
 - [x] Fase 0 — Base
 - [x] Fase 1 — Menú del cliente
 - [x] Fase 2 — Pedido
-- [ ] Fase 3 — Mesero
+- [x] Fase 3 — Mesero
 - [ ] Fase 4 — Cocina y estados
 - [ ] Fase 5 — Calificaciones
 - [ ] Fase 6 — Administrador

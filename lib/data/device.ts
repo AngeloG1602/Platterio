@@ -15,6 +15,8 @@ interface DeviceState {
   /** true cuando el cliente ya respondió u omitió la pregunta de restricciones. */
   restrictionsAnswered: boolean;
   waiterId: string | null;
+  /** Sonido suave al llegar un pedido en la vista del mesero. */
+  waiterSound: boolean;
 }
 
 export const useDeviceStore = create<DeviceState>()(
@@ -24,6 +26,7 @@ export const useDeviceStore = create<DeviceState>()(
       restrictions: [],
       restrictionsAnswered: false,
       waiterId: null,
+      waiterSound: false,
     }),
     {
       name: "platterio:dispositivo",

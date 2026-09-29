@@ -102,3 +102,22 @@ export function consolidateTicket(params: {
     itemCount: rounds.reduce((s, r) => s + r.itemCount, 0),
   };
 }
+
+/** Frase para el cliente sobre un ajuste del mesero (regla 5), sin el motivo. */
+export function describeAdjustment(line: Pick<TicketLine, "item" | "dish" | "variant">): string {
+  const { item, dish, variant } = line;
+  const name = dish?.name ?? "un plato";
+  if (item.removed) return `El mesero quitó ${name}`;
+  const from = item.adjustedFrom;
+  if (!from) return `El mesero ajustó ${name}`;
+  const fromVariant = dish?.variants.find((v) => v.id === from.variantId)?.name;
+  const qtyChanged = from.qty !== item.qty;
+  const variantChanged = from.variantId !== item.variantId;
+  if (qtyChanged && variantChanged) {
+    return `El mesero cambió ${name}: ${from.qty}× ${fromVariant ?? ""} → ${item.qty}× ${variant?.name ?? ""}`
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  if (qtyChanged) return `El mesero cambió ${name} de ${from.qty} a ${item.qty}`;
+  return `El mesero cambió ${name} de ${fromVariant ?? "la opción original"} a ${variant?.name ?? "otra opción"}`;
+}

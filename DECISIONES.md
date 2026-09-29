@@ -121,3 +121,32 @@ pueden cambiar sin rehacer pantallas.
     franja actual (o de la simulada).
 35. **Motivo fuera de horario.** Si no hay franja activa, el motivo nombra la franja que viene
     ("Popular en el desayuno") en lugar de "a esta hora".
+
+## Fase 3 — Mesero
+
+36. **Mesero por pestaña.** El mesero elegido se guarda en `sessionStorage`, como el comensal:
+    cada pestaña puede ser un mesero distinto. Desde el hub se entra directo con
+    `/mesero?mesero=carlos`. Las acciones verifican que la mesa sea del mesero elegido.
+37. **Prioridad del estado en el mapa.** Si una mesa tiene varias rondas en estados distintos,
+    manda lo más urgente: por confirmar > listo para entregar > en cocina > con clientes > libre.
+38. **Tiempo sin confirmar.** Desde el límite (3 min por defecto) la tarjeta pasa a alerta
+    (borde y contador ámbar). Desde el doble del límite pasa a crítica (rojo) y se crea una
+    alerta `sin_confirmar` para el administrador. Esa alerta se resuelve sola cuando el pedido se
+    confirma o se rechaza. Un vigilante revisa esto cada segundo en cualquier pestaña abierta; el
+    id de la alerta es determinista (`alerta-sin-confirmar-<pedido>`), así que no se duplica.
+39. **Ajustes.** Se puede quitar un ítem, cambiar su cantidad o cambiar su variante, solo antes
+    de confirmar y siempre con motivo ("Agotado", "Cambio pedido por el cliente" u "Otro",
+    escrito). No se puede quitar el último ítem: para eso está "Rechazar". El ítem guarda
+    `adjustedFrom` (extensión) para que el cliente vea qué cambió ("de 2 a 1", "de Sencilla a
+    Doble"). Un cambio de variante toma el precio de la nueva.
+40. **Motivos de rechazo.** Lista rápida: "Cocina cerrada", "Pedido duplicado", "Mesa
+    equivocada" u "Otro" (escrito).
+41. **Liberar mesa.** Solo se puede cuando todas las rondas están entregadas o rechazadas. Lo que
+    quede en el carrito sin enviar se descarta. Los celulares de la mesa vuelven a la entrada con
+    el aviso "La mesa se liberó".
+42. **Avisos al cliente.** Cada cambio de estado de una ronda y cada ajuste llegan como toast a
+    los celulares de la mesa, y el ticket muestra los ajustes con su motivo.
+43. **Sonido.** Está apagado por defecto (los navegadores exigen un toque antes de reproducir
+    audio). Al activarlo desde el ícono de volumen suena una muestra; después, un pedido nuevo o
+    uno listo suenan con un aviso corto generado con Web Audio, sin archivos.
+44. **"Listo → Entregado".** Ya está en la vista del mesero; se activa cuando la cocina (Fase 4) marque la ronda como lista.

@@ -124,6 +124,8 @@ export interface OrderItem extends CartItem {
   unitPrice: number;
   removed?: boolean;
   adjustReason?: string;
+  /** Cantidad y variante originales si el mesero las cambió (extensión del mockup). */
+  adjustedFrom?: { qty: number; variantId: string };
 }
 
 /** Una ronda de la mesa. */
