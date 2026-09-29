@@ -1,17 +1,28 @@
 "use client";
 
-import { ContactShadows, Html, OrbitControls } from "@react-three/drei";
+import { Html, OrbitControls, Preload } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { layerPositions, stackHeight, type StackLayer } from "@/lib/viewer3d/stack";
 import { plateGeometry } from "./geometry";
+import { IngredientMesh } from "./ingredient-mesh";
+import { SideDish } from "./sides";
+import {
+  canvasQuality,
+  Effects,
+  FoodMaterial,
+  PerfProbe,
+  QualityContext,
+  Stage,
+  type PerfStats,
+  type Quality,
+  type QualitySetting,
+} from "./stage";
 import { hasWebGL, NoWebGL } from "./webgl";
 
 // Este módulo solo se carga en el cliente (dynamic import sin SSR).
 const WEBGL = typeof window !== "undefined" && hasWebGL();
-import { IngredientMesh } from "./ingredient-mesh";
-import { SideDish } from "./sides";
 
 export const SIDE_KEY = "__acompanante";
 
@@ -28,28 +39,75 @@ export interface DishSceneProps {
   onSceneReady?: (scene: THREE.Scene) => void;
   /** Cambia para volver a la cámara inicial. */
   resetSignal?: number;
+  /** "auto" empieza en alta y baja sola si el equipo no alcanza ~35 fps. */
+  quality?: QualitySetting;
+  /** Calidad con la que se está dibujando (útil cuando está en automático). */
+  onQualityChange?: (q: Quality) => void;
+  onStats?: (s: PerfStats) => void;
+  /** Nombre y color del restaurante, para el vaso de papel. */
+  brand?: string;
+  accent?: string;
 }
 
 const GAP = 1.3;
+const PLATE_Y = 0.2;
+const START = new THREE.Vector3(11, 9, 13);
+
+/** Identidad visual de una capa: si cambia (p. ej. carne → pollo), la vieja sale y entra la nueva. */
+const uidOf = (l: StackLayer) => `${l.id}:${l.kind}:${l.color}`;
+
+interface Ghost {
+  uid: string;
+  layer: StackLayer;
+  y: number;
+  index: number;
+}
 
 /**
  * Escena 3D del plato con React Three Fiber (Three.js en React). Se carga solo en el cliente
  * y bajo demanda (dynamic import), para no sumar Three.js al resto de la app.
+ *
+ * Dibuja bajo demanda (`frameloop="demand"`): solo pinta cuadros mientras algo se mueve (una
+ * capa que cae, la cámara, el giro automático). Quieto, no gasta batería.
  */
 export default function DishScene(props: DishSceneProps) {
   const reducedMotion = useReducedMotion();
+  const [autoLevel, setAutoLevel] = useState<Quality>("alta");
+  const setting = props.quality ?? "auto";
+  const quality: Quality = setting === "auto" ? autoLevel : setting;
+  const { onQualityChange } = props;
+  useEffect(() => {
+    onQualityChange?.(quality);
+  }, [quality, onQualityChange]);
+
   if (!WEBGL) return <NoWebGL />;
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
-      camera={{ position: [11, 9, 13], fov: 32, near: 0.1, far: 200 }}
-      gl={{ antialias: true, preserveDrawingBuffer: true }}
+      frameloop="demand"
+      shadows="percentage"
+      dpr={canvasQuality(quality).dpr}
+      camera={{ position: START.toArray(), fov: 32, near: 0.1, far: 200 }}
+      gl={{
+        antialias: true,
+        toneMapping: THREE.NeutralToneMapping,
+        powerPreference: "high-performance",
+      }}
       onPointerMissed={() => props.onSelect(null)}
       aria-label="Modelo 3D del plato. Arrastra para girar y usa la rueda o dos dedos para acercar."
       role="img"
     >
-      <SceneContents {...props} reducedMotion={reducedMotion} />
+      <QualityContext value={quality}>
+        <Suspense fallback={null}>
+          <Stage quality={quality} />
+          <SceneContents {...props} reducedMotion={reducedMotion} />
+          <Effects quality={quality} />
+          <Preload all />
+        </Suspense>
+      </QualityContext>
+      <PerfProbe
+        onSlow={setting === "auto" ? () => setAutoLevel("rapida") : undefined}
+        onStats={props.onStats}
+      />
     </Canvas>
   );
 }
@@ -66,21 +124,31 @@ function SceneContents({
   onSceneReady,
   resetSignal,
   reducedMotion,
+  brand = "Fogón 27",
+  accent = "#E4572E",
 }: DishSceneProps & { reducedMotion: boolean }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const positions = useMemo(() => layerPositions(stack, explode, GAP), [stack, explode]);
   const height = useMemo(() => stackHeight(stack, explode, GAP), [stack, explode]);
   const plate = useMemo(() => plateGeometry(), []);
   const scene = useThree((s) => s.scene);
-  const camera = useThree((s) => s.camera);
+
+  // Capas que se acaban de quitar: siguen en escena mientras hacen su animación de salida.
+  const [prevStack, setPrevStack] = useState(stack);
+  const [ghosts, setGhosts] = useState<Ghost[]>([]);
+  if (prevStack !== stack) {
+    const live = new Set(stack.map(uidOf));
+    const prevY = layerPositions(prevStack, explode, GAP);
+    const gone = prevStack.flatMap((layer, index) =>
+      live.has(uidOf(layer)) ? [] : [{ uid: uidOf(layer), layer, y: prevY[index]!, index }],
+    );
+    setGhosts((g) => [...g.filter((x) => !live.has(x.uid)), ...(reducedMotion ? [] : gone)]);
+    setPrevStack(stack);
+  }
 
   useEffect(() => {
     onSceneReady?.(scene);
   }, [scene, onSceneReady]);
-  useEffect(() => {
-    camera.position.set(11, 9, 13);
-    camera.lookAt(0, 2.5, 0);
-  }, [resetSignal, camera]);
 
   // Primera capa de cada ingrediente, para poner una sola etiqueta por ingrediente.
   const firstOfKey = useMemo(() => {
@@ -93,42 +161,56 @@ function SceneContents({
     return m;
   }, [stack]);
 
-  const PLATE_Y = 0.2;
+  // La cámara mira al ingrediente seleccionado (o al centro del plato).
+  const selectedIndex = stack.findIndex((l) => l.key === selectedKey);
+  const focusY =
+    selectedKey === SIDE_KEY
+      ? 2.2
+      : selectedIndex >= 0
+        ? PLATE_Y + positions[selectedIndex]!
+        : Math.min(6, 1.5 + height / 2);
+
   return (
     <>
-      <color attach="background" args={["#F3EEE6"]} />
-      <hemisphereLight args={["#FFF8EF", "#B89A7A", 0.75]} />
-      <directionalLight
-        position={[7, 14, 9]}
-        intensity={1.7}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-12}
-        shadow-camera-right={12}
-        shadow-camera-top={12}
-        shadow-camera-bottom={-12}
-      />
-      <directionalLight position={[-9, 6, -7]} intensity={0.45} color="#FFE6CC" />
-
       <group name="plato">
         <mesh geometry={plate} receiveShadow castShadow name="plato_ceramica">
-          <meshStandardMaterial color="#FBFAF7" roughness={0.25} />
+          <FoodMaterial color="#F7F2EA" roughness={0.18} clearcoat={1} clearcoatRoughness={0.06} />
         </mesh>
         <group name="hamburguesa" position={[-1.4, PLATE_Y, 0]}>
           {stack.map((layer, i) => (
-            <group key={layer.id}>
-              <IngredientMesh
-                layer={layer}
-                y={positions[i]!}
-                index={i}
-                selected={selectedKey === layer.key}
-                hovered={hovered === layer.key}
-                onSelect={(k) => onSelect(k === selectedKey ? null : k)}
-                onHover={setHovered}
-                reducedMotion={reducedMotion}
-              />
-              {(showLabels || selectedKey === layer.key) && firstOfKey[i] && (
+            <IngredientMesh
+              key={uidOf(layer)}
+              layer={layer}
+              y={positions[i]!}
+              index={i}
+              selected={selectedKey === layer.key}
+              hovered={hovered === layer.key}
+              onSelect={(k) => onSelect(k === selectedKey ? null : k)}
+              onHover={setHovered}
+              reducedMotion={reducedMotion}
+            />
+          ))}
+          {ghosts.map((g) => (
+            <IngredientMesh
+              key={`salida-${g.uid}`}
+              layer={g.layer}
+              y={g.y}
+              index={g.index}
+              selected={false}
+              hovered={false}
+              onSelect={() => {}}
+              onHover={() => {}}
+              reducedMotion={reducedMotion}
+              leaving
+              onLeft={() => setGhosts((list) => list.filter((x) => x.uid !== g.uid))}
+            />
+          ))}
+          {stack.map(
+            (layer, i) =>
+              (showLabels || selectedKey === layer.key) &&
+              firstOfKey[i] && (
                 <Html
+                  key={layer.id}
                   position={[5.4, positions[i]!, 0]}
                   center={false}
                   zIndexRange={[20, 0]}
@@ -147,14 +229,15 @@ function SceneContents({
                     {(units.get(layer.key) ?? 0) > 1 && ` ×${units.get(layer.key)}`}
                   </button>
                 </Html>
-              )}
-            </group>
-          ))}
+              ),
+          )}
         </group>
         {sideId && (
           <group position={[5.4, PLATE_Y + 0.05, 1.2]}>
             <SideDish
               id={sideId}
+              brand={brand}
+              accent={accent}
               highlighted={selectedKey === SIDE_KEY}
               onSelect={() => onSelect(selectedKey === SIDE_KEY ? null : SIDE_KEY)}
             />
@@ -169,19 +252,10 @@ function SceneContents({
         )}
       </group>
 
-      <CameraRig height={height} resetSignal={resetSignal} />
-      <ContactShadows
-        position={[0, 0.001, 0]}
-        opacity={0.32}
-        scale={26}
-        blur={2.6}
-        far={10}
-        resolution={512}
-      />
+      <CameraRig height={height} focusY={focusY} resetSignal={resetSignal} />
       <OrbitControls
         makeDefault
         enablePan={false}
-        target={[0, Math.min(6, 1.5 + height / 2), 0]}
         minDistance={10}
         maxDistance={70}
         minPolarAngle={0.15}
@@ -206,24 +280,89 @@ function useReducedMotion() {
   return reduced;
 }
 
+interface Controls {
+  target: THREE.Vector3;
+  update: () => void;
+}
+
 /**
- * Aleja la cámara lo justo para que el plato quepa: según la forma de la pantalla (en el
- * celular el cuadro es más angosto) y la altura de la hamburguesa (en el despiece crece).
- * Solo se ajusta cuando cambian esas cosas; el resto del tiempo manda el usuario.
+ * Encuadre automático. Aleja la cámara lo justo para que el plato quepa (según la forma de la
+ * pantalla y la altura de la hamburguesa, que crece en el despiece) y sube o baja la mirada
+ * hacia el ingrediente seleccionado. Solo actúa cuando cambian esas cosas; el resto del tiempo
+ * manda el usuario.
  */
-function CameraRig({ height, resetSignal }: { height: number; resetSignal?: number }) {
-  const camera = useThree((s) => s.camera);
+function CameraRig({
+  height,
+  focusY,
+  resetSignal,
+}: {
+  height: number;
+  focusY: number;
+  resetSignal?: number;
+}) {
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height));
-  const target = useRef<number | null>(null);
+  const get = useThree((s) => s.get);
+  const goal = useRef<{ dist: number | null; y: number | null; snap: boolean }>({
+    dist: null,
+    y: null,
+    snap: true,
+  });
+  const lastReset = useRef(resetSignal);
+
   useEffect(() => {
-    target.current = (21 + height * 1.1) / Math.min(1, aspect * 0.95);
-  }, [height, aspect, resetSignal]);
-  useFrame((_, delta) => {
-    if (target.current === null) return;
-    const len = camera.position.length();
-    const next = len + (target.current - len) * (1 - Math.exp(-delta * 5));
-    camera.position.setLength(next);
-    if (Math.abs(next - target.current) < 0.05) target.current = null;
+    goal.current.dist = (26 + height * 1.1) / Math.min(1, aspect * 0.95);
+    get().invalidate();
+  }, [height, aspect, resetSignal, get]);
+  useEffect(() => {
+    goal.current.y = focusY;
+    get().invalidate();
+  }, [focusY, resetSignal, get]);
+  useEffect(() => {
+    const { camera, controls, invalidate } = get();
+    const c = controls as unknown as Controls | null;
+    if (!c || resetSignal === lastReset.current) return;
+    lastReset.current = resetSignal;
+    // Vuelve al ángulo de partida a la misma distancia; luego el encuadre ajusta el resto.
+    const dist = camera.position.distanceTo(c.target);
+    camera.position.copy(c.target).addScaledVector(START.clone().normalize(), dist);
+    c.update();
+    invalidate();
+  }, [resetSignal, get]);
+
+  useFrame((state, delta) => {
+    const controls = state.controls as unknown as Controls | null;
+    if (!controls) return;
+    moveCamera(state.camera, controls, goal.current, delta);
+    if (goal.current.y !== null || goal.current.dist !== null) {
+      controls.update();
+      state.invalidate();
+    }
   });
   return null;
+}
+
+const offset = new THREE.Vector3();
+
+/** Un paso del encuadre: acerca la mirada y la distancia a su meta (el primer paso, de golpe). */
+function moveCamera(
+  camera: THREE.Camera,
+  controls: Controls,
+  goal: { dist: number | null; y: number | null; snap: boolean },
+  delta: number,
+) {
+  const t = controls.target;
+  const k = goal.snap ? 1 : 1 - Math.exp(-delta * 5);
+  goal.snap = false;
+  if (goal.y !== null) {
+    const dy = (goal.y - t.y) * k;
+    t.y += dy;
+    camera.position.y += dy;
+    if (Math.abs(goal.y - t.y) < 0.005) goal.y = null;
+  }
+  if (goal.dist !== null) {
+    offset.subVectors(camera.position, t);
+    const next = offset.length() + (goal.dist - offset.length()) * k;
+    camera.position.copy(t).add(offset.setLength(next));
+    if (Math.abs(next - goal.dist) < 0.02) goal.dist = null;
+  }
 }

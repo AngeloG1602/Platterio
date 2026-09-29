@@ -157,15 +157,43 @@ El prototipo usa estas reglas; todas se pueden cambiar en `lib/domain/customizat
 | 6    | Panel: ingredientes más quitados y agregados (dice qué cambiar en la carta)                                                                                | Pequeño                      |
 | 7    | Conectar modelos `.glb` reales con los nombres de nodos de la sección 4                                                                                    | Mediano, por plato           |
 
-## 7. Rendimiento, compatibilidad y accesibilidad
+## 7. Realismo, rendimiento, compatibilidad y accesibilidad
+
+### Realismo (implementado en el laboratorio)
+
+- **Luz de estudio real (HDRI):** `public/hdri/apartment.exr` (Poly Haven, CC0, 100 KB) da reflejos y relleno de un espacio real, más una luz principal cálida con sombra suave. Mapeo de tonos neutro (`NeutralToneMapping`), fiel al color de la comida.
+- **Materiales físicos** (`MeshPhysicalMaterial`): brillo de grasa en la carne, capa brillante en salsas, queso, tomate y yema (`clearcoat`), pelusa suave en el pan y la lechuga (`sheen`).
+- **Texturas procedurales** (`components/viewer3d/textures.ts`): se pintan en el navegador con ruido determinista, sin descargar imágenes. Costra del pan más tostada en la cima, miga en las caras cortadas, carne sellada, nervaduras de la lechuga, cámaras y semillas del tomate, vetas de la tocineta y madera de la mesa. Cada una trae su mapa de relieve (normal map).
+- **Formas orgánicas** (`geometry.ts`): contornos irregulares en el pan y la carne, carne de bordes abombados, queso que se derrite más en unas zonas que en otras, lechuga arrugada, tocineta ondulada y ajonjolí en forma de lágrima.
+- **Escena:** mesa de madera que se funde con el fondo (niebla), plato de cerámica esmaltada y vaso de papel con el nombre y el color del restaurante.
+- **Oclusión ambiental (N8AO), solo en calidad alta:** oscurece donde un ingrediente toca otro. Es lo que más "asienta" las capas.
+
+Con esto se ve como una buena ilustración 3D, **no como una foto**. El fotorrealismo de verdad solo llega con modelos escaneados o hechos por un modelador (sección 4). El visor ya está listo para recibirlos: el mismo estudio de luz sirve para los `.glb`.
+
+### Fluidez (implementado)
+
+- **Dibuja solo cuando algo cambia** (`frameloop="demand"`): quieto no pinta cuadros ni gasta batería. Las animaciones piden cuadros mientras se mueven y paran solas.
+- **Una llamada de dibujo por capa:** las piezas repetidas (aros, tiras de tocineta, rodajas de tomate, papas, ensalada) van fusionadas en una sola geometría. La hamburguesa con papas son ~27 llamadas de dibujo en calidad rápida.
+- **Toque preciso y barato:** cada capa se toca por un cilindro invisible, y no se revisan los miles de triángulos de las mallas visibles.
+- **Animaciones con resorte:** cada capa cae a su sitio con un rebote leve y **sale animada al quitarla**. Si se reemplaza (carne → pollo), la vieja sale y la nueva entra. El resorte avanza por pasos cortos, así que también se ve bien en equipos lentos.
+- **La cámara acompaña:** se encuadra según la pantalla y la altura del despiece, y mira al ingrediente que se toca.
+- **Calidad adaptable:**
+  - _Alta:_ hasta 2× de resolución, sombras 2048 y oclusión ambiental.
+  - _Rápida:_ hasta 1,25×, sombras 1024, sin posprocesado, y los materiales sin `clearcoat` ni `sheen`.
+  - _Automática_ empieza en alta y baja sola si la mediana de los cuadros cae de ~35 fps.
+- **Medidor de rendimiento** (botón del velocímetro): fps, llamadas de dibujo y triángulos. Muestra "En reposo" cuando no se está dibujando.
+- **Precarga:** `<Preload all />` compila los materiales y sube las texturas al empezar, para que el primer giro no dé tirones.
+- **Modelos reales livianos:** el visor de `.glb` acepta geometría comprimida con Draco o meshopt y texturas KTX2/Basis (`public/basis/`). Las texturas KTX2 llegan comprimidas a la GPU y ocupan ~4–6 veces menos memoria que un PNG.
+
+Para medirlo en un teléfono real: abrir `/laboratorio/3d`, activar el medidor y girar o separar. Los números de este informe salen de un navegador sin GPU (renderizado por software), que no sirve para medir fps.
+
+### Compatibilidad y accesibilidad
 
 - **Solo se descarga donde se usa:** Three.js solo baja en la ruta del laboratorio. La carta sigue en ~708 KB de JavaScript sin él (medido). Integrado al producto, se descarga al tocar "Vista 3D".
-- **Hecho para celulares de gama media:**
-  - resolución limitada a 2× y geometrías livianas (el ajonjolí es una sola malla);
-  - sombras suaves precalculadas (`ContactShadows`) en lugar de sombras costosas en tiempo real.
 - **Movimiento reducido:** respeta "reducir movimiento": sin giro automático ni animaciones.
 - **Accesibilidad:** todo lo que se hace en 3D también se puede hacer desde la lista. El 3D complementa, no es obligatorio. Las etiquetas del modelo son botones accesibles con teclado.
 - **Sin 3D en el dispositivo:** si no hay WebGL, la personalización funciona igual desde la lista.
+- **Plantilla .glb:** ahora incluye las texturas, así que pesa ~3,5 MB. Es una plantilla de nombres y proporciones, no el modelo final.
 
 ## 8. Riesgos y decisiones pendientes
 

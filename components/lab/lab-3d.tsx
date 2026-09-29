@@ -6,6 +6,7 @@ import {
   Check,
   Download,
   FlaskConical,
+  Gauge,
   Layers,
   Minus,
   Plus,
@@ -31,7 +32,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { exportDishGlb } from "@/components/viewer3d/export-glb";
 import type { GlbPart } from "@/components/viewer3d/glb-scene";
-import { useDishes, useHydrated } from "@/lib/data";
+import type { Quality, QualitySetting } from "@/components/viewer3d/stage";
+import { useDishes, useHydrated, useRestaurant } from "@/lib/data";
 import { CUSTOMIZATION_SPECS } from "@/lib/data/customization-specs";
 import { ALLERGEN_LABEL } from "@/lib/domain/allergens";
 import {
@@ -58,6 +60,7 @@ import { formatCOP, formatPriceDelta } from "@/lib/domain/format";
 import { ALLERGENS, type Allergen } from "@/lib/domain/types";
 import { buildStack } from "@/lib/viewer3d/stack";
 import { cn } from "@/lib/cn";
+import { createStatsStore, PerfHud } from "./perf-hud";
 
 // Three.js solo se descarga al abrir el laboratorio, nunca en el resto de la app.
 const ViewerLoading = () => (
@@ -148,6 +151,11 @@ function DishLab() {
   const [selected, setSelected] = useState<string | null>(null);
   const [reset, setReset] = useState(0);
   const [restrictions, setRestrictions] = useState<Allergen[]>([]);
+  const [quality, setQuality] = useState<QualitySetting>("auto");
+  const [drawing, setDrawing] = useState<Quality>("alta");
+  const [showPerf, setShowPerf] = useState(false);
+  const [statsStore] = useState(createStatsStore);
+  const restaurant = useRestaurant();
   const sceneRef = useRef<THREE.Scene | null>(null);
 
   const stack = useMemo(() => buildStack(spec, custom, variantId), [spec, custom, variantId]);
@@ -217,6 +225,11 @@ function DishLab() {
               onSelect={setSelected}
               onSceneReady={onSceneReady}
               resetSignal={reset}
+              quality={quality}
+              onQualityChange={setDrawing}
+              onStats={showPerf ? statsStore.set : undefined}
+              brand={restaurant.name}
+              accent={restaurant.accentColor}
             />
           </div>
 
@@ -245,6 +258,14 @@ function DishLab() {
               >
                 <RotateCcw aria-hidden />
               </IconButton>
+              <IconButton
+                label={showPerf ? "Ocultar el medidor de rendimiento" : "Ver el rendimiento"}
+                className="size-10"
+                onClick={() => setShowPerf((v) => !v)}
+                aria-pressed={showPerf}
+              >
+                <Gauge aria-hidden className={showPerf ? "text-accent-strong" : ""} />
+              </IconButton>
             </div>
             <Button
               variant="secondary"
@@ -265,6 +286,12 @@ function DishLab() {
               <Download aria-hidden /> Plantilla .glb
             </Button>
           </div>
+
+          {showPerf && (
+            <div className="pointer-events-none absolute top-[4.25rem] left-3">
+              <PerfHud store={statsStore} quality={drawing} setting={quality} />
+            </div>
+          )}
 
           <div className="absolute inset-x-3 bottom-3 flex flex-col gap-2">
             {selectedSlot && (
@@ -298,11 +325,28 @@ function DishLab() {
             </label>
           </div>
         </div>
-        <p className="text-muted text-[13px]">
-          Arrastra para girar · rueda o dos dedos para acercar · toca un ingrediente para ver sus
-          opciones. El modelo es procedural (hecho con código); con un modelo real se ve igual de
-          interactivo, ver la propuesta.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <p className="text-muted text-[13px] sm:max-w-md">
+            Arrastra para girar · rueda o dos dedos para acercar · toca un ingrediente para ver sus
+            opciones. El modelo es procedural (hecho con código); con un modelo real se ve igual de
+            interactivo, ver la propuesta.
+          </p>
+          <div className="flex shrink-0 flex-col gap-1">
+            <span className="text-muted text-xs font-semibold" aria-hidden>
+              Calidad del visor
+            </span>
+            <Segmented
+              label="Calidad del visor"
+              value={quality}
+              onChange={setQuality}
+              options={[
+                { value: "auto", label: "Automática" },
+                { value: "alta", label: "Alta" },
+                { value: "rapida", label: "Rápida" },
+              ]}
+            />
+          </div>
+        </div>
       </div>
 
       <aside className="flex flex-col gap-4">

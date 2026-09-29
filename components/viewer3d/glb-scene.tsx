@@ -1,12 +1,32 @@
 "use client";
 
-import { Bounds, ContactShadows, OrbitControls, useGLTF } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
+import { Bounds, OrbitControls, useGLTF } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo } from "react";
 import * as THREE from "three";
+import { KTX2Loader } from "three-stdlib";
+import {
+  canvasQuality,
+  Effects,
+  PerfProbe,
+  QualityContext,
+  Stage,
+  type PerfStats,
+  type Quality,
+} from "./stage";
 import { hasWebGL, NoWebGL } from "./webgl";
 
 const WEBGL = typeof window !== "undefined" && hasWebGL();
+
+/**
+ * Cargador de texturas KTX2 (Basis): texturas comprimidas que la GPU usa sin descomprimir, así
+ * un modelo real pesa y ocupa mucho menos memoria. Uno solo para toda la página.
+ */
+let ktx2: KTX2Loader | null = null;
+function ktx2Loader(gl: THREE.WebGLRenderer) {
+  ktx2 ??= new KTX2Loader().setTranscoderPath("/basis/").detectSupport(gl);
+  return ktx2;
+}
 
 export interface GlbPart {
   name: string;
@@ -23,30 +43,38 @@ export default function GlbScene({
   explode,
   hidden,
   onParts,
+  quality = "alta",
+  onStats,
 }: {
   url: string;
   explode: number;
   hidden: string[];
   onParts: (parts: GlbPart[]) => void;
+  quality?: Quality;
+  onStats?: (s: PerfStats) => void;
 }) {
   if (!WEBGL) return <NoWebGL />;
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
+      frameloop="demand"
+      shadows="percentage"
+      dpr={canvasQuality(quality).dpr}
       camera={{ position: [10, 8, 12], fov: 32 }}
+      gl={{ antialias: true, toneMapping: THREE.NeutralToneMapping }}
       role="img"
       aria-label="Vista previa del modelo 3D subido"
     >
-      <color attach="background" args={["#F3EEE6"]} />
-      <hemisphereLight args={["#FFF8EF", "#B89A7A", 0.8]} />
-      <directionalLight position={[7, 14, 9]} intensity={1.6} castShadow />
-      <directionalLight position={[-9, 6, -7]} intensity={0.45} />
-      <Bounds fit clip observe margin={1.3}>
-        <Model url={url} explode={explode} hidden={hidden} onParts={onParts} />
-      </Bounds>
-      <ContactShadows position={[0, 0, 0]} opacity={0.3} scale={30} blur={2.5} far={12} />
+      <QualityContext value={quality}>
+        <Suspense fallback={null}>
+          <Stage quality={quality} />
+          <Bounds fit clip observe margin={1.3}>
+            <Model url={url} explode={explode} hidden={hidden} onParts={onParts} />
+          </Bounds>
+          <Effects quality={quality} />
+        </Suspense>
+      </QualityContext>
       <OrbitControls makeDefault enableDamping />
+      <PerfProbe onStats={onStats} />
     </Canvas>
   );
 }
@@ -70,7 +98,10 @@ function Model({
   hidden: string[];
   onParts: (p: GlbPart[]) => void;
 }) {
-  const gltf = useGLTF(url, "/draco/");
+  const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
+  // Draco (geometría comprimida), meshopt (geometría y animaciones) y KTX2 (texturas).
+  const gltf = useGLTF(url, "/draco/", true, (loader) => loader.setKTX2Loader(ktx2Loader(gl)));
   const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
 
   // Centrar sobre el piso y escalar a ~10 unidades de ancho.
@@ -121,7 +152,8 @@ function Model({
       p.position.y = (baseY.get(p.uuid) ?? 0) + i * step * explode;
       p.visible = !hidden.includes(p.name || `parte_${i + 1}`);
     });
-  }, [parts, baseY, step, explode, hidden]);
+    invalidate();
+  }, [parts, baseY, step, explode, hidden, invalidate]);
 
   return (
     <group scale={scale}>

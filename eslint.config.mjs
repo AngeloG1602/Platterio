@@ -9,7 +9,9 @@ const config = [
       "@typescript-eslint/no-explicit-any": "error",
     },
   },
-  { ignores: [".next/**", "node_modules/**", "next-env.d.ts", "public/draco/**"] },
+  {
+    ignores: [".next/**", "node_modules/**", "next-env.d.ts", "public/draco/**", "public/basis/**"],
+  },
 ];
 
 export default config;
