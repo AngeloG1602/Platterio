@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+/*
+ * Tokens de diseño (BRIEF §4). Todo color, radio y sombra de la interfaz sale de aquí.
+ * --accent lo define cada restaurante; --accent-strong se calcula en JS para cumplir AA con blanco.
+ */
+:root {
+  --bg: #faf7f2;
+  --surface: #ffffff;
+  --surface-2: #f3eee6;
+  --ink: #1c1917;
+  --ink-soft: #44403c;
+  --muted: #716a64;
+  --line: #e7e2da;
+  --line-strong: #d6cec3;
+
+  --accent: #e4572e;
+  --accent-strong: #c2461f;
+  --accent-ink: #ffffff;
+  --accent-soft: color-mix(in oklab, var(--accent) 11%, var(--surface));
+  --accent-line: color-mix(in oklab, var(--accent) 35%, var(--surface));
+
+  --success: #2f855a;
+  --success-ink: #276749;
+  --success-soft: color-mix(in oklab, var(--success) 12%, var(--surface));
+  --warning: #b7791f;
+  --warning-ink: #86560f;
+  --warning-soft: color-mix(in oklab, var(--warning) 14%, var(--surface));
+  --danger: #c53030;
+  --danger-ink: #a82828;
+  --danger-soft: color-mix(in oklab, var(--danger) 10%, var(--surface));
+
+  --overlay: rgb(28 25 23 / 0.45);
+  --focus: color-mix(in oklab, var(--accent) 55%, transparent);
+
+  --shadow-card:
+    0 1px 0 rgb(28 25 23 / 0.03), 0 1px 3px rgb(28 25 23 / 0.06),
+    0 10px 24px -14px rgb(28 25 23 / 0.16);
+  --shadow-float: 0 2px 6px rgb(28 25 23 / 0.08), 0 18px 40px -12px rgb(28 25 23 / 0.28);
+  --shadow-sheet: 0 -12px 40px -10px rgb(28 25 23 / 0.25);
+}
+
+/* Cocina: modo oscuro de alto contraste para leer a distancia (BRIEF §4). */
+.theme-cocina {
+  --bg: #0e0d0c;
+  --surface: #1a1816;
+  --surface-2: #24211e;
+  --ink: #f7f3ec;
+  --ink-soft: #e2dcd2;
+  --muted: #b3aba1;
+  --line: #34302b;
+  --line-strong: #4a443d;
+  --accent-soft: color-mix(in oklab, var(--accent) 22%, var(--surface));
+  --accent-line: color-mix(in oklab, var(--accent) 55%, var(--surface));
+  --success: #48bb78;
+  --success-ink: #68d391;
+  --success-soft: color-mix(in oklab, #48bb78 18%, var(--surface));
+  --warning: #ecc94b;
+  --warning-ink: #f6e05e;
+  --warning-soft: color-mix(in oklab, #ecc94b 16%, var(--surface));
+  --danger: #fc8181;
+  --danger-ink: #feb2b2;
+  --danger-soft: color-mix(in oklab, #fc8181 16%, var(--surface));
+  --shadow-card: 0 0 0 1px var(--line);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-soft: var(--danger-soft);
+  --color-overlay: var(--overlay);
+
+  --font-serif: "Fraunces Variable", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+  --shadow-sheet: var(--shadow-sheet);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-fade-in: fade-in 180ms var(--ease-out-soft);
+  --animate-fade-out: fade-out 150ms ease-in;
+  --animate-sheet-in: sheet-in 240ms var(--ease-out-soft);
+  --animate-sheet-out: sheet-out 180ms ease-in;
+  --animate-pop-in: pop-in 200ms var(--ease-out-soft);
+  --animate-pop-out: pop-out 150ms ease-in;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes pop-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  /* Títulos editoriales: Fraunces con tamaño óptico y un toque "suave". */
+  .font-display {
+    font-family: var(--font-serif);
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 50;
+    letter-spacing: -0.015em;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
