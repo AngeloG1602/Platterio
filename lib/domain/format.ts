@@ -98,3 +98,10 @@ export function formatRelative(date: Date, now: Date): string {
   if (date.toDateString() === yesterday.toDateString()) return `ayer ${formatTime(date)}`;
   return `${formatDay(date)} ${formatTime(date)}`;
 }
+
+const SHORT_WEEKDAYS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+
+/** Día corto para ejes de gráficas: "lun 28". */
+export function formatShortDay(date: Date): string {
+  return `${SHORT_WEEKDAYS[date.getDay()]} ${date.getDate()}`;
+}

@@ -47,6 +47,9 @@ export function DishImage({
   const [loaded, setLoaded] = useState(false);
   const [c1, c2, c3] = PALETTES[hash(name) % PALETTES.length]!;
   const initial = name.trim().charAt(0).toUpperCase();
+  // Fotos subidas desde el panel (data URL) o las que existen en /public/platos.
+  const uploaded = Boolean(src?.startsWith("data:"));
+  const available = Boolean(src && (uploaded || AVAILABLE.has(src)));
 
   return (
     <div className={cn("bg-surface-2 relative isolate overflow-hidden", rounded, className)}>
@@ -66,13 +69,14 @@ export function DishImage({
           {initial}
         </span>
       </div>
-      {src && AVAILABLE.has(src) && !failed && (
+      {src && available && !failed && (
         <Image
           src={src}
           alt={name}
           fill
           sizes={sizes}
           priority={priority}
+          unoptimized={uploaded}
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
           className={cn(
@@ -81,7 +85,7 @@ export function DishImage({
           )}
         />
       )}
-      {(failed || !src || !AVAILABLE.has(src)) && <span className="sr-only">{name}</span>}
+      {(failed || !available) && <span className="sr-only">{name}</span>}
     </div>
   );
 }

@@ -33,7 +33,12 @@ npm run dev        # http://localhost:3000
   Con `?mesero=carlos` o `?mesero=daniela` entra directo.
 - `/cocina` — Tablero de cocina en modo oscuro: confirmados, en preparación y listos.
 - `/mesa/[numero]/calificar` — Calificar platos y servicio por separado.
-- `/admin` — Panel del administrador (por ahora: alertas de servicio).
+- `/admin` — Resumen: ventas, pedidos, ticket promedio, calificaciones, alertas y pedidos por hora.
+- `/admin/platos` y `/admin/platos/[id]` — Catálogo: crear, editar, desactivar y destacar platos.
+- `/admin/recomendaciones` — Destacados, franjas horarias y vista previa por franja.
+- `/admin/calificaciones` — Promedios de platos y servicio, ranking y comentarios.
+- `/admin/ventas` — Ventas por día, más pedidos por franja y restricciones.
+- `/admin/configuracion` — Color, umbrales, mesas con QR y meseros.
 
 ## Estructura
 
@@ -58,5 +63,5 @@ reemplaza esa capa, no las pantallas.
 - [x] Fase 3 — Mesero
 - [x] Fase 4 — Cocina y estados
 - [x] Fase 5 — Calificaciones
-- [ ] Fase 6 — Administrador
+- [x] Fase 6 — Administrador
 - [ ] Fase 7 — Pulido

@@ -5,6 +5,24 @@ import { isValidHex } from "@/lib/domain/color";
 import { addToCart, cartCount, removeCartItem, updateCartItem } from "@/lib/domain/cart";
 import { submitRound } from "@/lib/domain/orders";
 import {
+  draftToDish,
+  hasErrors,
+  validateDishDraft,
+  type DishDraft,
+  type DishFormErrors,
+} from "@/lib/domain/dishForm";
+import {
+  addTable,
+  addWaiter,
+  applyTimeSlots,
+  removeTable,
+  toggleTableAssignment,
+  validateThreshold,
+  validateTimeout,
+} from "@/lib/domain/config";
+import { validateTimeSlots, type SlotError } from "@/lib/domain/timeSlots";
+import type { TimeSlot } from "@/lib/domain/types";
+import {
   rateDishes,
   ratableDishes,
   rateService,
@@ -374,5 +392,97 @@ export const alertActions = {
     useAppStore.setState((s) => ({
       alerts: s.alerts.map((a) => (a.id === alertId ? { ...a, resolved: false } : a)),
     }));
+  },
+};
+
+/* ——— Administrador ——— */
+
+export const catalogActions = {
+  /** Crea o actualiza un plato desde el formulario. Devuelve los errores si no pasa la validación. */
+  saveDish(draft: DishDraft): { ok: true; id: string } | { ok: false; errors: DishFormErrors } {
+    const state = useAppStore.getState();
+    const existing = draft.id ? state.dishes.find((d) => d.id === draft.id) : undefined;
+    const errors = validateDishDraft(draft, {
+      categoryIds: state.categories.map((c) => c.id),
+      otherNames: state.dishes.filter((d) => d.id !== existing?.id).map((d) => d.name),
+    });
+    if (hasErrors(errors)) return { ok: false, errors };
+    const dish = draftToDish(draft, {
+      takenIds: state.dishes.map((d) => d.id),
+      now: nowIso(),
+      existing,
+    });
+    useAppStore.setState((s) => ({
+      dishes: existing ? s.dishes.map((d) => (d.id === dish.id ? dish : d)) : [...s.dishes, dish],
+    }));
+    return { ok: true, id: dish.id };
+  },
+  setActive(dishId: string, active: boolean) {
+    useAppStore.setState((s) => ({
+      dishes: s.dishes.map((d) => (d.id === dishId ? { ...d, active } : d)),
+    }));
+  },
+  setFeatured(dishId: string, featured: boolean) {
+    useAppStore.setState((s) => ({
+      dishes: s.dishes.map((d) => (d.id === dishId ? { ...d, featured } : d)),
+    }));
+  },
+};
+
+export const slotActions = {
+  /** Guarda las franjas si no se solapan (regla 10). */
+  save(
+    slots: Array<Omit<TimeSlot, "id"> & { id?: string }>,
+  ): { ok: true } | { ok: false; errors: SlotError[] } {
+    const withIds = slots.map((s, i) => ({ ...s, id: s.id ?? `nueva-${i}` }));
+    const errors = validateTimeSlots(withIds);
+    if (errors.length) return { ok: false, errors };
+    const state = useAppStore.getState();
+    const result = applyTimeSlots(slots, state.dishes);
+    const override = result.slots.some((s) => s.id === state.demo.slotOverride)
+      ? state.demo.slotOverride
+      : null;
+    useAppStore.setState((s) => ({
+      timeSlots: result.slots,
+      dishes: result.dishes,
+      demo: { ...s.demo, slotOverride: override },
+    }));
+    return { ok: true };
+  },
+};
+
+export const configActions = {
+  setThreshold(value: number): ActionResult {
+    const error = validateThreshold(value);
+    if (error) return { ok: false, error };
+    useAppStore.setState((s) => ({
+      restaurant: { ...s.restaurant, serviceAlertThreshold: value },
+    }));
+    return { ok: true };
+  },
+  setConfirmTimeout(value: number): ActionResult {
+    const error = validateTimeout(value);
+    if (error) return { ok: false, error };
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, confirmTimeoutMin: value } }));
+    return { ok: true };
+  },
+  addTable() {
+    useAppStore.setState((s) => ({ tables: addTable(s.tables) }));
+  },
+  removeTable(tableId: string): ActionResult {
+    const s = useAppStore.getState();
+    const r = removeTable(s, tableId);
+    if (!r.ok) return r;
+    useAppStore.setState(r.value);
+    return { ok: true };
+  },
+  toggleAssignment(waiterId: string, tableId: string) {
+    useAppStore.setState((s) => ({ waiters: toggleTableAssignment(s.waiters, waiterId, tableId) }));
+  },
+  addWaiter(name: string): ActionResult {
+    const r = addWaiter(useAppStore.getState().waiters, name);
+    if (!r.ok) return r;
+    useAppStore.setState({ waiters: r.value });
+    return { ok: true };
   },
 };

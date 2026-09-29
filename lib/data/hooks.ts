@@ -233,3 +233,20 @@ export function useServiceFeedback(session: TableSession) {
   const waiter = useAppStore((s) => waiterForTable(s.waiters, session.tableId));
   return { rating, waiter };
 }
+
+/* ——— Administrador ——— */
+
+/** Todos los datos para analítica: historial sembrado + lo creado en la demo. */
+export function useAnalyticsData() {
+  const history = useHistory();
+  const orders = useAllOrders();
+  const dishRatings = useAllDishRatings();
+  const liveSessions = useAppStore((s) => s.sessions);
+  const liveService = useAppStore((s) => s.serviceRatings);
+  const sessions = useMemo(() => [...history.sessions, ...liveSessions], [history, liveSessions]);
+  const serviceRatings = useMemo(
+    () => [...history.serviceRatings, ...liveService],
+    [history, liveService],
+  );
+  return { orders, sessions, dishRatings, serviceRatings };
+}

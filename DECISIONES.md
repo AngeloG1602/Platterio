@@ -191,3 +191,49 @@ pueden cambiar sin rehacer pantallas.
 55. **Panel del administrador en esta fase.** Se construyó la estructura (marca Platterio y menú
     lateral) y el bloque de alertas del Resumen. Las demás secciones aparecen marcadas "Fase 6"
     y se activan en la próxima fase.
+
+## Fase 6 — Administrador
+
+56. **Qué cuenta como venta.** Solo las rondas entregadas, con los precios congelados y sin ítems
+    quitados (regla 12), en la fecha de entrega. "Pedidos del día" cuenta las rondas enviadas
+    por las mesas, sin las rechazadas.
+57. **Ticket promedio.** Ventas divididas entre visitas (sesiones de mesa con algo entregado), no
+    entre rondas: una mesa que pide en dos rondas es una sola cuenta.
+58. **Periodos.** Hoy, 7 días (por defecto), 14 días o fechas propias; siempre días completos desde
+    la medianoche. Si el periodo no tiene datos se muestra "No hay datos para este periodo".
+59. **Datos del panel.** Combinan el historial sembrado de 14 días con lo creado durante la demo,
+    así que un pedido o una calificación nuevos se ven al instante en el panel.
+60. **Pedidos por hora.** Las rondas de hoy (barras) frente al promedio de los 13 días anteriores
+    (línea), entre las 7:00 a. m. y las 11:00 p. m.
+61. **Ranking de platos.** Se ordena con el mismo promedio bayesiano del recomendador. La barra
+    muestra el promedio simple y el número de reseñas.
+62. **Más pedidos por franja.** La franja se asigna por la hora en que se envió la ronda y se
+    cuentan unidades entregadas.
+63. **Restricciones.** Se cuentan comensales por alérgeno a partir de las visitas del periodo, sin
+    nombres ni datos personales.
+64. **Fotos subidas.** Sin servidor de archivos, cada foto se reduce a JPEG de máximo 960 px y se
+    guarda como data URL (unos 60–120 KB). Hasta 4 fotos por plato; la primera es la principal.
+    Con backend real se reemplaza por subida a almacenamiento.
+65. **Modelo 3D.** Se valida la extensión `.glb` y el tamaño (máx. 4 MB). Si no cumple, sale
+    "Formato o tamaño no permitido (solo .glb hasta 4 MB)". Solo se guardan el nombre y el
+    tamaño.
+66. **Id del plato.** Se crea a partir del nombre ("La Paisa" → `la-paisa`) y no cambia aunque se
+    renombre. No hay "eliminar": los platos se desactivan (regla 11) para conservar su historial.
+67. **Nombres únicos.** Dos platos no pueden llamarse igual, sin distinguir tildes ni mayúsculas.
+68. **Precios.** Se aceptan "22.900", "$22.900" o "22900". Con una sola opción, se llama "Única".
+69. **Validación del formulario.** Los errores aparecen al primer intento de guardar y a partir de
+    ahí se recalculan en vivo mientras se corrigen, con un resumen arriba.
+70. **Franjas.** Se editan juntas y se guardan con un botón. El solapamiento se marca en vivo en
+    la fila ("Las franjas se solapan") y bloquea el guardado. Si se elimina una franja, se quita
+    también de los platos y de la hora simulada.
+71. **Vista previa de recomendaciones.** Usa el mismo recomendador del cliente, a la mitad de cada
+    franja, sin restricciones, y muestra el puntaje de cada plato para poder explicarlo en la
+    sustentación.
+72. **Mesas y meseros.** No se puede quitar una mesa con clientes. Una mesa tiene un solo mesero:
+    asignarla a otro se la quita al anterior. Si queda una mesa sin mesero, se avisa.
+73. **QR.** Cada mesa apunta a `<dominio>/mesa/<número>`. "PNG" descarga una tarjeta imprimible
+    con el nombre del restaurante, la mesa y el QR.
+74. **Gráficas.** Una sola serie va en el color del restaurante y no lleva leyenda; con dos series
+    (hoy frente al promedio) hay leyenda. Barras de máximo 24 px con extremo redondeado,
+    retícula de línea fina, tooltip al pasar el cursor y botón "Ver tabla" para accesibilidad.
+    Las cifras grandes van en sans, no en la serif de los títulos.

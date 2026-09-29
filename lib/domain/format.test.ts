@@ -6,6 +6,7 @@ import {
   formatElapsed,
   formatPriceDelta,
   formatRelative,
+  formatShortDay,
   formatSlotRange,
   formatTime,
   plural,
@@ -44,6 +45,7 @@ describe("fechas y horas", () => {
   });
   it("formatea el día como 'lunes 28 de sept.'", () => {
     expect(formatDay(new Date(2026, 8, 28))).toBe("lunes 28 de sept.");
+    expect(formatShortDay(new Date(2026, 8, 30))).toBe("mié 30");
   });
   it("formatea duraciones", () => {
     expect(formatElapsed(75_000)).toBe("1:15");

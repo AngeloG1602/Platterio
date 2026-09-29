@@ -29,11 +29,11 @@ interface NavItem {
 /** Secciones del panel. Se activan a medida que se construyen (Fase 6). */
 const NAV: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard, ready: true },
-  { href: "/admin/platos", label: "Platos", icon: UtensilsCrossed, ready: false },
-  { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles, ready: false },
-  { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText, ready: false },
-  { href: "/admin/ventas", label: "Ventas", icon: ChartColumn, ready: false },
-  { href: "/admin/configuracion", label: "Configuración", icon: Settings2, ready: false },
+  { href: "/admin/platos", label: "Platos", icon: UtensilsCrossed, ready: true },
+  { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles, ready: true },
+  { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText, ready: true },
+  { href: "/admin/ventas", label: "Ventas", icon: ChartColumn, ready: true },
+  { href: "/admin/configuracion", label: "Configuración", icon: Settings2, ready: true },
 ];
 
 /** Estructura del panel del administrador: marca Platterio, navegación lateral y contenido. */
