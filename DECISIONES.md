@@ -150,3 +150,21 @@ pueden cambiar sin rehacer pantallas.
     audio). Al activarlo desde el ícono de volumen suena una muestra; después, un pedido nuevo o
     uno listo suenan con un aviso corto generado con Web Audio, sin archivos.
 44. **"Listo → Entregado".** Ya está en la vista del mesero; se activa cuando la cocina (Fase 4) marque la ronda como lista.
+
+## Fase 4 — Cocina y estados
+
+45. **Qué ve la cocina.** Solo rondas confirmadas por el mesero (regla 1), en tres columnas y en
+    orden de llegada a la cocina (la hora de confirmación). Los ítems que quitó el mesero no
+    aparecen. La columna "Listos" muestra lo que espera al mesero y se vacía cuando lo entrega.
+46. **Tiempo en la tarjeta.** Cuenta desde que el mesero confirmó. Desde los 10 min se pone
+    ámbar ("va lento") y desde los 20 min en rojo ("atrasado"); con el tiempo ×10 eso es 1 y 2
+    minutos reales. En "Listos" cuenta desde que se marcó listo.
+47. **Un toque por paso.** Cada tarjeta tiene un único botón grande: "Empezar a preparar" o
+    "Marcar listo". No hay "deshacer": la máquina de estados no permite retroceder y la cocina no
+    marca "entregado".
+48. **Tema oscuro.** La clase `theme-cocina` se aplica a toda la página mientras la cocina está
+    abierta (así los toasts también salen oscuros) y se quita al salir.
+49. **Línea de tiempo del cliente.** La ronda más reciente muestra la línea completa con la hora
+    de cada paso. Las rondas anteriores muestran una barra de progreso compacta con su estado.
+    Una ronda rechazada termina en "Rechazado" después de "Pendiente de confirmación".
+    `Order.preparingAt` (extensión) guarda la hora de "En preparación".

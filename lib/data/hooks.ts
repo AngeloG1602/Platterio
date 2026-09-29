@@ -8,6 +8,7 @@ import { recommend } from "@/lib/domain/recommender";
 import { findOpenSession } from "@/lib/domain/session";
 import { consolidateTicket } from "@/lib/domain/ticket";
 import { tableOverview } from "@/lib/domain/waiter";
+import { kitchenBoard } from "@/lib/domain/kitchen";
 import type { Allergen, Order, TableSession, TimeSlot } from "@/lib/domain/types";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
@@ -203,4 +204,11 @@ export function useWaiterBoard(waiterId: string | null) {
       inKitchen: overviews.flatMap((o) => o.inKitchen).sort(byCreated),
     };
   }, [waiter, tables, sessions, orders]);
+}
+
+/* ——— Cocina ——— */
+
+export function useKitchenBoard() {
+  const orders = useAppStore((s) => s.orders);
+  return useMemo(() => kitchenBoard(orders), [orders]);
 }

@@ -14,6 +14,7 @@ import { STATUS_MESSAGE } from "@/lib/domain/orderStatus";
 import { describeAdjustment, type TicketRound } from "@/lib/domain/ticket";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
+import { OrderProgress, OrderTimeline } from "./order-timeline";
 import { LiveDot, ScreenHeader } from "./screen-header";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
@@ -139,6 +140,7 @@ function LatestStatus({ round, ctx }: { round: TicketRound; ctx: TableContext })
         Enviado {sentBy ? `por ${sentBy.id === ctx.diner.id ? "ti" : sentBy.alias} ` : ""}a las{" "}
         {formatTime(new Date(round.order.createdAt))}
       </p>
+      <OrderTimeline order={round.order} />
     </section>
   );
 }
@@ -152,7 +154,11 @@ function RoundCard({ round, myDinerId }: { round: TicketRound; myDinerId: string
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-[19px] font-semibold">Ronda {round.round}</h2>
-        <span className="text-muted text-[13px] tabular-nums">
+        <StatusBadge status={round.status} short />
+      </div>
+      <div className="mt-2.5 flex items-center gap-3">
+        <OrderProgress order={round.order} />
+        <span className="text-muted shrink-0 text-[13px] tabular-nums">
           {formatTime(new Date(round.order.createdAt))}
         </span>
       </div>
