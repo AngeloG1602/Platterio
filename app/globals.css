@@ -112,6 +112,7 @@
   --animate-pop-in: pop-in 200ms var(--ease-out-soft);
   --animate-pop-out: pop-out 150ms ease-in;
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  --animate-flash: flash 2s ease-out;
 }
 
 @keyframes fade-in {
@@ -164,6 +165,14 @@
   to {
     opacity: 0;
     transform: translate(-50%, -48%) scale(0.97);
+  }
+}
+@keyframes flash {
+  from {
+    background-color: var(--accent-soft);
+  }
+  to {
+    background-color: transparent;
   }
 }
 @keyframes shimmer {

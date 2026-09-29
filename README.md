@@ -27,6 +27,8 @@ npm run dev        # http://localhost:3000
 - `/mesa/[numero]` — Entrada del cliente (lo que abre el QR): alias y comensales de la mesa.
 - `/mesa/[numero]/menu` — Recomendados por franja, pestañas de categoría, buscador y filtros.
 - `/mesa/[numero]/plato/[id]` — Ficha del plato con variantes, ingredientes, alérgenos y nota.
+- `/mesa/[numero]/carrito` — Carrito compartido de la mesa, en vivo, y envío con confirmación.
+- `/mesa/[numero]/pedido` — Ticket de la mesa: rondas, estado, comensales y total.
 
 ## Estructura
 
@@ -47,7 +49,7 @@ reemplaza esa capa, no las pantallas.
 
 - [x] Fase 0 — Base
 - [x] Fase 1 — Menú del cliente
-- [ ] Fase 2 — Pedido
+- [x] Fase 2 — Pedido
 - [ ] Fase 3 — Mesero
 - [ ] Fase 4 — Cocina y estados
 - [ ] Fase 5 — Calificaciones

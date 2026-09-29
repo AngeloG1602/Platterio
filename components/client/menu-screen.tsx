@@ -27,6 +27,8 @@ import { FilterSheet, SPICE_FILTER_LABEL } from "./filter-sheet";
 import { menuFilterActions, useMenuFilters } from "./menu-filters-store";
 import { Recommendations, RecommendationsSkeleton } from "./recommendations";
 import { RestrictionsSheet } from "./restrictions-sheet";
+import { useTableActivity } from "./table-activity";
+import { TableBar } from "./table-bar";
 import { TableGate, type TableContext } from "./table-gate";
 
 export function MenuScreen({ numero }: { numero: string }) {
@@ -40,6 +42,7 @@ export function MenuScreen({ numero }: { numero: string }) {
 }
 
 function Menu({ ctx }: { ctx: TableContext }) {
+  useTableActivity(ctx);
   const restaurant = useRestaurant();
   const categories = useCategories();
   const dishes = useDishes();
@@ -139,7 +142,8 @@ function Menu({ ctx }: { ctx: TableContext }) {
         </div>
       </div>
 
-      <MadeWithPlatterio className="mt-auto pb-8" />
+      <MadeWithPlatterio className="mt-auto pb-28" />
+      <TableBar ctx={ctx} />
 
       <FilterSheet
         open={filtersOpen}

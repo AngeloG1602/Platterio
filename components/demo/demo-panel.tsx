@@ -8,6 +8,7 @@ import {
   Sun,
   Sunset,
   Moon,
+  UserPlus,
   WandSparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -20,6 +21,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import {
   demoActions,
+  demoDinerActions,
+  useOpenTableNumbers,
+  useTables,
   useConnectedTabs,
   useCurrentSlot,
   useDemoSettings,
@@ -181,6 +185,8 @@ export function DemoSheet({
             )}
           </section>
 
+          <SimulateDiner />
+
           <section>
             <Button variant="secondary" block onClick={() => setConfirmReset(true)}>
               <RotateCcw aria-hidden /> Reiniciar datos
@@ -273,5 +279,64 @@ function SlotOption({
         </span>
       </span>
     </button>
+  );
+}
+
+/** Un comensal simulado entra a la mesa y agrega un plato al carrito compartido. */
+function SimulateDiner() {
+  const tables = useTables();
+  const openTables = useOpenTableNumbers();
+  const [picked, setPicked] = useState<number | null>(null);
+  const tableNumber = picked ?? openTables[0] ?? 3;
+  return (
+    <section aria-labelledby="demo-comensal" className="border-line rounded-xl border p-4">
+      <h3 id="demo-comensal" className="text-[15px] font-semibold">
+        Simular otro comensal
+      </h3>
+      <p className="text-muted text-[13px]">
+        Entra a la mesa y agrega un plato de la franja actual.
+      </p>
+      <div role="radiogroup" aria-label="Mesa" className="mt-3 grid grid-cols-6 gap-1.5">
+        {tables.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="radio"
+            aria-checked={tableNumber === t.number}
+            aria-label={`Mesa ${t.number}${openTables.includes(t.number) ? " (con clientes)" : ""}`}
+            onClick={() => setPicked(t.number)}
+            className={cn(
+              "relative flex h-11 items-center justify-center rounded-lg border text-[15px] font-semibold tabular-nums transition-colors",
+              tableNumber === t.number
+                ? "border-ink bg-ink text-bg"
+                : "border-line-strong bg-surface hover:border-ink/40",
+            )}
+          >
+            {t.number}
+            {openTables.includes(t.number) && (
+              <span
+                className="bg-success absolute top-1 right-1 size-1.5 rounded-full"
+                aria-hidden
+              />
+            )}
+          </button>
+        ))}
+      </div>
+      <Button
+        variant="secondary"
+        block
+        className="mt-3"
+        onClick={() => {
+          const r = demoDinerActions.simulate(tableNumber);
+          if (r.ok)
+            toast.success(`${r.alias} entró a la Mesa ${tableNumber}`, {
+              description: `Agregó ${r.dishName}`,
+            });
+          else toast.error(r.error);
+        }}
+      >
+        <UserPlus aria-hidden /> Agregar comensal a la Mesa {tableNumber}
+      </Button>
+    </section>
   );
 }

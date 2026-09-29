@@ -6,7 +6,8 @@ import { effectiveSlot, slotAt, slotMidpoint } from "@/lib/domain/timeSlots";
 import { ratingStatsByDish } from "@/lib/domain/ratings";
 import { recommend } from "@/lib/domain/recommender";
 import { findOpenSession } from "@/lib/domain/session";
-import type { Allergen, TimeSlot } from "@/lib/domain/types";
+import { consolidateTicket } from "@/lib/domain/ticket";
+import type { Allergen, TableSession, TimeSlot } from "@/lib/domain/types";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
 import { HISTORY_CATALOG } from "./seed";
@@ -130,4 +131,45 @@ export function useRecommendations(restrictions: readonly Allergen[]) {
     [dishes, current.slot, current.at, orders, ratings, restrictions],
   );
   return { recommendations, current };
+}
+
+/** Rondas de una sesión, en orden. */
+export function useSessionOrders(sessionId: string | undefined) {
+  const orders = useAppStore((s) => s.orders);
+  return useMemo(
+    () =>
+      sessionId
+        ? orders.filter((o) => o.sessionId === sessionId).sort((a, b) => a.round - b.round)
+        : [],
+    [orders, sessionId],
+  );
+}
+
+/** Ticket consolidado de la sesión (US-24). */
+export function useTicket(session: TableSession | undefined) {
+  const orders = useSessionOrders(session?.id);
+  const dishes = useDishes();
+  return useMemo(
+    () =>
+      consolidateTicket({
+        sessionId: session?.id ?? "",
+        orders,
+        dishes,
+        diners: session?.diners ?? [],
+      }),
+    [session?.id, session?.diners, orders, dishes],
+  );
+}
+
+/** Números de las mesas con sesión abierta. */
+export function useOpenTableNumbers(): number[] {
+  const sessions = useAppStore((s) => s.sessions);
+  const tables = useTables();
+  return useMemo(
+    () =>
+      tables
+        .filter((t) => sessions.some((s) => s.tableId === t.id && !s.closedAt))
+        .map((t) => t.number),
+    [sessions, tables],
+  );
 }

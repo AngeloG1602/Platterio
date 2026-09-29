@@ -140,6 +140,8 @@ export interface Order {
   preparingAt?: string;
   readyAt?: string;
   deliveredAt?: string;
+  /** Comensal que envió la ronda (extensión del mockup). */
+  sentByDinerId?: string;
 }
 
 export interface DishRating {

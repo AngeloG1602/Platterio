@@ -10,7 +10,7 @@ import { Spice } from "@/components/ui/spice";
 import { useRecommendations } from "@/lib/data";
 import { ALLERGEN_LABEL } from "@/lib/domain/allergens";
 import { priceRange } from "@/lib/domain/menu";
-import { REASON_LABEL, slotHeadline, type RecommendationReason } from "@/lib/domain/recommender";
+import { reasonLabel, slotHeadline, type RecommendationReason } from "@/lib/domain/recommender";
 import type { Allergen } from "@/lib/domain/types";
 
 const REASON_ICON: Record<RecommendationReason, LucideIcon> = {
@@ -71,7 +71,7 @@ export function Recommendations({
                   />
                   <span className="bg-surface/92 text-ink shadow-card absolute top-2.5 left-2.5 inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-semibold backdrop-blur">
                     <Icon className="text-accent-strong size-3.5" aria-hidden />
-                    {REASON_LABEL[reason]}
+                    {reasonLabel(reason, current.slot, current.upcoming)}
                   </span>
                 </div>
                 <div className="mt-2.5 px-0.5">

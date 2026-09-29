@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { recommend, slotHeadline, unitsOrdered, WEIGHTS } from "./recommender";
+import { reasonLabel, recommend, slotHeadline, unitsOrdered, WEIGHTS } from "./recommender";
 import type { Dish, Order, Stars, TimeSlot } from "./types";
 
 const almuerzo: TimeSlot = { id: "almuerzo", name: "Almuerzo", start: "11:00", end: "15:00" };
@@ -220,6 +220,13 @@ describe("recomendador", () => {
       limit: 4,
     });
     expect(pocas).toHaveLength(4);
+  });
+
+  it("nombra la franja en el motivo cuando está fuera de horario", () => {
+    expect(reasonLabel("popular", almuerzo, false)).toBe("Popular a esta hora");
+    expect(reasonLabel("popular", almuerzo, true)).toBe("Popular en el almuerzo");
+    expect(reasonLabel("franja", noche, true)).toBe("Ideal en la noche");
+    expect(reasonLabel("casa", noche, true)).toBe("Recomendado por la casa");
   });
 
   it("titula el carrusel según la franja", () => {

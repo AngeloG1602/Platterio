@@ -195,3 +195,18 @@ export function slotHeadline(slot: TimeSlot | null): string {
   };
   return known[slot.id] ?? `Para ${slot.name.toLowerCase()}`;
 }
+
+/**
+ * Texto del motivo. Fuera de horario, "a esta hora" no aplica: se nombra la franja que viene
+ * ("Popular en el desayuno").
+ */
+export function reasonLabel(
+  reason: RecommendationReason,
+  slot: TimeSlot | null,
+  upcoming: boolean,
+): string {
+  if (!upcoming || !slot || (reason !== "popular" && reason !== "franja"))
+    return REASON_LABEL[reason];
+  const when = slotHeadline(slot).replace(/^Para /, "en ");
+  return `${reason === "popular" ? "Popular" : "Ideal"} ${when}`;
+}

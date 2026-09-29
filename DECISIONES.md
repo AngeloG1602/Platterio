@@ -92,3 +92,32 @@ pueden cambiar sin rehacer pantallas.
     llegan en la Fase 2.
 26. **Botón del panel de demo.** Pasó a ser una pestaña pequeña pegada al borde izquierdo, a
     media altura, para no tapar precios ni la barra de "Agregar".
+
+## Fase 2 — Pedido
+
+27. **Quién edita qué en el carrito.** Todos ven el carrito completo de la mesa, agrupado por
+    comensal (el propio primero). Cada uno solo cambia la cantidad o la variante, o elimina, lo
+    que agregó. De los demás ve el plato, la cantidad, la nota y el precio.
+28. **Líneas que se juntan.** Si un comensal agrega el mismo plato con la misma variante y la
+    misma nota, se suma a la línea que ya tenía en vez de crear otra.
+29. **Envío una sola vez.** Al confirmar se envían exactamente los ítems que se veían en
+    pantalla. Si mientras tanto otro celular ya envió (el carrito quedó vacío) o el carrito
+    cambió, el envío se rechaza con "Alguien de la mesa ya envió el pedido" o "El carrito cambió.
+    Revísalo antes de enviar." Así nunca se crean dos rondas con los mismos platos. Si el
+    carrito se vacía mientras el diálogo está abierto, el diálogo se cierra solo.
+30. **Rondas.** Cada envío es una ronda nueva, con número consecutivo dentro de la sesión. Lo
+    que se agrega después del envío queda en el carrito y la interfaz avisa que "irá en la ronda
+    N". `Order.sentByDinerId` (extensión) guarda quién envió cada ronda.
+31. **Precios congelados.** Al enviar, cada ítem guarda su `unitPrice`. El carrito, antes de
+    enviarse, muestra el precio vigente del plato.
+32. **Ticket.** Muestra todas las rondas de la sesión (la más reciente arriba), agrupadas por
+    comensal. Los ítems quitados por el mesero aparecen tachados con su motivo y no suman. Las
+    rondas rechazadas se muestran con el motivo y no suman al total.
+33. **Avisos en vivo.** Cuando otro comensal agrega algo o envía el pedido, las demás pestañas
+    de la mesa muestran un toast ("Luis agregó 1× Gaseosa", "Luis envió el pedido"), y en el
+    carrito el ítem nuevo se resalta un momento. Los cambios propios no generan aviso.
+34. **Comensal simulado (panel de demo).** Entra a la mesa elegida con un nombre libre de la
+    lista (Camila, Andrés…), abriendo la sesión si no existía, y agrega un plato al azar de la
+    franja actual (o de la simulada).
+35. **Motivo fuera de horario.** Si no hay franja activa, el motivo nombra la franja que viene
+    ("Popular en el desayuno") en lugar de "a esta hora".

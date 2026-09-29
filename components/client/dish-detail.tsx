@@ -23,6 +23,7 @@ import { formatCOP, plural } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
+import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
 
 const NOTE_MAX = 140;
@@ -46,6 +47,7 @@ function useBack(fallback: string) {
 }
 
 function DishDetail({ ctx, dishId }: { ctx: TableContext; dishId: string }) {
+  useTableActivity(ctx);
   const dish = useDish(dishId);
   const menuHref = `${ctx.base}/menu`;
   const back = useBack(menuHref);
