@@ -290,7 +290,7 @@ function DayBar({ rows }: { rows: SlotRow[] }) {
             key={s.key}
             className={cn(
               "absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-md text-xs font-semibold text-white",
-              i % 2 ? "bg-accent-strong" : "bg-accent",
+              i % 2 ? "bg-ink" : "bg-accent-strong",
             )}
             style={{ left: `${s.left}%`, width: `calc(${s.width}% - 2px)` }}
           >

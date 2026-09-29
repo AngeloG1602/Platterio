@@ -15,7 +15,7 @@
   --line-strong: #d6cec3;
 
   --accent: #e4572e;
-  --accent-strong: #c2461f;
+  --accent-strong: #b24424;
   --accent-ink: #ffffff;
   --accent-soft: color-mix(in oklab, var(--accent) 11%, var(--surface));
   --accent-line: color-mix(in oklab, var(--accent) 35%, var(--surface));

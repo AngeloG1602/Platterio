@@ -237,3 +237,23 @@ pueden cambiar sin rehacer pantallas.
     (hoy frente al promedio) hay leyenda. Barras de máximo 24 px con extremo redondeado,
     retícula de línea fina, tooltip al pasar el cursor y botón "Ver tabla" para accesibilidad.
     Las cifras grandes van en sans, no en la serif de los títulos.
+
+## Fase 7 — Pulido
+
+75. **Contraste del acento, más estricto.** El color fuerte del acento ahora se calcula para
+    5,3:1 con blanco (antes 4,5:1). Así, usado como texto, también cumple AA sobre el fondo
+    crema y sobre el acento suave; con `#E4572E` queda `#B24424`. axe-core lo detectó.
+76. **Gráficas y teclado.** La capa de teclado de Recharts se desactiva porque la gráfica es
+    decorativa (`aria-hidden`) y sus datos están en "Ver tabla", que sí es accesible.
+77. **Páginas de error propias.** 404 ("Esta página no está en la carta"), error de pantalla con
+    "Reintentar" y un error global de último recurso, todas en español.
+78. **Aviso al reiniciar la demo.** Si se reinician los datos con un cliente dentro de una mesa,
+    su pestaña dice "Se reiniciaron los datos de la demo" en vez de "La mesa se liberó".
+79. **Sin almacenamiento.** Si el navegador no permite `localStorage` (algunos modos privados), la
+    demo funciona igual y avisa que los datos se perderán al recargar.
+80. **Guion automatizado.** `npm run e2e` recorre el guion de la sección 16 con cinco pestañas (las
+    del cliente a 360 px) y `npm run e2e:a11y` escanea las 18 vistas con axe-core (WCAG 2.1 AA).
+    Usan Playwright como dependencia de desarrollo; no forman parte de `npm test` porque necesitan
+    la app corriendo.
+81. **Después de agregar un plato** la ficha vuelve a la pantalla anterior (la carta, en el flujo
+    normal) para conservar los filtros y la posición.

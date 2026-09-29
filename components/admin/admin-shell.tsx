@@ -15,7 +15,6 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { PlatterioLogo } from "@/components/brand/logos";
 import { DemoPanel } from "@/components/demo/demo-panel";
-import { Badge } from "@/components/ui/chip";
 import { useAlerts, useRestaurant } from "@/lib/data";
 import { cn } from "@/lib/cn";
 
@@ -23,17 +22,16 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  ready: boolean;
 }
 
 /** Secciones del panel. Se activan a medida que se construyen (Fase 6). */
 const NAV: NavItem[] = [
-  { href: "/admin", label: "Resumen", icon: LayoutDashboard, ready: true },
-  { href: "/admin/platos", label: "Platos", icon: UtensilsCrossed, ready: true },
-  { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles, ready: true },
-  { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText, ready: true },
-  { href: "/admin/ventas", label: "Ventas", icon: ChartColumn, ready: true },
-  { href: "/admin/configuracion", label: "Configuración", icon: Settings2, ready: true },
+  { href: "/admin", label: "Resumen", icon: LayoutDashboard },
+  { href: "/admin/platos", label: "Platos", icon: UtensilsCrossed },
+  { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles },
+  { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText },
+  { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
+  { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];
 
 /** Estructura del panel del administrador: marca Platterio, navegación lateral y contenido. */
@@ -44,6 +42,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="bg-bg min-h-dvh lg:grid lg:grid-cols-[288px_minmax(0,1fr)]">
+      <a
+        href="#contenido"
+        className="bg-ink text-bg sr-only z-50 rounded-lg px-4 py-3 font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Saltar al contenido
+      </a>
       <aside className="border-line bg-surface border-b lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:border-r lg:border-b-0">
         <div className="flex items-center justify-between gap-3 px-5 py-4 lg:block">
           <PlatterioLogo />
@@ -71,15 +75,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     {openAlerts}
                   </span>
                 )}
-                {!item.ready && <Badge className="hidden lg:inline-flex">Fase 6</Badge>}
               </>
             );
             const cls = cn(
               "flex h-11 shrink-0 items-center gap-3 rounded-lg px-3 text-[15px] font-medium transition-colors",
               active ? "bg-ink text-bg" : "text-ink-soft hover:bg-surface-2 hover:text-ink",
-              !item.ready && "pointer-events-none text-muted opacity-60",
             );
-            return item.ready ? (
+            return (
               <Link
                 key={item.href}
                 href={item.href}
@@ -88,10 +90,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
               >
                 {content}
               </Link>
-            ) : (
-              <span key={item.href} aria-disabled className={cls}>
-                {content}
-              </span>
             );
           })}
         </nav>
@@ -104,7 +102,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
       </aside>
-      <main className="min-w-0 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">{children}</main>
+      <main
+        id="contenido"
+        tabIndex={-1}
+        className="min-w-0 px-5 py-6 outline-none sm:px-8 lg:px-10 lg:py-8"
+      >
+        {children}
+      </main>
       <DemoPanel />
     </div>
   );

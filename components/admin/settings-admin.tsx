@@ -380,7 +380,9 @@ function WaitersPanel() {
                     onClick={() => configActions.toggleAssignment(w.id, t.id)}
                   >
                     {on && <Check aria-hidden />} Mesa {t.number}
-                    {other && !on && <span className="text-xs opacity-60">· {other.name}</span>}
+                    {other && !on && (
+                      <span className="text-muted text-xs font-normal">· {other.name}</span>
+                    )}
                   </FilterChip>
                 );
               })}

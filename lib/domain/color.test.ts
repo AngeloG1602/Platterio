@@ -15,6 +15,14 @@ describe("color de acento", () => {
     }
   });
 
+  it("como texto cumple AA sobre el fondo crema y el acento suave", () => {
+    for (const hex of ["#E4572E", "#2F7A4F", "#D69A1E"]) {
+      const strong = parseHex(strongVariant(hex))!;
+      expect(contrast(strong, parseHex("#FAF7F2")!)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(strong, parseHex("#FFEDE8")!)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("no toca un color que ya cumple", () => {
     expect(strongVariant("#1C1917")).toBe("#1C1917");
   });

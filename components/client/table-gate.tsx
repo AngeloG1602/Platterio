@@ -7,7 +7,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { toast } from "@/components/ui/toaster";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useHydrated, useMyDiner, useTableByNumber } from "@/lib/data";
+import { useHydrated, useMyDiner, useSeedEpoch, useTableByNumber } from "@/lib/data";
 import type { Diner, Table, TableSession } from "@/lib/domain/types";
 
 export interface TableContext {
@@ -64,20 +64,29 @@ export function TableGate({
   const access = useTableAccess(numero);
   const router = useRouter();
   const shouldRedirect = access.status === "guest";
-  const wasReady = useRef(false);
+  const seedEpoch = useSeedEpoch();
+  const readyAt = useRef<number | null>(null);
 
   useEffect(() => {
-    if (access.status === "ready") wasReady.current = true;
+    if (access.status === "ready") readyAt.current = seedEpoch;
     if (!shouldRedirect) return;
-    // Si estaba dentro y la sesión desapareció, el mesero liberó la mesa.
-    if (wasReady.current) {
-      toast.success("La mesa se liberó. ¡Gracias por venir!", {
-        id: "mesa-liberada",
-        description: "Si vuelves a escanear el QR se abre una visita nueva.",
-      });
+    // Si estaba dentro y la sesión desapareció: o se reiniciaron los datos, o el mesero liberó la mesa.
+    if (readyAt.current !== null) {
+      if (readyAt.current !== seedEpoch) {
+        toast("Se reiniciaron los datos de la demo", {
+          id: "demo-reiniciada",
+          description: "Vuelve a entrar a la mesa para empezar de nuevo.",
+        });
+      } else {
+        toast.success("La mesa se liberó. ¡Gracias por venir!", {
+          id: "mesa-liberada",
+          description: "Si vuelves a escanear el QR se abre una visita nueva.",
+        });
+      }
+      readyAt.current = null;
     }
     router.replace(`/mesa/${numero}`);
-  }, [access.status, shouldRedirect, numero, router]);
+  }, [access.status, shouldRedirect, numero, router, seedEpoch]);
 
   if (access.status === "invalid") return <InvalidTable />;
   if (access.status !== "ready") return <>{fallback}</>;

@@ -97,6 +97,7 @@ export function ColumnChart({
         <div style={{ height }} aria-hidden>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
+              accessibilityLayer={false}
               data={data}
               margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
               barCategoryGap="20%"

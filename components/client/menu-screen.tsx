@@ -182,7 +182,7 @@ function SearchRow({
           type="search"
           value={query}
           onChange={(e) => menuFilterActions.set({ query: e.target.value })}
-          placeholder="Busca un plato o ingrediente"
+          placeholder="Plato o ingrediente"
           aria-label="Buscar por nombre o ingrediente"
           enterKeyHint="search"
           className="border-line-strong bg-surface placeholder:text-muted/80 focus:border-accent focus:ring-accent/15 h-12 w-full rounded-xl border pr-11 pl-11 text-[15px] outline-none focus:ring-4 [&::-webkit-search-cancel-button]:hidden"

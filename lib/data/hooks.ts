@@ -250,3 +250,6 @@ export function useAnalyticsData() {
   );
   return { orders, sessions, dishRatings, serviceRatings };
 }
+
+/** Momento de la última siembra o reinicio de los datos. */
+export const useSeedEpoch = () => useAppStore((s) => s.seedEpoch);

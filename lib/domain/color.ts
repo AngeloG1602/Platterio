@@ -38,8 +38,12 @@ export function contrast(a: Rgb, b: Rgb): number {
 
 const WHITE: Rgb = [255, 255, 255];
 
-/** Oscurece el color lo mínimo necesario para que el texto blanco cumpla el contraste pedido. */
-export function strongVariant(hex: string, target = 4.5): string {
+/**
+ * Oscurece el color lo mínimo necesario para que el texto blanco cumpla el contraste pedido.
+ * El objetivo por defecto (5,3:1 con blanco) deja margen para que el mismo color, usado como
+ * texto, siga cumpliendo AA (4,5:1) sobre el fondo crema y sobre el acento suave.
+ */
+export function strongVariant(hex: string, target = 5.3): string {
   const rgb = parseHex(hex);
   if (!rgb) return "#1C1917";
   let current: Rgb = rgb;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { Toaster } from "@/components/ui/toaster";
+import { toast, Toaster } from "@/components/ui/toaster";
 import { strongVariant } from "@/lib/domain/color";
 import { useDeviceStore } from "@/lib/data/device";
 import { useAppStore, useBootStore } from "@/lib/data/store";
@@ -19,6 +19,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
     Promise.all([useAppStore.persist.rehydrate(), useDeviceStore.persist.rehydrate()]).then(() => {
       if (cancelled) return;
       useBootStore.setState({ hydrated: true });
+      if (!storageAvailable()) {
+        toast.warning("Tu navegador no deja guardar datos", {
+          description:
+            "La demo funciona, pero se pierde al recargar. Sal del modo privado para conservarla.",
+          duration: 8000,
+        });
+      }
       stop = startSync();
       stopWatcher = startAlertWatcher();
     });
@@ -41,4 +48,15 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <Toaster />
     </>
   );
+}
+
+function storageAvailable(): boolean {
+  try {
+    const key = "platterio:prueba";
+    localStorage.setItem(key, "1");
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
 }

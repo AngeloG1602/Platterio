@@ -154,7 +154,11 @@ function Body({ state }: { state: ReturnType<typeof usePeriod> }) {
               description="En este periodo nadie dejó comentarios con ese filtro."
             />
           ) : (
-            <ul className="divide-line -my-1 max-h-[640px] divide-y overflow-y-auto pr-1">
+            <ul
+              className="divide-line -my-1 max-h-[640px] divide-y overflow-y-auto pr-1"
+              tabIndex={0}
+              aria-label="Comentarios de los clientes"
+            >
               {comments.map((c) => {
                 const dish = dishes.find((d) => d.id === c.dishId);
                 const mesa = tableOf(c.orderId);

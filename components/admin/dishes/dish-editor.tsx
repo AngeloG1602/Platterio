@@ -38,7 +38,7 @@ import {
   type DishDraft,
   type DishFormErrors,
 } from "@/lib/domain/dishForm";
-import { formatClock, formatCOP } from "@/lib/domain/format";
+import { formatCOP } from "@/lib/domain/format";
 import { ALLERGENS, type SpiceLevel } from "@/lib/domain/types";
 import { resizeImage } from "@/lib/image";
 import { cn } from "@/lib/cn";
@@ -535,9 +535,6 @@ function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) 
                     }
                   >
                     {s.name}
-                    <span className="text-xs opacity-70">
-                      {formatClock(s.start).replace(/:00/, "")}
-                    </span>
                   </FilterChip>
                 );
               })}

@@ -36,10 +36,6 @@ import {
 import { formatDay, formatTime, plural } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
 
-/** Qué vistas ya están construidas. Se activa cada una al cerrar su fase. */
-const READY = { cliente: true, mesero: true, cocina: true, admin: true } as const;
-const PHASE = { cliente: 1, mesero: 3, cocina: 4, admin: 6 } as const;
-
 const SCRIPT = [
   "En el panel de demo, pon la hora en Almuerzo.",
   "Pestaña A: entra a la Mesa 3 como “Ana” con alergia a lácteos. Mira cómo cambian los recomendados y el aviso en la Clásica 27.",
@@ -102,8 +98,6 @@ export function Hub() {
             title="Mesero"
             description="Recibe los pedidos de sus mesas, los ajusta si hace falta y los confirma antes de que lleguen a la cocina."
             href="/mesero"
-            ready={READY.mesero}
-            phase={PHASE.mesero}
             extra={<WaiterList />}
           />
           <RoleCard
@@ -113,8 +107,6 @@ export function Hub() {
             title="Cocina"
             description="Tablero oscuro y de letra grande: confirmados, en preparación y listos, en orden de llegada."
             href="/cocina"
-            ready={READY.cocina}
-            phase={PHASE.cocina}
             dark
           />
           <RoleCard
@@ -124,8 +116,6 @@ export function Hub() {
             title="Administrador"
             description="Ventas, calificaciones y alertas de servicio; catálogo, recomendaciones, mesas y QR."
             href="/admin"
-            ready={READY.admin}
-            phase={PHASE.admin}
             className="md:col-span-2"
           />
         </div>
@@ -248,14 +238,7 @@ function ClientCard() {
   const hydrated = useHydrated();
   return (
     <article className="border-line bg-surface shadow-card relative flex flex-col overflow-hidden rounded-2xl border p-5 md:col-span-2 lg:col-span-1 lg:row-span-2">
-      <CardHead
-        icon={ScanQrCode}
-        device={Smartphone}
-        deviceLabel="Celular"
-        title="Cliente"
-        ready={READY.cliente}
-        phase={PHASE.cliente}
-      />
+      <CardHead icon={ScanQrCode} device={Smartphone} deviceLabel="Celular" title="Cliente" />
       <p className="text-muted mt-2 text-[15px] leading-relaxed">
         Lo que abre el QR de la mesa: recomendados, carta con filtros, pedido compartido y
         calificación.
@@ -267,31 +250,18 @@ function ClientCard() {
         {(hydrated
           ? tables
           : Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, number: i + 1 }))
-        ).map((t) =>
-          READY.cliente ? (
-            <Link
-              key={t.id}
-              href={`/mesa/${t.number}`}
-              className="group border-line-strong bg-bg hover:border-accent hover:bg-accent-soft flex h-16 flex-col items-center justify-center rounded-xl border transition"
-            >
-              <span className="text-muted text-[11px] font-medium">Mesa</span>
-              <span className="font-display text-xl leading-none font-semibold tabular-nums">
-                {t.number}
-              </span>
-            </Link>
-          ) : (
-            <span
-              key={t.id}
-              aria-disabled
-              className="border-line-strong bg-bg/60 text-muted flex h-16 flex-col items-center justify-center rounded-xl border border-dashed"
-            >
-              <span className="text-[11px] font-medium">Mesa</span>
-              <span className="font-display text-xl leading-none font-semibold tabular-nums">
-                {t.number}
-              </span>
+        ).map((t) => (
+          <Link
+            key={t.id}
+            href={`/mesa/${t.number}`}
+            className="group border-line-strong bg-bg hover:border-accent hover:bg-accent-soft flex h-16 flex-col items-center justify-center rounded-xl border transition"
+          >
+            <span className="text-muted text-[11px] font-medium">Mesa</span>
+            <span className="font-display text-xl leading-none font-semibold tabular-nums">
+              {t.number}
             </span>
-          ),
-        )}
+          </Link>
+        ))}
       </div>
       <p className="text-muted mt-auto pt-5 text-[13px] leading-relaxed">
         Consejo: abre la misma mesa en dos pestañas para probar el pedido en grupo.
@@ -330,16 +300,12 @@ function CardHead({
   device: Device,
   deviceLabel,
   title,
-  ready,
-  phase,
   dark,
 }: {
   icon: LucideIcon;
   device: LucideIcon;
   deviceLabel: string;
   title: string;
-  ready: boolean;
-  phase: number;
   dark?: boolean;
 }) {
   return (
@@ -360,7 +326,6 @@ function CardHead({
           </p>
         </div>
       </div>
-      {!ready && <Badge>Fase {phase}</Badge>}
     </div>
   );
 }
@@ -372,8 +337,6 @@ function RoleCard({
   title,
   description,
   href,
-  ready,
-  phase,
   extra,
   dark,
   className,
@@ -384,8 +347,6 @@ function RoleCard({
   title: string;
   description: string;
   href: string;
-  ready: boolean;
-  phase: number;
   extra?: React.ReactNode;
   dark?: boolean;
   className?: string;
@@ -397,39 +358,22 @@ function RoleCard({
         className,
       )}
     >
-      <CardHead
-        icon={icon}
-        device={device}
-        deviceLabel={deviceLabel}
-        title={title}
-        ready={ready}
-        phase={phase}
-        dark={dark}
-      />
+      <CardHead icon={icon} device={device} deviceLabel={deviceLabel} title={title} dark={dark} />
       <p className="text-muted mt-2 text-[15px] leading-relaxed">{description}</p>
       {extra && <div className="mt-4">{extra}</div>}
       <div className="mt-auto flex items-center gap-2 pt-5">
-        {ready ? (
-          <>
-            <Link
-              href={href}
-              className={buttonClasses({ variant: "secondary", className: "flex-1" })}
-            >
-              Entrar <ArrowRight aria-hidden />
-            </Link>
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Abrir ${title} en una pestaña nueva`}
-              className={buttonClasses({ variant: "ghost", className: "w-11 px-0" })}
-            >
-              <ArrowUpRight aria-hidden />
-            </a>
-          </>
-        ) : (
-          <p className="text-muted text-[13px]">Esta vista se construye en la fase {phase}.</p>
-        )}
+        <Link href={href} className={buttonClasses({ variant: "secondary", className: "flex-1" })}>
+          Entrar <ArrowRight aria-hidden />
+        </Link>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Abrir ${title} en una pestaña nueva`}
+          className={buttonClasses({ variant: "ghost", className: "w-11 px-0" })}
+        >
+          <ArrowUpRight aria-hidden />
+        </a>
       </div>
     </article>
   );
