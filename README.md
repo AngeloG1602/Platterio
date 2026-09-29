@@ -24,6 +24,9 @@ npm run dev        # http://localhost:3000
 - `/` — Hub de demo: entrar como cliente (mesas 1–6), mesero, cocina o administrador.
 - `/?demo=1` — Abre el panel de demo (hora simulada, tiempo ×10, reiniciar datos).
 - `/muestra` — Muestra de los componentes con el estilo final.
+- `/mesa/[numero]` — Entrada del cliente (lo que abre el QR): alias y comensales de la mesa.
+- `/mesa/[numero]/menu` — Recomendados por franja, pestañas de categoría, buscador y filtros.
+- `/mesa/[numero]/plato/[id]` — Ficha del plato con variantes, ingredientes, alérgenos y nota.
 
 ## Estructura
 
@@ -43,7 +46,7 @@ reemplaza esa capa, no las pantallas.
 ## Estado por fases
 
 - [x] Fase 0 — Base
-- [ ] Fase 1 — Menú del cliente
+- [x] Fase 1 — Menú del cliente
 - [ ] Fase 2 — Pedido
 - [ ] Fase 3 — Mesero
 - [ ] Fase 4 — Cocina y estados

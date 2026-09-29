@@ -37,7 +37,7 @@ import { formatDay, formatTime, plural } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
 
 /** Qué vistas ya están construidas. Se activa cada una al cerrar su fase. */
-const READY = { cliente: false, mesero: false, cocina: false, admin: false } as const;
+const READY = { cliente: true, mesero: false, cocina: false, admin: false } as const;
 const PHASE = { cliente: 1, mesero: 3, cocina: 4, admin: 6 } as const;
 
 const SCRIPT = [

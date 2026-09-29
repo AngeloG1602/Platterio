@@ -44,7 +44,7 @@ export function openDemoPanel() {
 }
 
 /**
- * Panel de demo (BRIEF §10): botón flotante discreto + hoja con los controles.
+ * Panel de demo (BRIEF §10): pestaña flotante discreta + hoja con los controles.
  * Se abre también con `?demo=1` en la URL. Con `floating={false}` solo monta la hoja.
  */
 export function DemoPanel({
@@ -69,12 +69,16 @@ export function DemoPanel({
           aria-label="Abrir panel de demo"
           title="Panel de demo"
           className={cn(
-            "fixed bottom-[calc(1rem+var(--demo-offset,0px))] left-4 z-40 flex size-11 items-center justify-center rounded-full",
-            "border-line bg-surface/85 text-muted shadow-float hover:text-ink border backdrop-blur transition",
+            // Pestaña pegada al borde izquierdo: discreta y sin tapar precios ni barras fijas.
+            "group fixed top-[58%] left-0 z-40 flex h-12 w-6 items-center justify-center rounded-r-lg",
+            "border-line bg-surface/85 text-muted shadow-card border border-l-0 backdrop-blur",
+            "hover:text-ink transition-[width,color] hover:w-9 focus-visible:w-9",
+            // Zona táctil de 44 px sin agrandar la pestaña.
+            "before:absolute before:inset-y-0 before:left-0 before:w-11 before:content-['']",
             className,
           )}
         >
-          <WandSparkles className="size-5" aria-hidden />
+          <WandSparkles className="size-3.5" aria-hidden />
         </button>
       )}
       <DemoSheet open={open} onOpenChange={(o) => useDemoUi.setState({ open: o })} />

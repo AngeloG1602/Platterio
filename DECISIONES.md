@@ -53,3 +53,42 @@ pueden cambiar sin rehacer pantallas.
     El resultado es el mismo que pide §3 (accesible y sin aspecto por defecto), con menos código.
 15. **Tipografías autoalojadas.** Fraunces e Inter vienen de `@fontsource-variable`, no de Google
     Fonts en tiempo de compilación, para que `next build` no dependa de la red.
+
+## Fase 1 — Menú del cliente
+
+16. **Normalización de la calificación en el recomendador.** El promedio bayesiano se lleva a
+    0–1 comparándolo con los demás platos candidatos (mín–máx). Si se dividiera sobre la escala
+    fija de 1 a 5, las diferencias (4,2 frente a 4,7) casi no pesarían. La popularidad se
+    normaliza igual: el plato más pedido en la franja vale 1.
+17. **Arranque en frío.** Un plato sin pedidos (en 14 días) ni calificaciones solo aparece si
+    está destacado y, en ese caso, va **de primero** con el motivo "Nuevo en la casa". Con la
+    fórmula sola, un plato nuevo nunca superaría a la Clásica 27, y el guion de la demo (§16,
+    paso 7) espera verlo de primero. El administrador lo destacó a propósito y no hay datos para
+    ordenarlo de otra forma.
+18. **Motivo del recomendado.** Es el componente que más aporta al puntaje entre popularidad,
+    calificación y destacado. Para no decir "Popular a esta hora" de algo que casi no se pide, la
+    popularidad solo cuenta como motivo desde 0,5 y la calificación desde 0,6. Si ninguno
+    alcanza, el motivo es "Ideal para esta hora" (o "Para descubrir" fuera de franja).
+19. **Variedad en el carrusel.** Como casi todos piden bebida, las bebidas dominaban el
+    carrusel. Se muestran máximo 2 platos por categoría; si no alcanza, se completa con los
+    siguientes. Los platos nuevos destacados no cuentan para ese tope.
+20. **Pestañas y filtro de categoría son lo mismo.** Las pestañas fijas ("Todo" y cada
+    categoría) son el filtro de categoría y se combinan con la búsqueda y los demás filtros. En
+    "Todo" la carta se agrupa por categoría. La hoja de filtros también permite elegir la
+    categoría, sincronizada con las pestañas.
+21. **Picante como selección múltiple.** El filtro de picante acepta varios niveles a la vez
+    ("Sin picante" + "Suave", o "Medio" + "Muy picante"), en lugar de un máximo, para que sirva
+    tanto a quien evita el picante como a quien lo busca.
+22. **Búsqueda.** Por nombre del plato o de sus ingredientes (no por descripción), sin importar
+    tildes ni mayúsculas. Si se escriben varias palabras, todas deben aparecer.
+23. **Alias.** Obligatorio, de hasta 16 caracteres, y no se puede repetir en la misma mesa (sin
+    distinguir tildes ni mayúsculas). Si el mismo dispositivo vuelve a escanear, conserva su
+    comensal y va directo al menú.
+24. **Restricciones.** Cerrar la hoja de la primera visita equivale a "Omitir" y no se vuelve a
+    preguntar en esa pestaña. Se cambian desde el ícono de escudo del encabezado. La carta avisa
+    con el chip del alérgeno en rojo y con ícono de alerta; la ficha muestra un aviso completo.
+25. **"Agregar al pedido" en la Fase 1.** El botón ya guarda en el carrito compartido de la mesa
+    (con la nota y la variante) y lo confirma con un toast. La pantalla del carrito y el envío
+    llegan en la Fase 2.
+26. **Botón del panel de demo.** Pasó a ser una pestaña pequeña pegada al borde izquierdo, a
+    media altura, para no tapar precios ni la barra de "Agregar".

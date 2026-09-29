@@ -1,9 +1,8 @@
-import { TriangleAlert } from "lucide-react";
 import { AllergenList } from "@/components/ui/allergen";
 import { Price } from "@/components/ui/price";
 import { Spice } from "@/components/ui/spice";
 import { RatingSummary } from "@/components/ui/stars";
-import { conflictingAllergens, dishAllergens } from "@/lib/domain/allergens";
+import { dishAllergens } from "@/lib/domain/allergens";
 import type { Allergen, Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { DishImage } from "./dish-image";
@@ -22,7 +21,6 @@ export function DishCard({
 }) {
   const prices = dish.variants.map((v) => v.price);
   const minPrice = Math.min(...prices);
-  const conflicts = conflictingAllergens(dish, restrictions);
   return (
     <article className={cn("flex gap-4 py-4", className)}>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -35,12 +33,6 @@ export function DishCard({
           <Spice level={dish.spiceLevel} />
           {rating && <RatingSummary average={rating.average} count={rating.count} compact />}
         </div>
-        {conflicts.length > 0 ? (
-          <p className="text-danger-ink mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium">
-            <TriangleAlert aria-hidden className="size-4" />
-            Contiene {conflicts.length === 1 ? "un alérgeno" : "alérgenos"} que marcaste
-          </p>
-        ) : null}
         <AllergenList
           allergens={dishAllergens(dish)}
           restrictions={restrictions}

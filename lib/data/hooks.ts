@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { virtualNow } from "@/lib/domain/clock";
 import { effectiveSlot, slotAt, slotMidpoint } from "@/lib/domain/timeSlots";
-import type { TimeSlot } from "@/lib/domain/types";
+import { ratingStatsByDish } from "@/lib/domain/ratings";
+import { recommend } from "@/lib/domain/recommender";
+import { findOpenSession } from "@/lib/domain/session";
+import type { Allergen, TimeSlot } from "@/lib/domain/types";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
 import { HISTORY_CATALOG } from "./seed";
@@ -74,4 +77,57 @@ export function useCurrentSlot(): CurrentSlot {
 export function useHistory(): History {
   const seedEpoch = useAppStore((s) => s.seedEpoch);
   return useMemo(() => getHistory(HISTORY_CATALOG, seedEpoch), [seedEpoch]);
+}
+
+/* ——— Cliente ——— */
+
+export function useTableByNumber(numero: number) {
+  return useAppStore((s) => s.tables.find((t) => t.number === numero));
+}
+
+export function useOpenSession(tableId: string | undefined) {
+  return useAppStore((s) => (tableId ? findOpenSession(s.sessions, tableId) : undefined));
+}
+
+/** Sesión abierta de la mesa y el comensal de este dispositivo (si ya entró). */
+export function useMyDiner(tableId: string | undefined) {
+  const session = useOpenSession(tableId);
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  const diner = session?.diners.find((d) => d.deviceId === deviceId);
+  return { session, diner };
+}
+
+export function useDish(id: string) {
+  return useAppStore((s) => s.dishes.find((d) => d.id === id));
+}
+
+/** Pedidos de los últimos 14 días: historial sembrado + lo creado en la demo. */
+export function useAllOrders() {
+  const history = useHistory();
+  const live = useAppStore((s) => s.orders);
+  return useMemo(() => [...history.orders, ...live], [history, live]);
+}
+
+export function useAllDishRatings() {
+  const history = useHistory();
+  const live = useAppStore((s) => s.dishRatings);
+  return useMemo(() => [...history.dishRatings, ...live], [history, live]);
+}
+
+export function useDishRatingStats() {
+  const ratings = useAllDishRatings();
+  return useMemo(() => ratingStatsByDish(ratings), [ratings]);
+}
+
+/** Recomendados de la franja actual para las restricciones dadas (BRIEF §9). */
+export function useRecommendations(restrictions: readonly Allergen[]) {
+  const dishes = useDishes();
+  const orders = useAllOrders();
+  const ratings = useAllDishRatings();
+  const current = useCurrentSlot();
+  const recommendations = useMemo(
+    () => recommend({ dishes, slot: current.slot, now: current.at, orders, ratings, restrictions }),
+    [dishes, current.slot, current.at, orders, ratings, restrictions],
+  );
+  return { recommendations, current };
 }
