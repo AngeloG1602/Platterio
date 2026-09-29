@@ -14,9 +14,8 @@ La serie A se puede usar de inmediato: la app muestra sola cualquier foto que es
 
 ## Antes de empezar
 
-- **Herramienta:** sirve cualquier generador actual: ChatGPT (imágenes), Gemini, Midjourney,
-  Flux o Ideogram. Para las series B y C conviene uno que **edite con imagen de referencia**
-  (ChatGPT o Gemini), porque así las piezas salen parecidas entre sí.
+- **Herramienta:** se van a hacer con **Gemini**; la sección "Cómo hacerlo en Gemini" explica
+  el flujo. Los prompts sirven igual en otros generadores (ChatGPT, Midjourney, Flux).
 - **Los prompts van en inglés:** los generadores siguen mejor los términos de fotografía en
   inglés. Lo que va entre `[corchetes]` se cambia en cada prompt.
 - **Consistencia:** cuando salga una imagen que les guste, úsenla de referencia para las
@@ -37,6 +36,123 @@ En Midjourney va con `--no`; en otras, en el campo "negative prompt".
 ```text
 text, letters, logo, watermark, brand names, hands, people, cutlery in foreground, plastic look, CGI look, cartoon, illustration, oversaturated colors, extra ingredients, duplicated items, deformed food, blurry subject, frame, border
 ```
+
+---
+
+## Cómo hacerlo en Gemini
+
+Gemini genera y **edita** imágenes dentro de la conversación, y eso se aprovecha así: el
+estilo se fija una vez al comienzo del chat y después basta con pedir cada plato en una línea.
+Si una imagen sale casi bien, se corrige pidiéndole el cambio en vez de generarla otra vez.
+
+### Reglas para Gemini
+
+1. **Un chat nuevo por serie** (A, B y C), para que los estilos no se mezclen.
+2. **El primer mensaje de cada chat es el "mensaje de arranque"** que aparece abajo. Fija la
+   luz, el fondo, el formato y lo que nunca debe aparecer. Gemini no tiene campo de prompt
+   negativo, por eso las exclusiones van escritas ahí.
+3. **Después, un plato o ingrediente por mensaje.** Se copia el prompt del plato **sin** el
+   bloque de estilo, porque ya quedó fijado.
+4. **Cada 5 o 6 imágenes, reforzar el estilo:** adjunten la mejor imagen hasta el momento y
+   escriban `Keep exactly the same style, lighting, plate and background as this image.`.
+   En chats largos el estilo se va corriendo; si se nota, abran otro chat y vuelvan a pegar el
+   mensaje de arranque con esa imagen adjunta.
+5. **Formato:** Gemini respeta mejor la proporción cuando se escribe en el prompt ("horizontal
+   4:3", "square 1:1"). Si la herramienta que usen tiene selector de proporción (Google AI
+   Studio lo tiene), úsenlo también.
+6. **Resolución:** para las series B y C, lo ideal es 2048 px. Si su versión de Gemini ofrece
+   un modelo de imagen "Pro" o calidad 2K/4K, úsenlo. Si no, sirve la imagen normal y yo la
+   escalo.
+7. **Marca de agua:** todas las imágenes de Gemini llevan SynthID, una marca invisible que
+   identifica que son de IA (está bien que la tengan). Según el plan, la app de Gemini además
+   pone un logo visible en una esquina; en Google AI Studio no. Si sale el logo, recórtenlo
+   o genérenlas desde AI Studio.
+8. **Descargar y nombrar:** cada imagen se guarda con el nombre de la tabla (`clasica-27.jpg`,
+   `carne_res.png`…). Ese nombre es el que usa la app.
+
+### Mensaje de arranque · Serie A (fotos del menú)
+
+```text
+You are the food photographer for "Fogón 27", a Colombian fast-food restaurant. In this conversation I will ask for one dish per message. Create every image as a single photorealistic photo, all from the same photo shoot:
+
+- Professional food photography for a restaurant menu app, horizontal 4:3 format.
+- Shot at a 45-degree angle with an 85mm lens, shallow depth of field, the dish sharp and centered with generous empty margin around it.
+- Soft warm natural window light from the left, gentle realistic shadows.
+- Served on a matte off-white ceramic plate on a dark walnut wood table, softly blurred warm cream background. For drinks use a clear glass, for desserts a small dessert plate, same table and light.
+- Appetizing but honest: true-to-life portions, real texture (crumbs, grill marks, melted cheese, glossy sauce), natural colors that are not oversaturated.
+- Show exactly the ingredients I describe, nothing extra.
+- Never include text, letters, logos, brand names, watermarks, people, hands, or cutlery in the foreground. It must not look like CGI, plastic or an illustration.
+
+Reply only with the image. First dish:
+```
+
+Después, cada mensaje es solo la descripción del plato (el texto de cada bloque de la serie A
+**sin** `[BLOQUE DE ESTILO A]`).
+
+### Mensaje de arranque · Serie B (ingredientes para el 3D)
+
+```text
+In this conversation I will ask for single food ingredients, one per message, to turn them into 3D models with an image-to-3D tool. Create every image with exactly these rules:
+
+- Square 1:1 photorealistic product photo of ONE isolated ingredient, real food texture.
+- Three-quarter view from slightly above (about 30 degrees).
+- The whole object fully visible and centered, about 15% empty margin, nothing cropped.
+- Pure white seamless background, soft even diffuse studio light from all sides, only a faint soft shadow, no harsh highlights or reflections.
+- Everything in sharp focus, no background blur.
+- True scale: the burger bun is 12 cm wide; keep all ingredients proportional to that.
+- No plate, no props, no other ingredients, no text, no logos, no hands.
+
+All ingredients belong to the same burger, so keep colors and style consistent between images. Reply only with the image.
+```
+
+Recomendado: el primer pedido del chat es la **referencia maestra** (la hamburguesa
+despiezada, más abajo). Después se pide cada pieza así:
+
+```text
+Now only the [ingrediente] from the exploded burger above, isolated, same color and texture: [prompt de la tabla]
+```
+
+Para otras vistas del mismo ingrediente, que es donde Gemini brilla porque mantiene el objeto
+idéntico:
+
+```text
+Same exact [ingrediente], now seen from [the side at eye level | directly above | the back]. Keep everything else identical.
+```
+
+### Mensaje de arranque · Serie C (texturas)
+
+```text
+In this conversation I will ask for food textures to apply to 3D models. Create every image with exactly these rules:
+
+- Square 1:1, as high resolution as possible.
+- Straight top-down orthographic view at exactly 90 degrees, no perspective.
+- Perfectly flat, even, shadowless light like a flatbed scanner: no shadows, no specular highlights, no reflections, no vignette.
+- Everything in sharp focus. Only the true color and surface detail of the food, photorealistic.
+- No text, no logos, no props.
+
+Reply only with the image.
+```
+
+Para los mosaicos sin costuras, se agrega al final de cada pedido:
+
+```text
+It must be a seamless tileable texture: the left edge must continue exactly into the right edge and the top edge into the bottom edge, with no visible border, no single centered object and an even distribution of detail.
+```
+
+Gemini no tiene un modo de mosaico. Los bordes pueden quedar con una línea visible; si pasa,
+me los mandan y los empato con un script.
+
+### Correcciones comunes (se escriben en el mismo chat)
+
+| Problema                       | Mensaje                                                                                                           |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Salió un ingrediente que no va | `Remove the [ingrediente]. Keep everything else exactly the same.`                                                |
+| Falta algo                     | `Add [ingrediente] between the [capa] and the [capa]. Keep everything else the same.`                             |
+| Se ve de plástico o de 3D      | `Make it look like a real photo taken with a camera: natural imperfections, real crumbs and texture, less shine.` |
+| Colores exagerados             | `Make the colors more natural and less saturated, like a real restaurant photo.`                                  |
+| Quedó cortado                  | `Zoom out so the whole dish fits with empty margin around it. Keep everything else the same.`                     |
+| Porción irreal                 | `Make the portion realistic for a fast-food restaurant, not oversized.`                                           |
+| Apareció texto o logo          | `Remove all text and logos.`                                                                                      |
 
 ---
 
