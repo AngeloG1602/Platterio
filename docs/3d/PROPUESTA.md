@@ -97,6 +97,8 @@ Dónde está cada cosa en el repositorio:
 
 ## 4. Cómo tener los platos reales en 3D
 
+> Sin producto para fotografiar todavía: la serie de prompts para generar las fotos del menú, los ingredientes y las texturas con IA está en [`PROMPTS-IA.md`](./PROMPTS-IA.md).
+
 | Opción                                                                               | Cómo                                                               | A favor                                           | En contra                                                                                                                       |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | **A. Escaneo con celular** (fotogrametría: Polycam, Luma, KIRI Engine, RealityScan…) | Fotos o video alrededor del plato; la app arma el modelo           | Se ve real, barato, rápido                        | Sale **en una sola pieza**: para separar ingredientes hay que escanearlos por separado y armarlos en Blender. Requiere limpieza |
