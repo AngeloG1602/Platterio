@@ -97,6 +97,9 @@ Dónde está cada cosa en el repositorio:
 
 ## 4. Cómo tener los platos reales en 3D
 
+> **Ya probado con un modelo real:** "Hamburguesa Explosiva Con Queso" de Roberto Domínguez (Sketchfab, CC BY 4.0).
+> Venía en una sola malla con un hueso por ingrediente, como la mayoría de los modelos "explosivos". `npm run modelos:separar -- <entrada.glb> <salida.glb>` la parte en un nodo por ingrediente (`pan_base`, `carne_1`, `queso_1`, `salsa_1`, `mostaza_1`, `lechuga_1`, `pepinillo_1`, `tomate_1`, `cebolla_1`, `pan_tapa`), pasa el material a metal/rugosidad y lo comprime: de 14,6 MB a 1,4 MB. Se ve en el laboratorio, pestaña "Probar un .glb" → "Ver modelo de ejemplo". Los créditos están en `public/modelos/CREDITOS.md`.
+
 > Sin producto para fotografiar todavía: la serie de prompts para generar las fotos del menú, los ingredientes y las texturas con IA está en [`PROMPTS-IA.md`](./PROMPTS-IA.md).
 
 | Opción                                                                               | Cómo                                                               | A favor                                           | En contra                                                                                                                       |

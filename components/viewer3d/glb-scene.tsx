@@ -1,6 +1,6 @@
 "use client";
 
-import { Bounds, OrbitControls, useGLTF } from "@react-three/drei";
+import { Bounds, OrbitControls, useBounds, useGLTF } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo } from "react";
 import * as THREE from "three";
@@ -118,7 +118,7 @@ function Model({
     return {
       parts: list,
       baseY: new Map(list.map((o) => [o.uuid, o.position.y])),
-      step: (size.y / Math.max(1, list.length)) * 0.9,
+      step: (size.y / Math.max(1, list.length)) * 1.6,
       scale: s,
     };
   }, [scene]);
@@ -154,6 +154,12 @@ function Model({
     });
     invalidate();
   }, [parts, baseY, step, explode, hidden, invalidate]);
+
+  // Al separar, el modelo crece: la cámara se aleja para que quepa entero.
+  const bounds = useBounds();
+  useEffect(() => {
+    bounds.refresh().clip().fit();
+  }, [bounds, explode]);
 
   return (
     <group scale={scale}>

@@ -833,22 +833,46 @@ function RestrictionsPanel({
 
 /* ——— Probar un .glb ——— */
 
+/** Modelo real de ejemplo, ya partido por ingrediente (scripts/modelos/separar-por-huesos.mjs). */
+const SAMPLE_MODEL = {
+  url: "/modelos/hamburguesa-explosiva.glb",
+  name: "Hamburguesa Explosiva Con Queso",
+  size: 1_378_176,
+  warning: null,
+  credit: {
+    title: "Hamburguesa Explosiva Con Queso",
+    author: "Roberto Domínguez",
+    source: "Sketchfab",
+  },
+};
+
+interface LabFile {
+  url: string;
+  name: string;
+  size: number;
+  warning: string | null;
+  /** Crédito obligatorio de los modelos con licencia CC BY. */
+  credit?: { title: string; author: string; source: string };
+}
+
 function GlbLab() {
-  const [file, setFile] = useState<{
-    url: string;
-    name: string;
-    size: number;
-    warning: string | null;
-  } | null>(null);
+  const [file, setFile] = useState<LabFile | null>(null);
   const [parts, setParts] = useState<GlbPart[]>([]);
   const [hidden, setHidden] = useState<string[]>([]);
   const [explode, setExplode] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const onParts = useCallback((p: GlbPart[]) => setParts(p), []);
+  function openModel(next: LabFile) {
+    if (file?.url.startsWith("blob:")) URL.revokeObjectURL(file.url);
+    setHidden([]);
+    setParts([]);
+    setExplode(0);
+    setFile(next);
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="border-line bg-surface-2 shadow-card relative overflow-hidden rounded-2xl border">
+      <div className="border-line bg-surface-2 shadow-card relative self-start overflow-hidden rounded-2xl border">
         <div className="aspect-square w-full sm:aspect-[4/3]">
           {file ? (
             <GlbScene
@@ -866,9 +890,14 @@ function GlbLab() {
                 Un escaneo o un modelo hecho en Blender. Si cada ingrediente es un nodo aparte,
                 podrás ocultarlos y separarlos. Prueba con la plantilla que exporta la otra pestaña.
               </p>
-              <Button onClick={() => input.current?.click()}>
-                <Upload aria-hidden /> Elegir archivo .glb
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => input.current?.click()}>
+                  <Upload aria-hidden /> Elegir archivo .glb
+                </Button>
+                <Button variant="secondary" onClick={() => openModel(SAMPLE_MODEL)}>
+                  <Box aria-hidden /> Ver modelo de ejemplo
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -898,10 +927,7 @@ function GlbLab() {
             e.target.value = "";
             if (!f) return;
             if (!/\.glb$/i.test(f.name)) return toast.error("Solo archivos .glb");
-            if (file) URL.revokeObjectURL(file.url);
-            setHidden([]);
-            setParts([]);
-            setFile({
+            openModel({
               url: URL.createObjectURL(f),
               name: f.name,
               size: f.size,
@@ -923,14 +949,31 @@ function GlbLab() {
                   Pasa de 4 MB: hay que comprimirlo para el menú
                 </Badge>
               )}
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-3"
-                onClick={() => input.current?.click()}
-              >
-                <Upload aria-hidden /> Cambiar archivo
-              </Button>
+              {file.credit && (
+                <p className="text-muted mt-2 text-[13px]">
+                  Modelo: “{file.credit.title}” de {file.credit.author} ({file.credit.source}),
+                  licencia{" "}
+                  <a
+                    href="https://creativecommons.org/licenses/by/4.0/deed.es"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent-strong font-medium underline underline-offset-2"
+                  >
+                    CC BY 4.0
+                  </a>
+                  . Partido por ingrediente y comprimido para la web.
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={() => input.current?.click()}>
+                  <Upload aria-hidden /> Cambiar archivo
+                </Button>
+                {file.url !== SAMPLE_MODEL.url && (
+                  <Button variant="ghost" size="sm" onClick={() => openModel(SAMPLE_MODEL)}>
+                    <Box aria-hidden /> Modelo de ejemplo
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
             <p className="text-muted mt-1 text-sm">
