@@ -6,7 +6,9 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { layerPositions, stackHeight, type StackLayer } from "@/lib/viewer3d/stack";
 import { plateGeometry } from "./geometry";
+import type { RealModel } from "@/lib/viewer3d/real-models";
 import { IngredientMesh } from "./ingredient-mesh";
+import { RealPartsProvider, useRealPart } from "./real-parts";
 import { SideDish } from "./sides";
 import {
   canvasQuality,
@@ -46,6 +48,8 @@ export interface DishSceneProps {
   onStats?: (s: PerfStats) => void;
   /** Nombre y color del restaurante, para el vaso de papel. */
   brand?: string;
+  /** Modelo real del plato; los ingredientes que no tengan pieza real se dibujan procedurales. */
+  realModel?: RealModel;
   accent?: string;
 }
 
@@ -99,7 +103,9 @@ export default function DishScene(props: DishSceneProps) {
       <QualityContext value={quality}>
         <Suspense fallback={null}>
           <Stage quality={quality} />
-          <SceneContents {...props} reducedMotion={reducedMotion} />
+          <RealPartsProvider model={props.realModel}>
+            <SceneContents {...props} reducedMotion={reducedMotion} />
+          </RealPartsProvider>
           <Effects quality={quality} />
           <Preload all />
         </Suspense>
@@ -113,7 +119,7 @@ export default function DishScene(props: DishSceneProps) {
 }
 
 function SceneContents({
-  stack,
+  stack: logicalStack,
   sideId,
   sideName,
   explode,
@@ -128,6 +134,16 @@ function SceneContents({
   accent = "#E4572E",
 }: DishSceneProps & { reducedMotion: boolean }) {
   const [hovered, setHovered] = useState<string | null>(null);
+  // Las capas con pieza real se apilan con el grosor medido de esa pieza.
+  const realOf = useRealPart();
+  const stack = useMemo(
+    () =>
+      logicalStack.map((l) => {
+        const real = realOf(l);
+        return real ? { ...l, thickness: real.thickness } : l;
+      }),
+    [logicalStack, realOf],
+  );
   const positions = useMemo(() => layerPositions(stack, explode, GAP), [stack, explode]);
   const height = useMemo(() => stackHeight(stack, explode, GAP), [stack, explode]);
   const plate = useMemo(() => plateGeometry(), []);
@@ -168,7 +184,7 @@ function SceneContents({
       ? 2.2
       : selectedIndex >= 0
         ? PLATE_Y + positions[selectedIndex]!
-        : Math.min(6, 1.5 + height / 2);
+        : 1.5 + height / 2;
 
   return (
     <>
@@ -188,6 +204,7 @@ function SceneContents({
               onSelect={(k) => onSelect(k === selectedKey ? null : k)}
               onHover={setHovered}
               reducedMotion={reducedMotion}
+              real={realOf(layer)}
             />
           ))}
           {ghosts.map((g) => (
@@ -201,6 +218,7 @@ function SceneContents({
               onSelect={() => {}}
               onHover={() => {}}
               reducedMotion={reducedMotion}
+              real={realOf(g.layer)}
               leaving
               onLeft={() => setGhosts((list) => list.filter((x) => x.uid !== g.uid))}
             />

@@ -99,6 +99,12 @@ Dónde está cada cosa en el repositorio:
 
 > **Ya probado con un modelo real:** "Hamburguesa Explosiva Con Queso" de Roberto Domínguez (Sketchfab, CC BY 4.0).
 > Venía en una sola malla con un hueso por ingrediente, como la mayoría de los modelos "explosivos". `npm run modelos:separar -- <entrada.glb> <salida.glb>` la parte en un nodo por ingrediente (`pan_base`, `carne_1`, `queso_1`, `salsa_1`, `mostaza_1`, `lechuga_1`, `pepinillo_1`, `tomate_1`, `cebolla_1`, `pan_tapa`), pasa el material a metal/rugosidad y lo comprime: de 14,6 MB a 1,4 MB. Se ve en el laboratorio, pestaña "Probar un .glb" → "Ver modelo de ejemplo". Los créditos están en `public/modelos/CREDITOS.md`.
+>
+> **Conectado a la Clásica 27** (pestaña "Plato del menú", selector "Modelo 3D: Real"). `lib/viewer3d/real-models.ts` dice qué pieza real usa cada ingrediente y `components/viewer3d/real-parts.tsx` la escala, la centra y mide su grosor para apilarla:
+>
+> - quitar oculta la pieza con su animación, y la carne o el queso extra repiten la misma pieza;
+> - las variantes de color reutilizan la pieza teñida: cebolla caramelizada y morada, las tres salsas;
+> - lo que el modelo no trae (pan de papa, pollo, quesos provolone o vegano, tocineta, huevo, aguacate, jalapeños) se dibuja procedural.
 
 > Sin producto para fotografiar todavía: la serie de prompts para generar las fotos del menú, los ingredientes y las texturas con IA está en [`PROMPTS-IA.md`](./PROMPTS-IA.md).
 

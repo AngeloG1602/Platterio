@@ -45,6 +45,8 @@ export interface StackLayer {
   thickness: number;
   name: string;
   state: ResolvedIngredient["state"];
+  /** Opción de reemplazo (para saber si hay pieza real del ingrediente original). */
+  optionId?: string;
 }
 
 export function buildStack(
@@ -71,6 +73,7 @@ export function buildStack(
               : THICKNESS.envoltura_lechuga,
           name: bread.name,
           state: bread.state,
+          optionId: bread.optionId,
         }
       : null;
 
@@ -87,6 +90,7 @@ export function buildStack(
         thickness: THICKNESS[ing.visual.kind],
         name: ing.name,
         state: ing.state,
+        optionId: ing.optionId,
       });
     }
   }

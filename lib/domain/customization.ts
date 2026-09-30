@@ -226,6 +226,8 @@ export interface ResolvedIngredient {
   allergens: Allergen[];
   visual: Visual;
   state: "normal" | "extra" | "reemplazado" | "agregado";
+  /** Opción de reemplazo elegida; `undefined` si es el ingrediente original. */
+  optionId?: string;
 }
 
 export function resolveIngredients(
@@ -246,6 +248,7 @@ export function resolveIngredients(
       units,
       allergens: option?.allergens ?? slot.allergens,
       visual: option?.visual ?? slot.visual,
+      optionId: option?.id,
       state: option
         ? "reemplazado"
         : !slot.included

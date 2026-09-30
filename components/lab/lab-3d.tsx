@@ -58,6 +58,7 @@ import {
 import { formatBytes, validateModelFile } from "@/lib/domain/dishForm";
 import { formatCOP, formatPriceDelta } from "@/lib/domain/format";
 import { ALLERGENS, type Allergen } from "@/lib/domain/types";
+import { realModelFor } from "@/lib/viewer3d/real-models";
 import { buildStack } from "@/lib/viewer3d/stack";
 import { cn } from "@/lib/cn";
 import { createStatsStore, PerfHud } from "./perf-hud";
@@ -152,6 +153,9 @@ function DishLab() {
   const [reset, setReset] = useState(0);
   const [restrictions, setRestrictions] = useState<Allergen[]>([]);
   const [quality, setQuality] = useState<QualitySetting>("auto");
+  const [modelKind, setModelKind] = useState<"real" | "procedural">("real");
+  const realModel = realModelFor(dishId);
+  const usingReal = realModel && modelKind === "real" ? realModel : undefined;
   const [drawing, setDrawing] = useState<Quality>("alta");
   const [showPerf, setShowPerf] = useState(false);
   const [statsStore] = useState(createStatsStore);
@@ -229,6 +233,7 @@ function DishLab() {
               onQualityChange={setDrawing}
               onStats={showPerf ? statsStore.set : undefined}
               brand={restaurant.name}
+              realModel={usingReal}
               accent={restaurant.accentColor}
             />
           </div>
@@ -328,23 +333,57 @@ function DishLab() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <p className="text-muted text-[13px] sm:max-w-md">
             Arrastra para girar · rueda o dos dedos para acercar · toca un ingrediente para ver sus
-            opciones. El modelo es procedural (hecho con código); con un modelo real se ve igual de
-            interactivo, ver la propuesta.
+            opciones.{" "}
+            {usingReal ? (
+              <>
+                Modelo real: “{usingReal.credit.title}” de {usingReal.credit.author} (
+                {usingReal.credit.source}), licencia{" "}
+                <a
+                  href={usingReal.credit.licenseUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent-strong font-medium underline underline-offset-2"
+                >
+                  {usingReal.credit.license}
+                </a>
+                . Lo que el modelo no trae (reemplazos y adicionales) se dibuja con código.
+              </>
+            ) : (
+              "El modelo es procedural (hecho con código); con un modelo real se ve igual de interactivo, ver la propuesta."
+            )}
           </p>
-          <div className="flex shrink-0 flex-col gap-1">
-            <span className="text-muted text-xs font-semibold" aria-hidden>
-              Calidad del visor
-            </span>
-            <Segmented
-              label="Calidad del visor"
-              value={quality}
-              onChange={setQuality}
-              options={[
-                { value: "auto", label: "Automática" },
-                { value: "alta", label: "Alta" },
-                { value: "rapida", label: "Rápida" },
-              ]}
-            />
+          <div className="flex shrink-0 flex-col gap-3">
+            {realModel && (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted text-xs font-semibold" aria-hidden>
+                  Modelo 3D
+                </span>
+                <Segmented
+                  label="Modelo 3D"
+                  value={modelKind}
+                  onChange={setModelKind}
+                  options={[
+                    { value: "real", label: "Real" },
+                    { value: "procedural", label: "Hecho con código" },
+                  ]}
+                />
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              <span className="text-muted text-xs font-semibold" aria-hidden>
+                Calidad del visor
+              </span>
+              <Segmented
+                label="Calidad del visor"
+                value={quality}
+                onChange={setQuality}
+                options={[
+                  { value: "auto", label: "Automática" },
+                  { value: "alta", label: "Alta" },
+                  { value: "rapida", label: "Rápida" },
+                ]}
+              />
+            </div>
           </div>
         </div>
       </div>

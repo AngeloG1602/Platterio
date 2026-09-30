@@ -29,6 +29,7 @@ import {
   softDetail,
   tomatoFace,
 } from "./textures";
+import type { RealPart } from "./real-parts";
 import { FoodMaterial } from "./stage";
 
 const ACCENT = new THREE.Color("#E4572E");
@@ -48,6 +49,8 @@ interface Props {
   /** La capa se quitó: se encoge y sube antes de desaparecer; al terminar avisa con `onLeft`. */
   leaving?: boolean;
   onLeft?: () => void;
+  /** Pieza de un modelo real para esta capa; sin ella se dibuja la versión procedural. */
+  real?: RealPart;
 }
 
 /**
@@ -66,6 +69,7 @@ export function IngredientMesh({
   reducedMotion,
   leaving = false,
   onLeft,
+  real,
 }: Props) {
   const group = useRef<THREE.Group>(null);
   const materials = useRef<THREE.MeshStandardMaterial[]>([]);
@@ -177,13 +181,34 @@ export function IngredientMesh({
           }}
         />
       )}
-      <LayerBody layer={layer} register={register} />
+      {real ? (
+        <RealBody part={real} register={register} />
+      ) : (
+        <LayerBody layer={layer} register={register} />
+      )}
     </group>
   );
 }
 
 type Register = (m: THREE.MeshStandardMaterial | null) => void;
 type V2 = [number, number];
+
+/** Pieza de un modelo real. Cada capa lleva su copia del material, para resaltarla sola. */
+function RealBody({ part, register }: { part: RealPart; register: Register }) {
+  const material = useMemo(() => part.material.clone(), [part]);
+  useEffect(() => () => material.dispose(), [material]);
+  return (
+    <mesh
+      geometry={part.geometry}
+      material={material}
+      ref={(m) => {
+        if (m) register(m.material as THREE.MeshStandardMaterial);
+      }}
+      castShadow
+      receiveShadow
+    />
+  );
+}
 
 function LayerBody({ layer, register }: { layer: StackLayer; register: Register }) {
   const seed = useMemo(
