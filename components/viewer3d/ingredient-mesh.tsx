@@ -12,7 +12,11 @@ import {
   bumpyDisc,
   cheeseSlice,
   crumbFace,
+  arepaGeometry,
   lettuceGeometry,
+  maduroGeometry,
+  moundGeometry,
+  sausageGeometry,
   patty,
   RADIUS,
   ringsGeometry,
@@ -24,7 +28,11 @@ import {
   baconStripes,
   breadCrumb,
   breadCrust,
+  arepaChar,
   lettuceVeins,
+  maduroGlaze,
+  riceMix,
+  sausageSkin,
   pattySear,
   softDetail,
   tomatoFace,
@@ -51,6 +59,15 @@ interface Props {
   onLeft?: () => void;
   /** Pieza de un modelo real para esta capa; sin ella se dibuja la versión procedural. */
   real?: RealPart;
+  /** Lugar en el plato (platos a la carta); en las pilas va en el centro. */
+  x?: number;
+  z?: number;
+  rot?: number;
+  scale?: number;
+  /** Radio de la zona que se toca. */
+  hitRadius?: number;
+  /** Zona que se toca con otra forma (una pieza real que no está en el centro). */
+  hitGeometry?: THREE.BufferGeometry;
 }
 
 /**
@@ -70,6 +87,12 @@ export function IngredientMesh({
   leaving = false,
   onLeft,
   real,
+  x = 0,
+  z = 0,
+  rot = 0,
+  scale = 1,
+  hitRadius = RADIUS + 0.4,
+  hitGeometry,
 }: Props) {
   const group = useRef<THREE.Group>(null);
   const materials = useRef<THREE.MeshStandardMaterial[]>([]);
@@ -78,13 +101,13 @@ export function IngredientMesh({
   // Solo la posición inicial va como prop; luego manda el resorte (si no, cada cambio de
   // `y` la reiniciaría).
   const [startY] = useState(() => y + (reducedMotion ? 0 : 2.2 + index * 0.08));
+  const [start] = useState(() => ({ x, z }));
   const hit = useMemo(
-    () =>
-      new THREE.CylinderGeometry(RADIUS + 0.4, RADIUS + 0.4, Math.max(0.4, layer.thickness), 24),
-    [layer.thickness],
+    () => new THREE.CylinderGeometry(hitRadius, hitRadius, Math.max(0.4, layer.thickness), 24),
+    [layer.thickness, hitRadius],
   );
 
-  useEffect(() => invalidate(), [y, selected, hovered, leaving, invalidate]);
+  useEffect(() => invalidate(), [y, x, z, selected, hovered, leaving, invalidate]);
   useLayoutEffect(() => {
     group.current?.traverse((o) => {
       if ((o as THREE.Mesh).isMesh && !o.userData.hitbox) o.raycast = NO_RAYCAST;
@@ -113,6 +136,11 @@ export function IngredientMesh({
       }
       busy ||= Math.abs(targetY - g.position.y) > 0.001 || Math.abs(m.vy) > 0.001;
     }
+    // En el plato, las piezas se abren hacia afuera al separar.
+    const kx = reducedMotion ? 1 : 1 - Math.exp(-delta * 9);
+    g.position.x += (x - g.position.x) * kx;
+    g.position.z += (z - g.position.z) * kx;
+    busy ||= Math.abs(x - g.position.x) > 0.002 || Math.abs(z - g.position.z) > 0.002;
 
     if (leaving) {
       m.appear += (0 - m.appear) * (reducedMotion ? 1 : 1 - Math.exp(-delta * 11));
@@ -133,7 +161,7 @@ export function IngredientMesh({
       busy ||= Math.abs(1 - m.appear) > 0.001 || Math.abs(m.va) > 0.001;
     }
     const a = Math.max(0, m.appear);
-    g.scale.set(0.55 + 0.45 * a, 0.2 + 0.8 * a, 0.55 + 0.45 * a);
+    g.scale.set((0.55 + 0.45 * a) * scale, (0.2 + 0.8 * a) * scale, (0.55 + 0.45 * a) * scale);
 
     const glow = leaving ? 0 : selected ? 0.3 : hovered ? 0.14 : 0;
     for (const mat of materials.current) {
@@ -158,12 +186,13 @@ export function IngredientMesh({
     <group
       ref={group}
       name={leaving ? undefined : layer.id}
-      position={[0, startY, 0]}
+      position={[start.x, startY, start.z]}
+      rotation={[0, rot, 0]}
       userData={leaving ? {} : { ingredientKey: layer.key, name: layer.name }}
     >
       {!leaving && (
         <mesh
-          geometry={hit}
+          geometry={hitGeometry ?? hit}
           visible={false}
           userData={{ hitbox: true }}
           onPointerOver={(e) => {
@@ -295,6 +324,15 @@ function LayerBody({ layer, register }: { layer: StackLayer; register: Register 
       return <Egg layer={layer} seed={seed} register={register} />;
     case "aguacate":
       return <Avocado layer={layer} register={register} />;
+    case "calentado":
+    case "arroz":
+      return <Mound layer={layer} seed={seed} register={register} />;
+    case "arepa":
+      return <Arepa layer={layer} register={register} />;
+    case "chorizo":
+      return <Sausage layer={layer} register={register} />;
+    case "maduro":
+      return <Maduro register={register} />;
     default:
       return null;
   }
@@ -653,6 +691,84 @@ function Avocado({ layer, register }: { layer: StackLayer; register: Register })
         roughness={0.42}
         clearcoat={0.4}
         clearcoatRoughness={0.3}
+      />
+    </mesh>
+  );
+}
+
+/* ——— Platos a la carta ——— */
+
+function Mound({ layer, seed, register }: { layer: StackLayer; seed: number; register: Register }) {
+  const t = layer.thickness;
+  const geo = useMemo(() => moundGeometry(3.2, t, seed), [t, seed]);
+  const tex = riceMix(layer.kind === "calentado");
+  return (
+    <mesh geometry={geo} castShadow receiveShadow>
+      <FoodMaterial
+        ref={register}
+        map={tex.map}
+        normalMap={tex.normalMap}
+        normalScale={[0.8, 0.8] as V2}
+        roughness={0.55}
+        clearcoat={0.35}
+        clearcoatRoughness={0.4}
+      />
+    </mesh>
+  );
+}
+
+function Arepa({ layer, register }: { layer: StackLayer; register: Register }) {
+  const t = layer.thickness;
+  const geo = useMemo(() => arepaGeometry(1.9, t), [t]);
+  const tex = arepaChar();
+  return (
+    <mesh geometry={geo} castShadow receiveShadow>
+      <FoodMaterial
+        ref={register}
+        color={layer.color}
+        map={tex.map}
+        normalMap={tex.normalMap}
+        normalScale={[0.6, 0.6] as V2}
+        roughness={0.8}
+        sheen={0.3}
+        sheenColor="#FFF1CF"
+      />
+    </mesh>
+  );
+}
+
+function Sausage({ layer, register }: { layer: StackLayer; register: Register }) {
+  const geo = useMemo(() => sausageGeometry(), []);
+  const skin = sausageSkin();
+  return (
+    <mesh geometry={geo} castShadow receiveShadow>
+      <FoodMaterial
+        ref={register}
+        color={layer.color}
+        map={skin.map}
+        normalMap={skin.normalMap}
+        normalScale={[0.7, 0.7] as V2}
+        roughness={0.4}
+        clearcoat={0.7}
+        clearcoatRoughness={0.25}
+      />
+    </mesh>
+  );
+}
+
+function Maduro({ register }: { register: Register }) {
+  const geo = useMemo(() => maduroGeometry(), []);
+  const glaze = maduroGlaze();
+  return (
+    <mesh geometry={geo} castShadow receiveShadow>
+      <FoodMaterial
+        ref={register}
+        map={glaze.map}
+        normalMap={glaze.normalMap}
+        normalScale={[0.4, 0.4] as V2}
+        roughness={0.3}
+        clearcoat={0.8}
+        clearcoatRoughness={0.2}
       />
     </mesh>
   );

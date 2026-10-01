@@ -550,3 +550,75 @@ export function bowlGeometry() {
     48,
   );
 }
+
+/* ——— Platos a la carta ——— */
+
+/** Porción servida con cuchara (arroz, calentado): domo bajo y grumoso. */
+export function moundGeometry(radius: number, height: number, seed: number) {
+  const pts: Array<[number, number]> = [];
+  for (let i = 0; i <= 24; i++) {
+    // Loma suave: sube rápido desde el borde y se aplana arriba, como servida con cuchara.
+    const r = 1 - i / 24;
+    pts.push([radius * r, height * Math.pow(1 - r * r, 0.85)]);
+  }
+  pts[pts.length - 1] = [0, height];
+  const g = lathe(pts, 72, (x, y, z, u) => {
+    const r = Math.hypot(x, z) / radius;
+    const k = 1 + (fbm(u, 0.5, seed, 5, 3) - 0.5) * 0.28;
+    const lump =
+      (fbm(x / 8 + 0.5, z / 8 + 0.5, seed + 4, 8, 3) - 0.5) * 0.5 * height * (1 - r * r * 0.6);
+    return [x * k, Math.max(0, y + lump), z * k];
+  });
+  return planarUV(g, radius * 1.2).translate(0, -height / 2, 0);
+}
+
+/** Arepa: disco grueso de bordes redondeados, un poco irregular. */
+export function arepaGeometry(radius: number, thickness: number, seed = 13) {
+  const h = thickness;
+  const pts: Array<[number, number]> = [[0, 0]];
+  for (let i = 0; i <= 12; i++) {
+    const a = -Math.PI / 2 + (i / 12) * Math.PI;
+    pts.push([radius - h / 2 + Math.cos(a) * (h / 2), h / 2 + Math.sin(a) * (h / 2)]);
+  }
+  pts.push([0, h]);
+  const g = lathe(pts, 72, (x, y, z, u) => {
+    const k = 1 + (fbm(u, 0.5, seed, 4, 3) - 0.5) * 0.08;
+    return [x * k, y, z * k];
+  });
+  return planarUV(g, radius * 1.05).translate(0, -h / 2, 0);
+}
+
+/** Chorizo acostado: cápsula algo curva, con el amarre marcado en las puntas. */
+export function sausageGeometry(radius = 0.45, length = 2.6) {
+  const g = new THREE.CapsuleGeometry(radius, length, 8, 20);
+  g.rotateZ(Math.PI / 2);
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  const half = length / 2 + radius;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const t = x / half;
+    // Curva suave y el estrangulamiento del amarre cerca de las puntas.
+    const pinch = 1 - 0.18 * Math.exp(-Math.pow((Math.abs(t) - 0.8) * 9, 2));
+    pos.setXYZ(i, x, pos.getY(i) * pinch, pos.getZ(i) * pinch + t * t * 0.35);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/** Dos tajadas de maduro, largas, curvas y aplanadas, en una sola geometría. */
+export function maduroGeometry() {
+  return mergeGeometries(
+    [0, 1].map((i) => {
+      const g = new THREE.SphereGeometry(1, 28, 14).scale(1.7, 0.22, 0.55);
+      const pos = g.attributes.position as THREE.BufferAttribute;
+      for (let v = 0; v < pos.count; v++) {
+        const x = pos.getX(v);
+        pos.setZ(v, pos.getZ(v) + x * x * 0.18);
+      }
+      g.computeVertexNormals();
+      planarUV(g, 1.8);
+      g.translate(i * 0.35, i * 0.12, i * 1.25);
+      return g;
+    }),
+  )!;
+}

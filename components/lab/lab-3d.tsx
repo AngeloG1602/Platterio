@@ -58,7 +58,8 @@ import {
 import { formatBytes, validateModelFile } from "@/lib/domain/dishForm";
 import { formatCOP, formatPriceDelta } from "@/lib/domain/format";
 import { ALLERGENS, type Allergen } from "@/lib/domain/types";
-import { realModelFor } from "@/lib/viewer3d/real-models";
+import { coverage, layoutFor, rulesFromNodeNames } from "@/lib/viewer3d/layouts";
+import { realModelFor, type RealModel, type RealPartRule } from "@/lib/viewer3d/real-models";
 import { buildStack } from "@/lib/viewer3d/stack";
 import { cn } from "@/lib/cn";
 import { createStatsStore, PerfHud } from "./perf-hud";
@@ -84,6 +85,7 @@ const SIDE_KEY = "__acompanante";
 export function Lab3D() {
   const hydrated = useHydrated();
   const [tab, setTab] = useState<"plato" | "glb">("plato");
+  const [tried, setTried] = useState<RealModel | null>(null);
   return (
     <div className="bg-bg min-h-dvh">
       <div className="bg-ink text-bg">
@@ -127,9 +129,16 @@ export function Lab3D() {
           {!hydrated ? (
             <Skeleton className="h-[520px] rounded-2xl" />
           ) : tab === "plato" ? (
-            <DishLab />
+            <DishLab tried={tried} onDropTried={() => setTried(null)} />
           ) : (
-            <GlbLab />
+            <GlbLab
+              onTry={(model) => {
+                setTried(model);
+                setTab("plato");
+                // El botón queda abajo; el visor del plato está arriba.
+                window.scrollTo({ top: 0 });
+              }}
+            />
           )}
         </div>
       </main>
@@ -139,12 +148,21 @@ export function Lab3D() {
 
 /* ——— Plato del menú ——— */
 
-function DishLab() {
+function DishLab({
+  tried,
+  onDropTried,
+}: {
+  /** Modelo subido en "Probar un .glb" para verlo en su plato. */
+  tried: RealModel | null;
+  onDropTried: () => void;
+}) {
   const dishes = useDishes();
-  const [dishId, setDishId] = useState(CUSTOMIZATION_SPECS[0]!.dishId);
+  const [dishId, setDishId] = useState(tried?.dishId ?? CUSTOMIZATION_SPECS[0]!.dishId);
   const spec = CUSTOMIZATION_SPECS.find((s) => s.dishId === dishId)!;
   const dish = dishes.find((d) => d.id === dishId);
-  const [variantId, setVariantId] = useState("sencilla");
+  const [variantId, setVariantId] = useState(
+    () => dishes.find((d) => d.id === dishId)?.variants[0]?.id ?? "sencilla",
+  );
   const [custom, setCustom] = useState<Customization>(EMPTY_CUSTOMIZATION);
   const [explode, setExplode] = useState(0);
   const [labels, setLabels] = useState(false);
@@ -154,7 +172,7 @@ function DishLab() {
   const [restrictions, setRestrictions] = useState<Allergen[]>([]);
   const [quality, setQuality] = useState<QualitySetting>("auto");
   const [modelKind, setModelKind] = useState<"real" | "procedural">("real");
-  const realModel = realModelFor(dishId);
+  const realModel = tried?.dishId === dishId ? tried : realModelFor(dishId);
   const usingReal = realModel && modelKind === "real" ? realModel : undefined;
   const [drawing, setDrawing] = useState<Quality>("alta");
   const [showPerf, setShowPerf] = useState(false);
@@ -178,7 +196,7 @@ function DishLab() {
     setDishId(id);
     setCustom(EMPTY_CUSTOMIZATION);
     setSelected(null);
-    setVariantId("sencilla");
+    setVariantId(dishes.find((d) => d.id === id)?.variants[0]?.id ?? "sencilla");
   }
 
   const selectedSlot = spec.slots.find((s) => s.key === selected);
@@ -234,6 +252,7 @@ function DishLab() {
               onStats={showPerf ? statsStore.set : undefined}
               brand={restaurant.name}
               realModel={usingReal}
+              layout={layoutFor(dishId)}
               accent={restaurant.accentColor}
             />
           </div>
@@ -334,7 +353,18 @@ function DishLab() {
           <p className="text-muted text-[13px] sm:max-w-md">
             Arrastra para girar · rueda o dos dedos para acercar · toca un ingrediente para ver sus
             opciones.{" "}
-            {usingReal ? (
+            {usingReal && !usingReal.credit ? (
+              <>
+                Modelo subido: {usingReal.fileName}. Lo que no trae se dibuja con código.{" "}
+                <button
+                  type="button"
+                  onClick={onDropTried}
+                  className="text-accent-strong font-medium underline underline-offset-2"
+                >
+                  Quitar
+                </button>
+              </>
+            ) : usingReal?.credit ? (
               <>
                 Modelo real: “{usingReal.credit.title}” de {usingReal.credit.author} (
                 {usingReal.credit.source}), licencia{" "}
@@ -894,7 +924,7 @@ interface LabFile {
   credit?: { title: string; author: string; source: string };
 }
 
-function GlbLab() {
+function GlbLab({ onTry }: { onTry: (model: RealModel) => void }) {
   const [file, setFile] = useState<LabFile | null>(null);
   const [parts, setParts] = useState<GlbPart[]>([]);
   const [hidden, setHidden] = useState<string[]>([]);
@@ -1056,11 +1086,98 @@ function GlbLab() {
             </p>
           )}
         </section>
+        {file && parts.length > 0 && (
+          <UseInDish
+            names={parts.map((p) => p.name)}
+            onTry={(dishId, rules) => onTry({ dishId, url: file.url, rules, fileName: file.name })}
+          />
+        )}
         <p className="text-muted px-1 text-[13px]">
           Cómo preparar los modelos:{" "}
           <code className="bg-surface-2 rounded px-1">docs/3d/PROPUESTA.md</code> en el repositorio.
         </p>
       </aside>
     </div>
+  );
+}
+
+/**
+ * Valida un modelo contra un plato del menú con la convención de nombres (carne, carne@pollo,
+ * pan_base…): qué ingredientes y opciones trae como pieza real y qué nodos no reconoce. Si
+ * cubre algo, se puede probar de una vez en el personalizador.
+ */
+function UseInDish({
+  names,
+  onTry,
+}: {
+  names: string[];
+  onTry: (dishId: string, rules: RealPartRule[]) => void;
+}) {
+  const dishes = useDishes();
+  const [dishId, setDishId] = useState(CUSTOMIZATION_SPECS[0]!.dishId);
+  const spec = CUSTOMIZATION_SPECS.find((s) => s.dishId === dishId)!;
+  const { rules, unknown } = rulesFromNodeNames(names, spec);
+  const rows = coverage(spec, rules);
+  const covered = rows.reduce((n, r) => n + r.options.filter((o) => o.covered).length, 0);
+  const total = rows.reduce((n, r) => n + r.options.length, 0);
+
+  return (
+    <section
+      className="border-line bg-surface shadow-card rounded-2xl border p-4"
+      aria-labelledby="usar"
+    >
+      <h2 id="usar" className="text-lg font-semibold">
+        Usar en un plato
+      </h2>
+      <p className="text-muted text-[13px]">
+        Las partes se reconocen por su nombre: <code>carne</code>, <code>carne@pollo</code>,{" "}
+        <code>pan_base</code>… Lo que falte se dibuja con código.
+      </p>
+      <label className="mt-3 flex flex-col gap-1 text-sm font-semibold">
+        Plato
+        <select
+          value={dishId}
+          onChange={(e) => setDishId(e.target.value)}
+          className="border-line bg-surface h-11 rounded-xl border px-3 text-[15px] font-medium"
+        >
+          {CUSTOMIZATION_SPECS.map((s) => (
+            <option key={s.dishId} value={s.dishId}>
+              {dishes.find((d) => d.id === s.dishId)?.name ?? s.dishId}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="mt-3 text-sm font-semibold">
+        {covered} de {total} opciones con pieza real
+      </p>
+      <ul className="mt-2 flex flex-col gap-2">
+        {rows.map((r) => (
+          <li key={r.slot} className="text-sm">
+            <span className="font-medium">{r.name}</span>
+            <span className="mt-1 flex flex-wrap gap-1">
+              {r.options.map((o) => (
+                <Badge key={o.id ?? "base"} tone={o.covered ? "success" : "neutral"}>
+                  {o.covered ? <Check className="size-3" aria-hidden /> : null}
+                  {o.name}
+                  <span className="sr-only">{o.covered ? ": pieza real" : ": con código"}</span>
+                </Badge>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {unknown.length > 0 && (
+        <p className="bg-warning-soft text-warning-ink mt-3 rounded-lg px-3 py-2 text-[13px] font-medium">
+          No se reconocen: {unknown.join(", ")}. Renómbralos con la convención o no se usarán.
+        </p>
+      )}
+      <Button
+        className="mt-3 w-full"
+        disabled={rules.length === 0}
+        onClick={() => onTry(dishId, rules)}
+      >
+        <Box aria-hidden /> Probar en el personalizador
+      </Button>
+    </section>
   );
 }

@@ -25,7 +25,10 @@ export interface RealPartRule {
 export interface RealModel {
   dishId: string;
   url: string;
-  credit: { title: string; author: string; source: string; license: string; licenseUrl: string };
+  /** Crédito del autor (obligatorio con licencias CC BY). Sin él, es un modelo de prueba. */
+  credit?: { title: string; author: string; source: string; license: string; licenseUrl: string };
+  /** Nombre del archivo, para los modelos que se suben a probar. */
+  fileName?: string;
   rules: RealPartRule[];
 }
 

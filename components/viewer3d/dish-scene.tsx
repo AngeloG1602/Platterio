@@ -2,10 +2,11 @@
 
 import { Html, OrbitControls, Preload } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { layerPositions, stackHeight, type StackLayer } from "@/lib/viewer3d/stack";
-import { plateGeometry } from "./geometry";
+import { layerPositions, type StackLayer } from "@/lib/viewer3d/stack";
+import { placeOnPlate, type DishLayout, type PlacedLayer } from "@/lib/viewer3d/layouts";
+import { plateGeometry, RADIUS } from "./geometry";
 import type { RealModel } from "@/lib/viewer3d/real-models";
 import { IngredientMesh } from "./ingredient-mesh";
 import { RealPartsProvider, useRealPart } from "./real-parts";
@@ -50,10 +51,13 @@ export interface DishSceneProps {
   brand?: string;
   /** Modelo real del plato; los ingredientes que no tengan pieza real se dibujan procedurales. */
   realModel?: RealModel;
+  /** Pila (hamburguesas) o repartido en el plato (platos a la carta). */
+  layout?: DishLayout;
   accent?: string;
 }
 
 const GAP = 1.3;
+const PILA: DishLayout = { type: "pila" };
 const PLATE_Y = 0.2;
 const START = new THREE.Vector3(11, 9, 13);
 
@@ -62,8 +66,7 @@ const uidOf = (l: StackLayer) => `${l.id}:${l.kind}:${l.color}`;
 
 interface Ghost {
   uid: string;
-  layer: StackLayer;
-  y: number;
+  item: PlacedLayer;
   index: number;
 }
 
@@ -103,7 +106,7 @@ export default function DishScene(props: DishSceneProps) {
       <QualityContext value={quality}>
         <Suspense fallback={null}>
           <Stage quality={quality} />
-          <RealPartsProvider model={props.realModel}>
+          <RealPartsProvider model={props.realModel} layout={props.layout?.type ?? "pila"}>
             <SceneContents {...props} reducedMotion={reducedMotion} />
           </RealPartsProvider>
           <Effects quality={quality} />
@@ -132,6 +135,7 @@ function SceneContents({
   reducedMotion,
   brand = "Fogón 27",
   accent = "#E4572E",
+  layout = PILA,
 }: DishSceneProps & { reducedMotion: boolean }) {
   const [hovered, setHovered] = useState<string | null>(null);
   // Las capas con pieza real se apilan con el grosor medido de esa pieza.
@@ -144,8 +148,33 @@ function SceneContents({
       }),
     [logicalStack, realOf],
   );
-  const positions = useMemo(() => layerPositions(stack, explode, GAP), [stack, explode]);
-  const height = useMemo(() => stackHeight(stack, explode, GAP), [stack, explode]);
+  // Dónde va cada capa: apilada (hamburguesas) o repartida en el plato (a la carta). Las
+  // piezas reales de un plato a la carta ya traen su lugar en el modelo.
+  const place = useCallback(
+    (layers: StackLayer[]): PlacedLayer[] => {
+      if (layout.type === "plato") {
+        return placeOnPlate(layers, layout, explode).map((p) =>
+          realOf(p.layer) ? { ...p, x: 0, z: 0, rot: 0, scale: 1, y: explode * 2.4 } : p,
+        );
+      }
+      const ys = layerPositions(layers, explode, GAP);
+      return layers.map((layer, i) => ({
+        layer,
+        x: 0,
+        y: ys[i]!,
+        z: 0,
+        rot: 0,
+        scale: 1,
+        hit: RADIUS + 0.4,
+      }));
+    },
+    [layout, explode, realOf],
+  );
+  const placed = useMemo(() => place(stack), [place, stack]);
+  const height = useMemo(
+    () => placed.reduce((m, p) => Math.max(m, p.y + (p.layer.thickness * p.scale) / 2), 0),
+    [placed],
+  );
   const plate = useMemo(() => plateGeometry(), []);
   const scene = useThree((s) => s.scene);
 
@@ -154,9 +183,9 @@ function SceneContents({
   const [ghosts, setGhosts] = useState<Ghost[]>([]);
   if (prevStack !== stack) {
     const live = new Set(stack.map(uidOf));
-    const prevY = layerPositions(prevStack, explode, GAP);
-    const gone = prevStack.flatMap((layer, index) =>
-      live.has(uidOf(layer)) ? [] : [{ uid: uidOf(layer), layer, y: prevY[index]!, index }],
+    const before = place(prevStack);
+    const gone = before.flatMap((item, index) =>
+      live.has(uidOf(item.layer)) ? [] : [{ uid: uidOf(item.layer), item, index }],
     );
     setGhosts((g) => [...g.filter((x) => !live.has(x.uid)), ...(reducedMotion ? [] : gone)]);
     setPrevStack(stack);
@@ -178,13 +207,16 @@ function SceneContents({
   }, [stack]);
 
   // La cámara mira al ingrediente seleccionado (o al centro del plato).
-  const selectedIndex = stack.findIndex((l) => l.key === selectedKey);
+  const selected = placed.find((p) => p.layer.key === selectedKey);
+  const onPlate = layout.type === "plato";
   const focusY =
     selectedKey === SIDE_KEY
       ? 2.2
-      : selectedIndex >= 0
-        ? PLATE_Y + positions[selectedIndex]!
-        : 1.5 + height / 2;
+      : selected
+        ? PLATE_Y + selected.y
+        : onPlate
+          ? 1 + height / 2
+          : 1.5 + height / 2;
 
   return (
     <>
@@ -192,12 +224,21 @@ function SceneContents({
         <mesh geometry={plate} receiveShadow castShadow name="plato_ceramica">
           <FoodMaterial color="#F7F2EA" roughness={0.18} clearcoat={1} clearcoatRoughness={0.06} />
         </mesh>
-        <group name="hamburguesa" position={[-1.4, PLATE_Y, 0]}>
-          {stack.map((layer, i) => (
+        <group
+          name={onPlate ? "componentes" : "hamburguesa"}
+          position={[onPlate ? 0 : -1.4, PLATE_Y, 0]}
+        >
+          {placed.map(({ layer, x, y, z, rot, scale, hit }, i) => (
             <IngredientMesh
               key={uidOf(layer)}
               layer={layer}
-              y={positions[i]!}
+              y={y}
+              x={x}
+              z={z}
+              rot={rot}
+              scale={scale}
+              hitRadius={hit}
+              hitGeometry={onPlate ? realOf(layer)?.geometry : undefined}
               index={i}
               selected={selectedKey === layer.key}
               hovered={hovered === layer.key}
@@ -210,34 +251,38 @@ function SceneContents({
           {ghosts.map((g) => (
             <IngredientMesh
               key={`salida-${g.uid}`}
-              layer={g.layer}
-              y={g.y}
+              layer={g.item.layer}
+              y={g.item.y}
+              x={g.item.x}
+              z={g.item.z}
+              rot={g.item.rot}
+              scale={g.item.scale}
               index={g.index}
               selected={false}
               hovered={false}
               onSelect={() => {}}
               onHover={() => {}}
               reducedMotion={reducedMotion}
-              real={realOf(g.layer)}
+              real={realOf(g.item.layer)}
               leaving
               onLeft={() => setGhosts((list) => list.filter((x) => x.uid !== g.uid))}
             />
           ))}
-          {stack.map(
-            (layer, i) =>
+          {placed.map(
+            ({ layer, x, y, z, scale }, i) =>
               (showLabels || selectedKey === layer.key) &&
               firstOfKey[i] && (
                 <Html
                   key={layer.id}
-                  position={[5.4, positions[i]!, 0]}
-                  center={false}
+                  position={onPlate ? [x, y + (layer.thickness * scale) / 2 + 0.9, z] : [5.4, y, 0]}
+                  center={onPlate}
                   zIndexRange={[20, 0]}
                   style={{ pointerEvents: "auto" }}
                 >
                   <button
                     type="button"
                     onClick={() => onSelect(layer.key === selectedKey ? null : layer.key)}
-                    className={`shadow-card -translate-y-1/2 rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors ${
+                    className={`shadow-card ${onPlate ? "" : "-translate-y-1/2"} rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors ${
                       selectedKey === layer.key
                         ? "border-ink bg-ink text-bg"
                         : "border-line bg-surface/95 text-ink"

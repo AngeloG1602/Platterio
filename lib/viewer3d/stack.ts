@@ -31,6 +31,11 @@ export const THICKNESS: Record<VisualKind | "pan_base" | "pan_tapa", number> = {
   aguacate: 0.25,
   jalapeno: 0.15,
   pepinillo: 0.12,
+  calentado: 1.6,
+  arroz: 1.5,
+  chorizo: 0.9,
+  arepa: 0.65,
+  maduro: 0.45,
 };
 
 export interface StackLayer {

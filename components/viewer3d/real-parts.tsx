@@ -42,15 +42,40 @@ export function useRealPart() {
   );
 }
 
-export function RealPartsProvider({ model, children }: { model?: RealModel; children: ReactNode }) {
+type Layout = "pila" | "plato";
+
+export function RealPartsProvider({
+  model,
+  layout,
+  children,
+}: {
+  model?: RealModel;
+  layout: Layout;
+  children: ReactNode;
+}) {
   if (!model) return <RealPartsContext value={null}>{children}</RealPartsContext>;
-  return <LoadedParts model={model}>{children}</LoadedParts>;
+  return (
+    <LoadedParts model={model} layout={layout}>
+      {children}
+    </LoadedParts>
+  );
 }
 
-function LoadedParts({ model, children }: { model: RealModel; children: ReactNode }) {
+function LoadedParts({
+  model,
+  layout,
+  children,
+}: {
+  model: RealModel;
+  layout: Layout;
+  children: ReactNode;
+}) {
   // Suspende hasta que el .glb carga (va dentro del Suspense de la escena).
   const gltf = useGLTF(model.url, "/draco/", true);
-  const value = useMemo(() => ({ model, byId: prepareParts(gltf.scene, model) }), [gltf, model]);
+  const value = useMemo(
+    () => ({ model, byId: prepareParts(gltf.scene, model, layout) }),
+    [gltf, model, layout],
+  );
   return <RealPartsContext value={value}>{children}</RealPartsContext>;
 }
 
@@ -91,25 +116,44 @@ function geometryOf(scene: THREE.Object3D, nodes: string[]) {
   return { geometry: parts.length === 1 ? parts[0]! : mergeGeometries(parts)!, material };
 }
 
-function prepareParts(scene: THREE.Object3D, model: RealModel) {
+function prepareParts(scene: THREE.Object3D, model: RealModel, layout: Layout) {
   scene.updateMatrixWorld(true);
   const byId = new Map<string, RealPart>();
 
-  // Escala y centro salen de la base del pan: queda del ancho del pan procedural.
-  const base = geometryOf(scene, ["pan_base"]);
-  if (!base) return byId;
-  base.geometry.computeBoundingBox();
-  const box = base.geometry.boundingBox!;
-  const scale = (RADIUS * 2 + 0.2) / Math.max(1e-6, box.max.x - box.min.x);
+  // Hamburguesa: escala y centro salen de la base del pan (queda del ancho del pan
+  // procedural). Plato a la carta: del modelo entero, que cabe dentro del plato.
+  const reference =
+    layout === "pila"
+      ? geometryOf(scene, ["pan_base"])?.geometry
+      : (() => {
+          const box = new THREE.Box3().setFromObject(scene);
+          return box.isEmpty() ? undefined : { boundingBox: box };
+        })();
+  if (!reference) return byId;
+  if (reference instanceof THREE.BufferGeometry) reference.computeBoundingBox();
+  const box = reference.boundingBox!;
+  const target = layout === "pila" ? RADIUS * 2 + 0.2 : 14;
+  const scale = target / Math.max(1e-6, box.max.x - box.min.x, box.max.z - box.min.z);
   const cx = (box.min.x + box.max.x) / 2;
   const cz = (box.min.z + box.max.z) / 2;
+  const floor = box.min.y;
 
   for (const rule of model.rules) {
     const id = realPartId(rule);
     if (byId.has(id)) continue;
     const found = geometryOf(scene, rule.nodes);
     if (!found) continue;
-    const g = found.geometry.translate(-cx, 0, -cz).scale(scale, scale, scale);
+    const g = found.geometry.translate(-cx, -floor, -cz).scale(scale, scale, scale);
+    if (layout === "plato") {
+      // En el plato cada pieza se queda donde la puso el modelador.
+      g.computeBoundingBox();
+      g.computeBoundingSphere();
+      const material = found.material.clone();
+      if (rule.tint && "color" in material) (material.color as THREE.Color).set(rule.tint);
+      const b = g.boundingBox!;
+      byId.set(id, { geometry: g, material, thickness: Math.max(0.06, b.max.y - b.min.y) });
+      continue;
+    }
 
     // Grosor del cuerpo: alto de la pieza cerca del centro; lo que cuelga por el borde (el
     // queso) no cuenta para apilar. Si la pieza no pasa por el centro (rodajas, aros), se usa

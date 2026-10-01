@@ -151,6 +151,69 @@ const SIDES = {
   ],
 };
 
+/**
+ * Plato a la carta: los componentes van repartidos en el plato (ver lib/viewer3d/layouts.ts).
+ * Sirve para probar el visor con platos que no son hamburguesas.
+ */
+const CALENTADO: DishCustomizationSpec = {
+  dishId: "calentado-de-la-casa",
+  slots: [
+    slot({
+      key: "calentado",
+      name: "Fríjoles y arroz con hogao",
+      removable: false,
+      maxExtra: 1,
+      extraPrice: 4000,
+      visual: V("calentado", "#7A3B2C"),
+      replacements: [
+        opt("solo_arroz", "Solo arroz con hogao", 0, [], V("arroz", "#F2ECDF"), "Sin fríjoles"),
+      ],
+    }),
+    slot({
+      key: "huevo",
+      name: "Huevo frito",
+      allergens: ["huevo"],
+      maxExtra: 1,
+      extraPrice: 2500,
+      visual: V("huevo", "#FFF8EC"),
+    }),
+    slot({
+      key: "chorizo",
+      name: "Chorizo antioqueño",
+      maxExtra: 1,
+      extraPrice: 4500,
+      visual: V("chorizo", "#8A3A28"),
+      replacements: [opt("salchicha", "Salchicha ranchera", 0, [], V("chorizo", "#C46A4E"))],
+    }),
+    slot({
+      key: "arepa",
+      name: "Arepa de maíz asada",
+      maxExtra: 1,
+      extraPrice: 2000,
+      visual: V("arepa", "#EDD08E"),
+      replacements: [
+        opt("arepa_queso", "Arepa con quesito", 2500, ["lacteos"], V("arepa", "#F5E2A8")),
+      ],
+    }),
+    slot({
+      key: "aguacate",
+      name: "Aguacate",
+      included: false,
+      maxExtra: 1,
+      extraPrice: 3000,
+      visual: V("aguacate", "#9DBF4A"),
+    }),
+    slot({
+      key: "maduro",
+      name: "Tajadas de maduro",
+      included: false,
+      maxExtra: 1,
+      extraPrice: 2500,
+      visual: V("maduro", "#D98A2B"),
+    }),
+  ],
+};
+
 export const CUSTOMIZATION_SPECS: DishCustomizationSpec[] = [
   {
     dishId: "clasica-27",
@@ -319,6 +382,7 @@ export const CUSTOMIZATION_SPECS: DishCustomizationSpec[] = [
       ...addOns(["jalapeno"]),
     ],
   },
+  CALENTADO,
 ];
 
 export function customizationSpecFor(dishId: string): DishCustomizationSpec | undefined {

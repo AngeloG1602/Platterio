@@ -26,7 +26,13 @@ export type VisualKind =
   | "aguacate"
   | "jalapeno"
   | "pepinillo"
-  | "envoltura_lechuga";
+  | "envoltura_lechuga"
+  // Platos a la carta (se sirven repartidos en el plato, no apilados).
+  | "calentado"
+  | "arroz"
+  | "chorizo"
+  | "arepa"
+  | "maduro";
 
 export interface Visual {
   kind: VisualKind;

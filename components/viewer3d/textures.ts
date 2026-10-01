@@ -309,3 +309,118 @@ export function woodGrain() {
   }
   return t;
 }
+
+/* ——— Platos a la carta ——— */
+
+/**
+ * Granos repartidos en celdas (arroz, fríjoles): devuelve 1 dentro de un grano. Cada celda tiene
+ * un grano con posición, giro y largo al azar; `fill` es la probabilidad de que haya grano.
+ */
+function grains(u: number, v: number, cells: number, seed: number, long: number, fill = 1) {
+  const cx = Math.floor(u * cells);
+  const cy = Math.floor(v * cells);
+  let best = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const gx = cx + dx;
+      const gy = cy + dy;
+      const wx = ((gx % cells) + cells) % cells;
+      if (hash(wx, gy, seed + 3) > fill) continue;
+      const px = (gx + hash(wx, gy, seed)) / cells;
+      const py = (gy + hash(wx, gy, seed + 1)) / cells;
+      const a = hash(wx, gy, seed + 2) * Math.PI;
+      const ox = (u - px) * cells;
+      const oy = (v - py) * cells;
+      const along = ox * Math.cos(a) + oy * Math.sin(a);
+      const across = -ox * Math.sin(a) + oy * Math.cos(a);
+      const d = Math.hypot(along / long, across / 0.34);
+      best = Math.max(best, 1 - sstep(0.75, 1, d));
+    }
+  }
+  return best;
+}
+
+/**
+ * Arroz con fríjoles y hogao (calentado) o solo arroz con hogao. Colores reales en la textura;
+ * el relieve marca cada grano.
+ */
+export function riceMix(beans: boolean) {
+  return paint(
+    beans ? "calentado" : "arroz",
+    512,
+    (u, v) => {
+      const rice = grains(u, v, 70, 5, 0.9);
+      const riceC: RGB = beans ? [214, 186, 160] : [246, 240, 228];
+      const gap: RGB = beans ? [120, 62, 44] : [226, 214, 196];
+      let c = lerpRGB(gap, riceC, rice);
+      let h = rice * 0.6;
+      if (beans) {
+        const bean = grains(u, v, 26, 17, 1.35, 0.55);
+        c = lerpRGB(c, [92, 34, 26], bean);
+        h = Math.max(h, bean);
+      }
+      // Hogao: puntos de tomate y cebolla larga.
+      const hogao = sstep(0.7, 0.76, fbm(u, v, 29, 30, 2));
+      c = lerpRGB(c, [206, 72, 38], hogao * 0.85);
+      const scallion = sstep(0.8, 0.84, fbm(u, v, 41, 44, 2));
+      c = lerpRGB(c, [110, 150, 60], scallion * 0.8);
+      return { color: tint(c, 0.92 + fbm(u, v, 3, 6, 2) * 0.16), height: h };
+    },
+    2.5,
+  );
+}
+
+/** Arepa de maíz asada: masa clara con marcas de la plancha y bordes tostados. */
+export function arepaChar() {
+  return paint(
+    "arepa",
+    512,
+    (u, v) => {
+      const x = u - 0.5;
+      const y = v - 0.5;
+      const r = Math.hypot(x, y) * 2;
+      const masa = 0.88 + fbm(u, v, 7, 18, 3) * 0.16;
+      const grill =
+        Math.pow(Math.max(0, Math.sin((x + y * 0.3) * 38)), 10) *
+        sstep(0.35, 0.7, fbm(u, v, 13, 5, 2));
+      const char = sstep(0.62, 0.78, fbm(u, v, 19, 7, 3)) * 0.5;
+      const edge = sstep(0.8, 1, r) * 0.25;
+      const k = masa * (1 - grill * 0.3 - char * 0.3 - edge);
+      return { color: shade(1, k), height: masa - grill * 0.6 + fbm(u, v, 3, 60, 2) * 0.3 };
+    },
+    2,
+  );
+}
+
+/** Chorizo o salchicha: tripa con grasa, marcas de parrilla y brillo irregular. */
+export function sausageSkin() {
+  return paint(
+    "chorizo",
+    256,
+    (u, v) => {
+      const n = fbm(u, v, 23, 10, 4);
+      const fat = sstep(0.8, 0.86, fbm(u, v, 31, 40, 2)) * 0.3;
+      const grill = Math.pow(Math.max(0, Math.sin(v * Math.PI * 9)), 12) * 0.35;
+      const k = 0.82 + n * 0.25 + fat - grill;
+      return { color: shade(1, k), height: n + fat - grill };
+    },
+    3,
+  );
+}
+
+/** Tajada de maduro: dorada en el centro, caramelizada y oscura en los bordes. */
+export function maduroGlaze() {
+  return paint(
+    "maduro",
+    256,
+    (u, v) => {
+      const r = Math.hypot((u - 0.5) * 1.3, (v - 0.5) * 3) * 2;
+      const n = fbm(u, v, 11, 12, 3);
+      const golden: RGB = [236, 170, 70];
+      const caramel: RGB = [150, 70, 24];
+      const c = lerpRGB(golden, caramel, clamp01(sstep(0.45, 1, r) + (n - 0.5) * 0.5));
+      return { color: tint(c, 0.9 + n * 0.2), height: n };
+    },
+    1.5,
+  );
+}
