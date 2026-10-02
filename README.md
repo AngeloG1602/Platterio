@@ -142,6 +142,15 @@ tocar las pantallas ni `lib/domain`. El visor 3D se conecta en
   (`npm run e2e:a11y`) en las 18 vistas.
 - Revisado de 360 px (cliente) a escritorio (panel).
 
+## Laboratorio 3D (en desarrollo)
+
+`/laboratorio/3d` es un prototipo interno, sin enlaces desde la app. Muestra platos en 3D con
+Three.js (React Three Fiber): despiece por ingredientes y personalización (quitar, extra,
+reemplazar, adicionales, acompañante), con precio, alérgenos y comanda recalculados. Usa luz de
+estudio HDRI, materiales físicos y texturas procedurales. Dibuja solo cuando algo cambia, y trae
+calidad automática y un medidor de rendimiento. La propuesta completa está en
+[`docs/3d/PROPUESTA.md`](./docs/3d/PROPUESTA.md).
+
 ## Estado por fases
 
 - [x] Fase 0 — Base
