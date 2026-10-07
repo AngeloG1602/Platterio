@@ -8,7 +8,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
 import { waiterActions } from "@/lib/data";
 import { formatCOP } from "@/lib/domain/format";
-import { ADJUST_REASONS, type ItemAdjustment } from "@/lib/domain/waiter";
+import { ADJUST_REASONS, EDIT_REASONS, type ItemAdjustment } from "@/lib/domain/waiter";
 import type { Dish, OrderItem } from "@/lib/domain/types";
 import { ReasonPicker, resolveReason } from "./reason-picker";
 
@@ -20,7 +20,10 @@ export function AdjustSheet({
   item,
   dish,
   onClose,
+  afterConfirm = false,
 }: {
+  /** La ronda ya se confirmó: el cambio queda registrado y se le avisa a cocina. */
+  afterConfirm?: boolean;
   orderId: string;
   item: OrderItem;
   dish: Dish | undefined;
@@ -46,13 +49,17 @@ export function AdjustSheet({
         : mode === "cantidad"
           ? { type: "cantidad", qty }
           : { type: "variante", variantId };
-    const r = waiterActions.adjustItem(orderId, item.id, change, why);
+    const r = afterConfirm
+      ? waiterActions.editOrder(orderId, { ...change, itemId: item.id }, why)
+      : waiterActions.adjustItem(orderId, item.id, change, why);
     if (!r.ok) {
       setError(r.error);
       return;
     }
     toast.success(mode === "quitar" ? `Quitaste ${dish?.name ?? "el ítem"}` : "Ajuste guardado", {
-      description: "El cliente verá el cambio con el motivo.",
+      description: afterConfirm
+        ? "Cocina verá el aviso y el cambio queda en el registro."
+        : "El cliente verá el cambio con el motivo.",
     });
     onClose();
   }
@@ -104,7 +111,7 @@ export function AdjustSheet({
           />
         )}
         <ReasonPicker
-          options={ADJUST_REASONS}
+          options={afterConfirm ? EDIT_REASONS : ADJUST_REASONS}
           value={reason}
           onChange={(v) => {
             setReason(v);

@@ -296,6 +296,39 @@ check(
   await visible(nora.getByText(/La mesa se liberó/)),
 );
 
+// 11. Pedido tomado por el mesero y edición con registro de cambios
+await daniela.getByRole("button", { name: /^Mesa 5:/ }).click();
+await daniela.getByRole("button", { name: "Tomar pedido" }).click();
+let hoja = daniela.getByRole("dialog").last();
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+const ronda = cocina.locator('article[aria-label="Mesa 5, ronda 1"]');
+check("11. El pedido del mesero llega directo a cocina", await visible(ronda));
+await daniela.getByRole("button", { name: /Editar.*ronda 1/ }).click();
+hoja = daniela.getByRole("dialog").last();
+await hoja
+  .getByRole("button", { name: /Ajustar/ })
+  .first()
+  .click();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByRole("radio", { name: "Cantidad" }).click();
+await hoja.getByRole("button", { name: "Agregar uno" }).click();
+await hoja.getByRole("radio", { name: "Error al tomar el pedido" }).click();
+await hoja.getByRole("button", { name: "Guardar ajuste" }).click();
+check(
+  "11. Cocina ve el aviso de cambio del mesero",
+  await visible(ronda.getByText("Cambios del mesero")),
+);
+check(
+  "11. El cambio queda en el registro con quién y por qué",
+  await visible(daniela.getByText(/Daniela · .*Error al tomar el pedido/)),
+);
+await ronda.getByRole("button", { name: "Visto" }).click();
+check(
+  "11. Al marcar visto, el aviso desaparece",
+  !(await visible(ronda.getByText("Cambios del mesero"), 1500)),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

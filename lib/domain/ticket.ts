@@ -1,3 +1,4 @@
+import { STAFF_DINER_ID, STAFF_DINER_LABEL } from "./staffOrders";
 import type { Diner, Dish, Order, OrderItem, OrderStatus, Variant } from "./types";
 
 export interface TicketLine {
@@ -49,7 +50,9 @@ export function consolidateTicket(params: {
 }): Ticket {
   const dishById = new Map(params.dishes.map((d) => [d.id, d]));
   const aliasOf = (id: string) =>
-    params.diners.find((d) => d.id === id)?.alias ?? "Alguien de la mesa";
+    id === STAFF_DINER_ID
+      ? STAFF_DINER_LABEL
+      : (params.diners.find((d) => d.id === id)?.alias ?? "Alguien de la mesa");
   const dinerOrder = (id: string) => {
     const i = params.diners.findIndex((d) => d.id === id);
     return i === -1 ? Number.MAX_SAFE_INTEGER : i;

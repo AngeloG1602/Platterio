@@ -1,5 +1,6 @@
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { STAFF_DINER_ID, STAFF_DINER_LABEL } from "@/lib/domain/staffOrders";
 import type { Diner, Dish, Order, OrderItem } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 
@@ -24,7 +25,9 @@ export function OrderLines({
       {dinerIds.map((dinerId) => (
         <div key={dinerId}>
           <p className="text-muted text-xs font-semibold tracking-wide uppercase">
-            {diners.find((d) => d.id === dinerId)?.alias ?? "Comensal"}
+            {dinerId === STAFF_DINER_ID
+              ? STAFF_DINER_LABEL
+              : (diners.find((d) => d.id === dinerId)?.alias ?? "Comensal")}
           </p>
           <ul className="mt-1">
             {order.items

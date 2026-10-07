@@ -29,6 +29,13 @@ import {
 } from "@/lib/domain/feedback";
 import { transitionOrder, type Actor } from "@/lib/domain/orderStatus";
 import { adjustOrderItem, releaseSession, type ItemAdjustment } from "@/lib/domain/waiter";
+import {
+  acknowledgeChanges,
+  createStaffOrder,
+  editOrder,
+  type OrderEdit,
+  type StaffLine,
+} from "@/lib/domain/staffOrders";
 import type { Order, OrderStatus } from "@/lib/domain/types";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
@@ -410,6 +417,76 @@ export const waiterActions = {
       return { ok: true };
     });
   },
+  /**
+   * El personal toma el pedido en la mesa: va directo a cocina. Si la mesa estaba libre,
+   * se abre sola (con su PIN) para que la cuenta quede en una sesión.
+   */
+  createOrder(
+    tableId: string,
+    lines: StaffLine[],
+  ): ActionResult & { orderId?: string; openedPin?: string } {
+    const allowed = requirePermission("pedidos.crear");
+    if (!allowed.ok) return allowed;
+    const check = checkWaiterTable(tableId);
+    if (!check.ok) return check;
+    const state = useAppStore.getState();
+    const now = nowIso();
+    let sessions = state.sessions;
+    let session = findOpenSession(sessions, tableId);
+    let openedPin: string | undefined;
+    if (!session) {
+      const opened = openSession(sessions, {
+        tableId,
+        openedBy: allowed.actor!.id,
+        now,
+        newId,
+      });
+      if (!opened.ok) return opened;
+      sessions = opened.value.sessions;
+      session = opened.value.session;
+      openedPin = session.pin;
+    }
+    const r = createStaffOrder({
+      session,
+      orders: state.orders,
+      dishes: state.dishes,
+      lines,
+      staffName: allowed.actor!.name,
+      now,
+      orderId: newId("pedido"),
+      newId: () => newId("item"),
+    });
+    if (!r.ok) return r;
+    const sid = session.id;
+    useAppStore.setState((s) => ({
+      sessions: sessions.map((x) => (x.id === sid ? { ...x, lastActivityAt: now } : x)),
+      orders: [...s.orders, r.order],
+      calls: openedPin ? resolveCalls(s.calls, tableId) : s.calls,
+    }));
+    return { ok: true, orderId: r.order.id, openedPin };
+  },
+  /** Edita una ronda en cualquier estado menos anulada; queda registrado quién, cuándo y por qué. */
+  editOrder(orderId: string, edit: OrderEdit, reason: string): ActionResult {
+    const allowed = requirePermission("pedidos.editar");
+    if (!allowed.ok) return allowed;
+    return withOrderTable(orderId, () => {
+      const state = useAppStore.getState();
+      const order = state.orders.find((o) => o.id === orderId)!;
+      const r = editOrder({
+        order,
+        edit,
+        reason,
+        dishes: state.dishes,
+        staffName: allowed.actor!.name,
+        now: nowIso(),
+        changeId: newId("cambio"),
+        itemId: newId("item"),
+      });
+      if (!r.ok) return r;
+      replaceOrder(r.order);
+      return { ok: true };
+    });
+  },
   /** Abre la mesa: genera su PIN y atiende los avisos de "abre mi mesa". */
   openTable(tableId: string): ActionResult & { pin?: string } {
     const check = checkWaiterTable(tableId);
@@ -472,6 +549,13 @@ export const waiterActions = {
 export const kitchenActions = {
   start: (orderId: string) => moveOrder(orderId, "en_preparacion", "cocina"),
   ready: (orderId: string) => moveOrder(orderId, "listo", "cocina"),
+  /** La cocina vio los cambios que hizo el personal en la ronda. */
+  acknowledgeChanges(orderId: string): ActionResult {
+    const order = useAppStore.getState().orders.find((o) => o.id === orderId);
+    if (!order) return { ok: false, error: "No encontramos ese pedido" };
+    replaceOrder(acknowledgeChanges(order, nowIso()));
+    return { ok: true };
+  },
 };
 
 /* ——— Calificaciones (US-30, US-31, US-34) ——— */

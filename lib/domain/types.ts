@@ -146,6 +146,21 @@ export interface OrderItem extends CartItem {
   adjustReason?: string;
   /** Cantidad y variante originales si el mesero las cambió (extensión del mockup). */
   adjustedFrom?: { qty: number; variantId: string };
+  /** Lo agregó el personal después de que la ronda existía (extensión del mockup). */
+  addedByStaff?: boolean;
+}
+
+/** Un cambio del personal sobre una ronda, para saber quién tocó qué y por qué. */
+export interface OrderChange {
+  id: string;
+  at: string;
+  /** Nombre de quien hizo el cambio. */
+  by: string;
+  kind: "agregar" | "quitar" | "cantidad" | "variante" | "anular";
+  dishName: string;
+  /** Texto corto con el antes y el después, p. ej. "2 → 3". */
+  detail: string;
+  reason?: string;
 }
 
 /** Una ronda de la mesa. */
@@ -164,6 +179,12 @@ export interface Order {
   deliveredAt?: string;
   /** Comensal que envió la ronda (extensión del mockup). */
   sentByDinerId?: string;
+  /** Quién creó la ronda: el personal la toma en la mesa (extensión del mockup). */
+  createdBy?: string;
+  /** Cambios del personal sobre la ronda, del más viejo al más nuevo. */
+  changes?: OrderChange[];
+  /** Hasta cuándo la cocina vio los cambios. */
+  kitchenAckAt?: string;
 }
 
 export interface DishRating {

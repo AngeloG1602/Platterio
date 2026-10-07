@@ -321,3 +321,15 @@ pueden cambiar sin rehacer pantallas.
     estorban. Con la base de datos pasará a una tarea en el servidor.
 99. **La demo.** "Simular otro comensal" abre la mesa por su cuenta si estaba cerrada, como
     lo haría un mesero.
+100.  **Pedido tomado por el personal.** El mesero (en sus mesas) y el encargado/administrador (en
+      todas) pueden "Tomar pedido" en la ficha de la mesa. La ronda nace ya confirmada y va
+      directo a cocina, porque quien la toma es quien la confirma. Si la mesa estaba libre se abre
+      sola con su PIN. Los platos quedan a nombre de "Mesero" en el ticket y no se piden reseñas.
+101.  **Editar siempre, con rastro.** Cualquier ronda que no esté anulada se puede tocar (quitar,
+      cantidad, opción, agregar platos, anular la ronda), también ya entregada: "a riesgo de ellos",
+      pero cada cambio guarda quién, cuándo, qué y el motivo en `Order.changes`. Todo cambio
+      menos agregar exige motivo. No se deja quitar el último plato: se anula la ronda.
+      El flujo de ajustar antes de confirmar (con aviso al cliente) queda igual.
+102.  **Aviso a cocina.** Los cambios sobre una ronda en cocina aparecen en su tarjeta como
+      "Cambios del mesero" (con aviso emergente) hasta que cocina toca "Visto"; los platos
+      quitados se ven tachados y los agregados marcados "Nuevo".

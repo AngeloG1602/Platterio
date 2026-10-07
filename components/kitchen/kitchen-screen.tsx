@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ChefHat, CircleCheck, Clock, Flame, PackageCheck, Timer } from "lucide-react";
+import { BellRing, ChefHat, CircleCheck, Clock, Flame, PackageCheck, Timer } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { PlatterioMark, RestaurantMark } from "@/components/brand/logos";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/data";
 import { formatElapsed, formatTime, plural } from "@/lib/domain/format";
 import { KITCHEN_COLUMNS, kitchenTimeLevel, type KitchenColumn } from "@/lib/domain/kitchen";
+import { unseenChanges } from "@/lib/domain/staffOrders";
 import type { Dish, Order, Table } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 
@@ -87,6 +88,26 @@ function useNewOrderNotice(confirmed: Order[], tables: readonly Table[]) {
   }, [confirmed, tables]);
 }
 
+/** Avisa cuando el personal cambia una ronda que ya está en cocina. */
+function useChangeNotice(orders: readonly Order[], tables: readonly Table[]) {
+  const seen = useRef<Map<string, number> | null>(null);
+  useEffect(() => {
+    const counts = new Map(orders.map((o) => [o.id, unseenChanges(o).length]));
+    if (seen.current) {
+      for (const o of orders) {
+        const now = counts.get(o.id) ?? 0;
+        if (now > (seen.current.get(o.id) ?? 0)) {
+          const t = tables.find((x) => x.id === o.tableId);
+          toast.warning(`Cambio en la Mesa ${t?.number ?? "?"}`, {
+            description: `Ronda ${o.round}: revisa lo que cambió el mesero.`,
+          });
+        }
+      }
+    }
+    seen.current = counts;
+  }, [orders, tables]);
+}
+
 function Board() {
   const board = useKitchenBoard();
   const tables = useTables();
@@ -94,6 +115,7 @@ function Board() {
   const restaurant = useRestaurant();
   const now = useNow(1000);
   useNewOrderNotice(board.confirmado, tables);
+  useChangeNotice([...board.confirmado, ...board.en_preparacion, ...board.listo], tables);
   const total = board.confirmado.length + board.en_preparacion.length;
 
   return (
@@ -179,6 +201,7 @@ function KitchenCard({
     now -
     Date.parse(ready ? (order.readyAt ?? order.createdAt) : (order.confirmedAt ?? order.createdAt));
   const label = `Mesa ${table?.number ?? "?"}`;
+  const changes = unseenChanges(order);
 
   function advance() {
     const r =
@@ -232,13 +255,49 @@ function KitchenCard({
         </span>
       </header>
 
+      {changes.length > 0 && (
+        <section
+          aria-label="Cambios del mesero"
+          className="bg-warning-soft text-warning-ink mt-4 rounded-lg p-3"
+        >
+          <p className="flex items-center gap-2 text-[17px] font-semibold">
+            <BellRing className="size-5" aria-hidden /> Cambios del mesero
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-1 text-[16px]">
+            {changes.map((c) => (
+              <li key={c.id}>
+                <span className="font-semibold">{c.dishName}</span> · {c.detail}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => kitchenActions.acknowledgeChanges(order.id)}
+            className="bg-warning-ink mt-2.5 h-11 w-full rounded-lg text-[16px] font-semibold text-white"
+          >
+            Visto
+          </button>
+        </section>
+      )}
+
       <ul className="border-line mt-4 flex flex-col gap-3 border-t pt-3">
         {order.items.map((item) => {
           const dish = dishes.find((d) => d.id === item.dishId);
           const variant = dish?.variants.find((v) => v.id === item.variantId);
           return (
-            <li key={item.id}>
-              <p className="text-[21px] leading-snug font-semibold">
+            <li key={item.id} className={item.removed ? "opacity-60" : undefined}>
+              {item.removed && (
+                <p className="text-danger-ink text-[15px] font-semibold uppercase">Quitado</p>
+              )}
+              {item.addedByStaff && !item.removed && (
+                <p className="text-warning-ink text-[15px] font-semibold uppercase">Nuevo</p>
+              )}
+              <p
+                className={cn(
+                  "text-[21px] leading-snug font-semibold",
+                  item.removed && "line-through",
+                )}
+              >
                 <span className="text-accent tabular-nums">{item.qty}×</span>{" "}
                 {dish?.name ?? "Plato"}
               </p>

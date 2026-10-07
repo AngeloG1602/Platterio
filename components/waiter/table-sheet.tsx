@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, DoorOpen, KeyRound, Timer } from "lucide-react";
+import { Ban, DoorOpen, KeyRound, NotebookPen, Pencil, Timer } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,15 @@ import { Sheet } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "@/components/ui/toaster";
 import { Select } from "@/components/ui/field";
-import { useCurrentStaff, useRestaurant, waiterActions } from "@/lib/data";
+import { useCategories, useCurrentStaff, useRestaurant, waiterActions } from "@/lib/data";
 import { can } from "@/lib/domain/access";
 import { cartCount } from "@/lib/domain/cart";
 import { formatTime, plural } from "@/lib/domain/format";
 import { consolidateTicket } from "@/lib/domain/ticket";
 import type { Dish } from "@/lib/domain/types";
 import type { TableOverview } from "@/lib/domain/waiter";
+import { EditOrderSheet } from "./edit-order-sheet";
+import { StaffOrderSheet } from "./staff-order-sheet";
 
 /** Detalle de una mesa: comensales, rondas, total y liberar mesa (US-21). */
 export function TableSheet({
@@ -30,8 +32,13 @@ export function TableSheet({
 }) {
   const [confirmRelease, setConfirmRelease] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [taking, setTaking] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const staff = useCurrentStaff();
   const restaurant = useRestaurant();
+  const categories = useCategories();
+  const canTake = can(staff?.role, "pedidos.crear");
+  const canEdit = can(staff?.role, "pedidos.editar");
   const { table, session, orders } = overview;
   const ticket = session
     ? consolidateTicket({ sessionId: session.id, orders, dishes, diners: session.diners })
@@ -52,21 +59,33 @@ export function TableSheet({
         }
         footer={
           !session ? (
-            <Button
-              block
-              size="lg"
-              onClick={() => {
-                const r = waiterActions.openTable(table.id);
-                if (!r.ok) return toast.error("No se pudo abrir", { description: r.error });
-                toast.success(`Mesa ${table.number} abierta`, {
-                  description: `PIN ${r.pin}. Dáselo a los clientes o muéstrales el QR.`,
-                });
-              }}
-            >
-              <KeyRound aria-hidden /> Abrir mesa
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                block
+                size="lg"
+                onClick={() => {
+                  const r = waiterActions.openTable(table.id);
+                  if (!r.ok) return toast.error("No se pudo abrir", { description: r.error });
+                  toast.success(`Mesa ${table.number} abierta`, {
+                    description: `PIN ${r.pin}. Dáselo a los clientes o muéstrales el QR.`,
+                  });
+                }}
+              >
+                <KeyRound aria-hidden /> Abrir mesa
+              </Button>
+              {canTake && (
+                <Button variant="secondary" block onClick={() => setTaking(true)}>
+                  <NotebookPen aria-hidden /> Tomar pedido
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="flex flex-col gap-2">
+              {canTake && (
+                <Button block size="lg" onClick={() => setTaking(true)}>
+                  <NotebookPen aria-hidden /> Tomar pedido
+                </Button>
+              )}
               {open.length > 0 && (
                 <p className="text-muted text-center text-[13px]">
                   Para liberarla, primero entrega o rechaza{" "}
@@ -127,6 +146,12 @@ export function TableSheet({
                     <span className="flex-1 text-[15px] font-medium">Ronda {r.round}</span>
                     <StatusBadge status={r.status} />
                     <Price value={r.subtotal} className="w-20 text-right text-sm" />
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingId(r.order.id)}>
+                        <Pencil aria-hidden /> Editar
+                        <span className="sr-only"> la ronda {r.round}</span>
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -138,6 +163,24 @@ export function TableSheet({
           </div>
         )}
       </Sheet>
+      {taking && (
+        <StaffOrderSheet
+          tableId={table.id}
+          tableNumber={table.number}
+          dishes={dishes}
+          categories={categories}
+          onClose={() => setTaking(false)}
+        />
+      )}
+      {editingId && (
+        <EditOrderSheet
+          orderId={editingId}
+          tableNumber={table.number}
+          dishes={dishes}
+          diners={session?.diners ?? []}
+          onClose={() => setEditingId(null)}
+        />
+      )}
       <Dialog
         open={confirmCancel}
         onOpenChange={setConfirmCancel}

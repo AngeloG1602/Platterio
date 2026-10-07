@@ -57,6 +57,13 @@ export function confirmLevel(createdAt: string, now: number, timeoutMin: number)
 /* ——— Ajustes del mesero (US-26, regla 5) ——— */
 
 export const ADJUST_REASONS = ["Agotado", "Cambio pedido por el cliente", "Otro"] as const;
+/** Motivos para tocar una ronda que ya está en cocina o entregada. */
+export const EDIT_REASONS = [
+  "Error al tomar el pedido",
+  "Cambio pedido por el cliente",
+  "Agotado",
+  "Otro",
+] as const;
 export const REJECT_REASONS = [
   "Cocina cerrada",
   "Pedido duplicado",

@@ -83,6 +83,11 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
 8. **Cierre**: en cualquier ficha con modelo (Clásica 27, Brasa BBQ, La Diabla) está el botón
    **Vista 3D — próximamente**: es la siguiente épica (EPIC-03).
 
+9. **Pedido del mesero**: con Carlos o Daniela en una mesa (libre o abierta), _Tomar pedido_ →
+   elige platos y _Enviar a cocina_ (llega directo, sin confirmar). Luego _Editar_ la ronda →
+   _Ajustar_ un plato con motivo: cocina ve el aviso **Cambios del mesero** y toca _Visto_; el
+   registro de cambios queda en la hoja de la ronda.
+
 Atajos útiles: _Simular otro comensal_ (panel de demo) mete a alguien más a una mesa y le hace
 agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 

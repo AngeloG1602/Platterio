@@ -22,6 +22,7 @@ import { usePresenceStore } from "./sync";
 
 export const useHydrated = () => useBootStore((s) => s.hydrated);
 export const useRestaurant = () => useAppStore((s) => s.restaurant);
+export const useOrders = () => useAppStore((s) => s.orders);
 export const useCategories = () => useAppStore((s) => s.categories);
 export const useTimeSlots = () => useAppStore((s) => s.timeSlots);
 export const useDishes = () => useAppStore((s) => s.dishes);
