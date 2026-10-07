@@ -22,6 +22,7 @@ import { isValidHex, strongVariant } from "@/lib/domain/color";
 import type { Table } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { TableAssignments } from "@/components/team/table-assignments";
+import { BrandIdentityPanel } from "./brand-panel";
 import { PageHeader, Panel } from "./ui/page-header";
 
 const PRESETS = ["#E4572E", "#2F7A4F", "#2D5FA3", "#D69A1E", "#8C2F4B", "#1C1917"];
@@ -37,6 +38,7 @@ export function SettingsAdmin() {
       />
       {hydrated ? (
         <>
+          <BrandIdentityPanel />
           <div className="grid gap-6 lg:grid-cols-2">
             <BrandPanel />
             <RulesPanel />

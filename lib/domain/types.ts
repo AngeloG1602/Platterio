@@ -32,11 +32,21 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export type Stars = 1 | 2 | 3 | 4 | 5;
 
+/** Identidad visual del negocio: plantilla base, tipografías propias y logo. */
+export interface Brand {
+  template: string;
+  headingFont?: string;
+  bodyFont?: string;
+  /** Logo reducido, como data URL (con la base de datos pasará a Storage). */
+  logo?: string;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
   accentColor: string;
   logoUrl?: string;
+  brand?: Brand;
   serviceAlertThreshold: number;
   confirmTimeoutMin: number;
   /** Minutos sin actividad (y sin pedidos por entregar) para que una mesa se cierre sola. */

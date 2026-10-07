@@ -19,8 +19,13 @@
     "modelos:separar": "node scripts/modelos/separar-por-huesos.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/lora": "^5.3.0",
+    "@fontsource-variable/outfit": "^5.3.0",
+    "@fontsource-variable/playfair-display": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
     "@radix-ui/react-dialog": "^1.1.23",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",

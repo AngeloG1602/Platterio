@@ -59,6 +59,15 @@ import {
   type Role,
   type StaffUser,
 } from "@/lib/domain/access";
+import {
+  BODY_FONTS,
+  DEFAULT_TEMPLATE,
+  HEADING_FONTS,
+  TEMPLATES,
+  validateLogoData,
+  type FontId,
+} from "@/lib/domain/brand";
+import type { Brand } from "@/lib/domain/types";
 import { newId } from "./ids";
 import { useDeviceStore } from "./device";
 import { createSeedState } from "./seed";
@@ -83,6 +92,58 @@ export const demoActions = {
   resetData() {
     useAppStore.setState(createSeedState(Date.now()), true);
     useDeviceStore.setState({ restrictions: [], restrictionsAnswered: false, staffId: null });
+  },
+};
+
+function patchBrand(patch: (brand: Brand) => Brand): ActionResult {
+  const allowed = requirePermission("panel.admin");
+  if (!allowed.ok) return allowed;
+  useAppStore.setState((s) => ({
+    restaurant: {
+      ...s.restaurant,
+      brand: patch(s.restaurant.brand ?? { template: DEFAULT_TEMPLATE.id }),
+    },
+  }));
+  return { ok: true };
+}
+
+export const brandActions = {
+  /** Cambia de plantilla: trae su color de acento y sus tipografías (se pierden las propias). */
+  applyTemplate(id: string): ActionResult {
+    const template = TEMPLATES.find((t) => t.id === id);
+    if (!template) return { ok: false, error: "Esa plantilla no existe" };
+    const r = patchBrand((b) => ({ template: template.id, logo: b.logo }));
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      restaurant: { ...s.restaurant, accentColor: template.accent },
+    }));
+    return { ok: true };
+  },
+  setFonts(fonts: { heading?: FontId; body?: FontId }): ActionResult {
+    if (fonts.heading && !HEADING_FONTS.includes(fonts.heading))
+      return { ok: false, error: "Esa tipografía no sirve para títulos" };
+    if (fonts.body && !BODY_FONTS.includes(fonts.body))
+      return { ok: false, error: "Esa tipografía no sirve para texto" };
+    return patchBrand((b) => ({
+      ...b,
+      ...(fonts.heading ? { headingFont: fonts.heading } : {}),
+      ...(fonts.body ? { bodyFont: fonts.body } : {}),
+    }));
+  },
+  /** Vuelve a las tipografías de la plantilla. */
+  resetFonts: (): ActionResult =>
+    patchBrand((b) => ({ template: b.template, ...(b.logo ? { logo: b.logo } : {}) })),
+  setLogo(dataUrl: string | null): ActionResult {
+    if (dataUrl) {
+      const error = validateLogoData(dataUrl);
+      if (error) return { ok: false, error };
+    }
+    return patchBrand((b) => {
+      const next: Brand = { ...b };
+      if (dataUrl) next.logo = dataUrl;
+      else delete next.logo;
+      return next;
+    });
   },
 };
 

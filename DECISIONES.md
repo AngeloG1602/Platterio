@@ -333,3 +333,17 @@ pueden cambiar sin rehacer pantallas.
 102.  **Aviso a cocina.** Los cambios sobre una ronda en cocina aparecen en su tarjeta como
       "Cambios del mesero" (con aviso emergente) hasta que cocina toca "Visto"; los platos
       quitados se ven tachados y los agregados marcados "Nuevo".
+103.  **Marca por negocio.** Cada negocio elige una plantilla (Cálido, Clásico, Moderno, Fresco,
+      Rústico: colores de fondo y texto, color de acento y par de tipografías), y encima puede
+      cambiar el acento, las tipografías y subir su logo. Se guarda en `Restaurant.brand` y se
+      aplica como variables CSS a toda la app; la cocina conserva su modo oscuro. Todas las
+      plantillas cumplen contraste AA (hay prueba que lo verifica); el acento siempre pasa por
+      `strongVariant` para botones y textos.
+104.  **Tipografías incluidas, no de Google.** Se sirven desde el paquete (Fontsource), sin pedir
+      nada a servidores externos (privacidad y velocidad). Solo se descarga la que se usa.
+      Subir tipografías propias queda fuera: con dominio propio y Storage (Fase 9) se evalúa.
+105.  **Logo.** PNG, JPG o WebP de hasta 3 MB; el navegador lo reduce a 512 px y debe quedar
+      bajo ~300 KB. Se guarda como data URL (con la base de datos pasa a Storage). No se acepta
+      SVG para no meter código ajeno en la página.
+106.  **Plan.** Plantillas, tipografías y logo se dejan abiertos en el prototipo; la restricción
+      por plan (Profesional) se aplica en la Fase 10 junto con los cobros.

@@ -88,6 +88,10 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
    _Ajustar_ un plato con motivo: cocina ve el aviso **Cambios del mesero** y toca _Visto_; el
    registro de cambios queda en la hoja de la ronda.
 
+10. **Marca**: como Marta, en _Configuración → Identidad de marca_ elige la plantilla
+    **Moderno** (cambian colores, letra y acento al instante en todas las pestañas), sube un
+    logo y cambia las tipografías. _Cálido_ vuelve a la marca de la casa.
+
 Atajos útiles: _Simular otro comensal_ (panel de demo) mete a alguien más a una mesa y le hace
 agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 

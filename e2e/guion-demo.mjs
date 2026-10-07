@@ -329,6 +329,51 @@ check(
   !(await visible(ronda.getByText("Cambios del mesero"), 1500)),
 );
 
+// 12. Marca del negocio: plantilla, tipografías y logo
+await admin.goto(`${BASE}/admin/configuracion`);
+await admin.getByRole("radio", { name: /Moderno/ }).click();
+const bgDe = (p) =>
+  p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+check("12. La plantilla cambia los colores al instante", (await bgDe(admin)) === "#F6F7F9");
+await nora.goto(`${BASE}/mesa/5/menu`);
+check(
+  "12. El cliente ve la plantilla elegida",
+  await nora
+    .waitForFunction(
+      () =>
+        getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#F6F7F9",
+      null,
+      { timeout: 5000 },
+    )
+    .then(
+      () => true,
+      () => false,
+    ),
+);
+await admin.getByLabel("Títulos").selectOption("lora");
+check(
+  "12. Las tipografías propias se aplican",
+  (
+    await admin.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--brand-serif"),
+    )
+  ).includes("Lora"),
+);
+const png = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+await admin
+  .getByLabel("Archivo del logo")
+  .setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+check(
+  "12. El logo subido se ve en la vista previa",
+  await visible(admin.getByRole("img", { name: /Logo de/ })),
+);
+await admin.getByRole("button", { name: "Quitar", exact: true }).click();
+await admin.getByRole("radio", { name: /Cálido/ }).click();
+check("12. Volver a Cálido restaura la marca de la casa", (await bgDe(admin)) === "#FAF7F2");
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

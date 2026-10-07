@@ -1,3 +1,6 @@
+"use client";
+
+import { useAppStore } from "@/lib/data/store";
 import { cn } from "@/lib/cn";
 
 /** Marca de Platterio: un plato visto desde arriba con el borde abierto. */
@@ -46,11 +49,16 @@ export function PlatterioLogo({
 
 /** Marca tipográfica del restaurante de ejemplo. */
 export function RestaurantMark({ name, className }: { name: string; className?: string }) {
+  const logo = useAppStore((s) => s.restaurant.brand?.logo);
   const match = /^(.*?)(\s*\d+)$/.exec(name);
   const words = match ? match[1]! : name;
   const number = match ? match[2]!.trim() : null;
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
+      {logo && (
+        // eslint-disable-next-line @next/next/no-img-element -- logo propio del negocio, ya reducido
+        <img src={logo} alt="" className="size-[1.9em] rounded-lg object-contain" />
+      )}
       <span className="font-display text-[1.6em] leading-none font-semibold tracking-tight">
         {words}
       </span>

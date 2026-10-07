@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { toast, Toaster } from "@/components/ui/toaster";
-import { strongVariant } from "@/lib/domain/color";
+import { brandVars } from "@/lib/domain/brand";
 import { useDeviceStore } from "@/lib/data/device";
 import { useAppStore, useBootStore } from "@/lib/data/store";
 import { startSync } from "@/lib/data/sync";
@@ -11,6 +11,7 @@ import { startAlertWatcher } from "@/lib/data/alert-watcher";
 /** Lee los datos guardados, arranca la sincronización entre pestañas y aplica el color del restaurante. */
 export function AppProviders({ children }: { children: ReactNode }) {
   const accent = useAppStore((s) => s.restaurant.accentColor);
+  const brand = useAppStore((s) => s.restaurant.brand);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -38,9 +39,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--accent", accent);
-    root.style.setProperty("--accent-strong", strongVariant(accent));
-  }, [accent]);
+    for (const [name, value] of Object.entries(brandVars({ accentColor: accent, brand })))
+      root.style.setProperty(name, value);
+  }, [accent, brand]);
 
   return (
     <>
