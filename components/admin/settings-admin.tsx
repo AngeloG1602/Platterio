@@ -5,7 +5,7 @@ import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { useRef, useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/field";
+import { Input, Select } from "@/components/ui/field";
 import { QtyStepper } from "@/components/ui/qty-stepper";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -139,6 +139,8 @@ function BrandForm() {
   );
 }
 
+const IDLE_OPTIONS = [10, 15, 30, 45, 60, 90, 120, 180, 240];
+
 function RulesPanel() {
   const restaurant = useRestaurant();
   return (
@@ -182,6 +184,33 @@ function RulesPanel() {
             <span className="text-muted text-sm">min</span>
           </div>
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[15px] font-medium">Cierre automático de mesas</p>
+            <p className="text-muted max-w-sm text-[13px]">
+              Una mesa se cierra sola cuando no tiene pedidos por entregar y pasan estos minutos sin
+              actividad. El mesero puede cambiarlo para una mesa en particular.
+            </p>
+          </div>
+          <Select
+            className="h-11 w-36"
+            aria-label="Minutos sin actividad para cerrar la mesa"
+            value={restaurant.sessionIdleMin}
+            onChange={(e) => {
+              const r = configActions.setSessionIdle(Number(e.target.value));
+              if (r.ok) toast.success("Cierre automático actualizado");
+              else toast.error(r.error);
+            }}
+          >
+            {[...new Set([...IDLE_OPTIONS, restaurant.sessionIdleMin])]
+              .sort((a, b) => a - b)
+              .map((m) => (
+                <option key={m} value={m}>
+                  {m} min
+                </option>
+              ))}
+          </Select>
+        </div>
       </div>
     </Panel>
   );
@@ -197,7 +226,7 @@ function TablesPanel() {
   return (
     <Panel
       title="Mesas y códigos QR"
-      description="Imprime el QR de cada mesa. Al escanearlo, el cliente abre la carta de esa mesa."
+      description="Imprime el QR de cada mesa: es fijo. Al escanearlo, el cliente entra con el PIN que le da el mesero al abrir la mesa."
       action={
         <Button
           variant="secondary"

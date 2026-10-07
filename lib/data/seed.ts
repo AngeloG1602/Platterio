@@ -9,6 +9,7 @@ import type {
   Restaurant,
   ServiceRating,
   Table,
+  TableCall,
   TableSession,
   TimeSlot,
   Waiter,
@@ -16,7 +17,7 @@ import type {
 import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -39,6 +40,8 @@ export interface AppData {
   tables: Table[];
   /** Sesiones, pedidos y calificaciones creados durante la demo (el historial va aparte). */
   sessions: TableSession[];
+  /** Avisos de clientes al personal (hoy: "abre mi mesa"). */
+  calls: TableCall[];
   orders: Order[];
   dishRatings: DishRating[];
   serviceRatings: ServiceRating[];
@@ -70,6 +73,7 @@ export function createSeedState(now: number): AppData {
     staff: clone(STAFF),
     tables: clone(TABLES),
     sessions: [],
+    calls: [],
     orders: [],
     dishRatings: [],
     serviceRatings: [],

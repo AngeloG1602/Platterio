@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ScanQrCode } from "lucide-react";
+import { ArrowRight, BellRing, ScanQrCode } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MadeWithPlatterio, RestaurantMark } from "@/components/brand/logos";
@@ -8,14 +8,18 @@ import { DishImage } from "@/components/dish/dish-image";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
-import { tableActions, useDishes, useRestaurant } from "@/lib/data";
+import { tableActions, useDishes, useOpenCalls, useRestaurant } from "@/lib/data";
 import { ALIAS_MAX } from "@/lib/domain/session";
+import type { Table } from "@/lib/domain/types";
 import { ClientShell } from "./client-shell";
 import { InvalidTable, useTableAccess } from "./table-gate";
 
 const COLLAGE = ["clasica-27", "salchipapa-27", "limonada-de-coco"];
 
-/** Lo que abre el QR de la mesa (US-21): se entra con un alias corto. */
+/**
+ * Lo que abre el QR de la mesa: el QR es fijo y no da acceso por sí solo. Si el mesero ya abrió
+ * la mesa, se entra con un alias corto y el PIN que él da; si no, se le puede avisar.
+ */
 export function TableEntry({ numero }: { numero: string }) {
   const access = useTableAccess(numero);
   const router = useRouter();
@@ -29,11 +33,10 @@ export function TableEntry({ numero }: { numero: string }) {
     <ClientShell>
       {access.status === "invalid" ? (
         <InvalidTable />
+      ) : access.status === "guest" && !access.session ? (
+        <ClosedTable table={access.table} />
       ) : access.status === "guest" ? (
-        <EntryForm
-          tableNumber={access.table.number}
-          others={access.session?.diners.map((d) => d.alias) ?? []}
-        />
+        <EntryForm tableNumber={access.table.number} diners={access.session?.diners.length ?? 0} />
       ) : (
         <EntrySkeleton />
       )}
@@ -41,11 +44,15 @@ export function TableEntry({ numero }: { numero: string }) {
   );
 }
 
-function EntryForm({ tableNumber, others }: { tableNumber: number; others: string[] }) {
+function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: number }) {
   const restaurant = useRestaurant();
   const dishes = useDishes();
   const router = useRouter();
   const [alias, setAlias] = useState("");
+  // El QR que muestra el mesero trae el PIN en el enlace (?pin=1234).
+  const [pin, setPin] = useState(
+    () => new URLSearchParams(window.location.search).get("pin")?.replace(/\D/g, "") ?? "",
+  );
   const [error, setError] = useState<string>();
   const collage = COLLAGE.map((id) => dishes.find((d) => d.id === id)).filter(
     (d) => d !== undefined,
@@ -53,7 +60,7 @@ function EntryForm({ tableNumber, others }: { tableNumber: number; others: strin
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const result = tableActions.join(tableNumber, alias);
+    const result = tableActions.join(tableNumber, alias, pin);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -100,22 +107,11 @@ function EntryForm({ tableNumber, others }: { tableNumber: number; others: strin
         pase a la cocina.
       </p>
 
-      {others.length > 0 && (
-        <div className="bg-surface-2 mt-5 flex items-center gap-3 rounded-xl px-3.5 py-3">
-          <div className="flex -space-x-2" aria-hidden>
-            {others.slice(0, 4).map((name) => (
-              <span
-                key={name}
-                className="border-surface-2 bg-accent-soft text-accent-strong flex size-8 items-center justify-center rounded-full border-2 text-[13px] font-bold"
-              >
-                {name.charAt(0).toUpperCase()}
-              </span>
-            ))}
-          </div>
-          <p className="text-ink-soft text-sm">
-            Ya están en la mesa: <span className="text-ink font-semibold">{others.join(", ")}</span>
-          </p>
-        </div>
+      {diners > 0 && (
+        <p className="bg-surface-2 text-ink-soft mt-5 rounded-xl px-3.5 py-3 text-sm">
+          Tu mesa ya está abierta y {diners === 1 ? "hay 1 persona" : `hay ${diners} personas`}{" "}
+          dentro. Entra con el PIN que te dio el mesero.
+        </p>
       )}
 
       <form onSubmit={submit} className="mt-6 flex flex-col gap-4" noValidate>
@@ -140,11 +136,69 @@ function EntryForm({ tableNumber, others }: { tableNumber: number; others: strin
             />
           )}
         </Field>
+        <Field label="PIN de la mesa" hint="Te lo da el mesero o viene en el QR que te muestra.">
+          {(p) => (
+            <Input
+              {...p}
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, ""));
+                if (error) setError(undefined);
+              }}
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              placeholder="4 dígitos"
+              className="h-12 text-base tabular-nums"
+            />
+          )}
+        </Field>
         <Button type="submit" size="lg" block>
           Ver la carta <ArrowRight aria-hidden />
         </Button>
       </form>
 
+      <MadeWithPlatterio className="mt-auto pt-10" />
+    </div>
+  );
+}
+
+function ClosedTable({ table }: { table: Table }) {
+  const restaurant = useRestaurant();
+  const asked = useOpenCalls().some((c) => c.tableId === table.id && !c.resolved);
+  return (
+    <div className="pb-safe flex flex-1 flex-col px-5 pt-6">
+      <div className="flex items-center justify-between">
+        <RestaurantMark name={restaurant.name} className="text-[15px]" />
+        <span className="border-line-strong bg-surface inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold">
+          <ScanQrCode className="text-accent-strong size-4" aria-hidden />
+          Mesa {table.number}
+        </span>
+      </div>
+      <span className="bg-accent-soft text-accent-strong mt-16 flex size-14 items-center justify-center rounded-2xl">
+        <BellRing className="size-6" aria-hidden />
+      </span>
+      <h1 className="font-display mt-5 text-[34px] leading-[1.08] font-semibold tracking-tight">
+        Pide al mesero que abra tu mesa.
+      </h1>
+      <p className="text-ink-soft mt-3 text-[16px] leading-relaxed">
+        El mesero abre la mesa cuando llegas y te da un PIN para entrar a la carta. Así solo pide
+        quien está sentado.
+      </p>
+      <Button
+        size="lg"
+        block
+        className="mt-6"
+        disabled={asked}
+        onClick={() => tableActions.requestOpen(table.number)}
+      >
+        <BellRing aria-hidden /> {asked ? "Ya avisamos al mesero" : "Avisar al mesero"}
+      </Button>
+      {asked && (
+        <p role="status" className="text-ink-soft mt-3 text-sm">
+          Ya le avisamos al equipo. Cuando abran tu mesa, esta pantalla te pedirá el PIN.
+        </p>
+      )}
       <MadeWithPlatterio className="mt-auto pt-10" />
     </div>
   );

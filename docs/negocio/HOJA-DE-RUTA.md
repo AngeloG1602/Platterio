@@ -48,7 +48,7 @@ Resume lo decidido y el orden de trabajo. Se actualiza al terminar cada fase.
 | Tablero de cocina                                |   ✔   |     ✔     |        |   ✔    |
 | Marcar platos agotados                           |   ✔   |     ✔     |   ✔    |   ✔    |
 
-Los permisos de cancelar mesas, crear y editar pedidos y cobrar se activan en las fases 2 y 3.
+Cancelar mesas se activó en la fase 2; crear y editar pedidos y cobrar, en la fase 3.
 
 ## Pendientes que no son de código
 

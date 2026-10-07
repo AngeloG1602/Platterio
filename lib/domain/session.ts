@@ -28,12 +28,13 @@ export function validateAlias(
 }
 
 export type JoinResult =
-  | { ok: true; sessions: TableSession[]; sessionId: string; dinerId: string; created: boolean }
+  | { ok: true; sessions: TableSession[]; sessionId: string; dinerId: string }
   | { ok: false; error: string };
 
 /**
- * Entrar por QR (US-21, regla 3): abre la sesión de la mesa o se une a la abierta.
- * Si el dispositivo ya estaba en la sesión, solo actualiza su alias y restricciones.
+ * Entrar a una mesa que el mesero abrió: hace falta el PIN de la sesión. Si el dispositivo ya
+ * estaba dentro, no lo pide de nuevo y solo actualiza su alias y restricciones. Una mesa
+ * cerrada no deja entrar: hay que pedirle al mesero que la abra.
  */
 export function joinTable(
   sessions: readonly TableSession[],
@@ -42,42 +43,25 @@ export function joinTable(
     deviceId: string;
     alias: string;
     restrictions: Allergen[];
+    /** PIN que dio el mesero (no hace falta si el dispositivo ya estaba en la mesa). */
+    pin?: string;
     now: string;
     newId: (prefix: string) => string;
   },
 ): JoinResult {
   const open = findOpenSession(sessions, params.tableId);
+  if (!open)
+    return { ok: false, error: "Esta mesa aún no está abierta. Pídele al mesero que la abra." };
+  const existing = open.diners.find((d) => d.deviceId === params.deviceId);
+  if (!existing && open.pin) {
+    const pin = (params.pin ?? "").trim();
+    if (!pin) return { ok: false, error: "Escribe el PIN que te dio el mesero" };
+    if (pin !== open.pin) return { ok: false, error: "Ese PIN no es el de la mesa" };
+  }
   const error = validateAlias(params.alias, open, params.deviceId);
   if (error) return { ok: false, error };
   const alias = params.alias.trim().replace(/\s+/g, " ");
 
-  if (!open) {
-    const dinerId = params.newId("comensal");
-    const session: TableSession = {
-      id: params.newId("sesion"),
-      tableId: params.tableId,
-      openedAt: params.now,
-      cart: [],
-      diners: [
-        {
-          id: dinerId,
-          alias,
-          deviceId: params.deviceId,
-          restrictions: params.restrictions,
-          joinedAt: params.now,
-        },
-      ],
-    };
-    return {
-      ok: true,
-      sessions: [...sessions, session],
-      sessionId: session.id,
-      dinerId,
-      created: true,
-    };
-  }
-
-  const existing = open.diners.find((d) => d.deviceId === params.deviceId);
   const dinerId = existing?.id ?? params.newId("comensal");
   const diners = existing
     ? open.diners.map((d) =>
@@ -95,10 +79,11 @@ export function joinTable(
       ];
   return {
     ok: true,
-    sessions: sessions.map((s) => (s.id === open.id ? { ...s, diners } : s)),
+    sessions: sessions.map((s) =>
+      s.id === open.id ? { ...s, diners, lastActivityAt: params.now } : s,
+    ),
     sessionId: open.id,
     dinerId,
-    created: false,
   };
 }
 

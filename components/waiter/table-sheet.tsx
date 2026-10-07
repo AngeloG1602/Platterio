@@ -1,6 +1,7 @@
 "use client";
 
-import { DoorOpen } from "lucide-react";
+import { Ban, DoorOpen, KeyRound, Timer } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -8,7 +9,9 @@ import { Price } from "@/components/ui/price";
 import { Sheet } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "@/components/ui/toaster";
-import { waiterActions } from "@/lib/data";
+import { Select } from "@/components/ui/field";
+import { useCurrentStaff, useRestaurant, waiterActions } from "@/lib/data";
+import { can } from "@/lib/domain/access";
 import { cartCount } from "@/lib/domain/cart";
 import { formatTime, plural } from "@/lib/domain/format";
 import { consolidateTicket } from "@/lib/domain/ticket";
@@ -26,6 +29,9 @@ export function TableSheet({
   onClose: () => void;
 }) {
   const [confirmRelease, setConfirmRelease] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const staff = useCurrentStaff();
+  const restaurant = useRestaurant();
   const { table, session, orders } = overview;
   const ticket = session
     ? consolidateTicket({ sessionId: session.id, orders, dishes, diners: session.diners })
@@ -42,10 +48,24 @@ export function TableSheet({
         description={
           session
             ? `Abierta a las ${formatTime(new Date(session.openedAt))} · ${plural(session.diners.length, "comensal", "comensales")}`
-            : "Libre. Se abre cuando alguien escanee el QR de la mesa."
+            : "Libre. Ábrela cuando lleguen los clientes y dales el PIN."
         }
         footer={
-          session && (
+          !session ? (
+            <Button
+              block
+              size="lg"
+              onClick={() => {
+                const r = waiterActions.openTable(table.id);
+                if (!r.ok) return toast.error("No se pudo abrir", { description: r.error });
+                toast.success(`Mesa ${table.number} abierta`, {
+                  description: `PIN ${r.pin}. Dáselo a los clientes o muéstrales el QR.`,
+                });
+              }}
+            >
+              <KeyRound aria-hidden /> Abrir mesa
+            </Button>
+          ) : (
             <div className="flex flex-col gap-2">
               {open.length > 0 && (
                 <p className="text-muted text-center text-[13px]">
@@ -65,12 +85,24 @@ export function TableSheet({
               >
                 <DoorOpen aria-hidden /> Liberar mesa
               </Button>
+              {can(staff?.role, "mesas.cancelar") && (
+                <Button variant="ghost" block onClick={() => setConfirmCancel(true)}>
+                  <Ban aria-hidden /> Cancelar mesa
+                </Button>
+              )}
             </div>
           )
         }
       >
         {session && ticket && (
           <div className="flex flex-col gap-4 pb-3">
+            <TableAccessCard
+              tableId={table.id}
+              tableNumber={table.number}
+              pin={session.pin}
+              idleMin={session.idleCloseMin}
+              defaultIdleMin={restaurant.sessionIdleMin}
+            />
             <ul className="flex flex-wrap gap-1.5">
               {session.diners.map((d) => (
                 <li
@@ -107,6 +139,35 @@ export function TableSheet({
         )}
       </Sheet>
       <Dialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={`¿Cancelar la Mesa ${table.number}?`}
+        description={
+          open.length > 0
+            ? `Se cierra la mesa y ${open.length === 1 ? "la ronda sin entregar queda rechazada" : `las ${open.length} rondas sin entregar quedan rechazadas`} con el motivo "Mesa cancelada". Úsalo solo en casos especiales.`
+            : "Se cierra la mesa ahora mismo, sin esperar al cierre automático."
+        }
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmCancel(false)}>
+              Volver
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                const r = waiterActions.cancelTable(table.id);
+                setConfirmCancel(false);
+                if (!r.ok) return toast.error("No se pudo cancelar", { description: r.error });
+                toast.success(`Mesa ${table.number} cancelada`);
+                onClose();
+              }}
+            >
+              Sí, cancelar mesa
+            </Button>
+          </>
+        }
+      />
+      <Dialog
         open={confirmRelease}
         onOpenChange={setConfirmRelease}
         title={`¿Liberar la Mesa ${table.number}?`}
@@ -132,5 +193,91 @@ export function TableSheet({
         }
       />
     </>
+  );
+}
+
+const IDLE_CHOICES = [15, 30, 60, 120];
+
+/** PIN y QR de la mesa abierta, y cuánto tarda en cerrarse sola. */
+function TableAccessCard({
+  tableId,
+  tableNumber,
+  pin,
+  idleMin,
+  defaultIdleMin,
+}: {
+  tableId: string;
+  tableNumber: number;
+  pin?: string;
+  idleMin?: number;
+  defaultIdleMin: number;
+}) {
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const current = idleMin ?? defaultIdleMin;
+  const choices = [...new Set([...IDLE_CHOICES, current])].sort((a, b) => a - b);
+  return (
+    <section
+      aria-labelledby={`acceso-${tableId}`}
+      className="border-line bg-surface-2 flex flex-col gap-4 rounded-xl border p-4"
+    >
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h3 id={`acceso-${tableId}`} className="text-muted text-xs font-semibold uppercase">
+            Acceso de la mesa
+          </h3>
+          {pin ? (
+            <>
+              <p
+                aria-label={`PIN de la mesa ${tableNumber}`}
+                className="font-display mt-1 text-[44px] leading-none font-semibold tracking-[0.12em] tabular-nums"
+              >
+                {pin}
+              </p>
+              <p className="text-ink-soft mt-2 text-[13px]">
+                Díselo a los clientes o muéstrales el QR. Solo vale mientras la mesa esté abierta.
+              </p>
+            </>
+          ) : (
+            <p className="text-ink-soft mt-1 text-[14px]">Esta mesa se abrió sin PIN.</p>
+          )}
+        </div>
+        {pin && origin && (
+          <QRCodeSVG
+            value={`${origin}/mesa/${tableNumber}?pin=${pin}`}
+            size={104}
+            marginSize={1}
+            title={`QR para entrar a la Mesa ${tableNumber}`}
+            className="bg-white"
+          />
+        )}
+      </div>
+      <label className="flex items-center gap-3 text-sm">
+        <Timer className="text-muted size-4 shrink-0" aria-hidden />
+        <span className="flex-1">
+          Se cierra sola tras
+          <span className="text-muted block text-xs">sin pedidos pendientes ni actividad</span>
+        </span>
+        <Select
+          className="h-10 w-44"
+          value={current}
+          aria-label="Minutos de inactividad para cerrar la mesa"
+          onChange={(e) => {
+            const minutes = Number(e.target.value);
+            const r = waiterActions.setIdleClose(
+              tableId,
+              minutes === defaultIdleMin ? null : minutes,
+            );
+            if (!r.ok) toast.error(r.error);
+          }}
+        >
+          {choices.map((m) => (
+            <option key={m} value={m}>
+              {m} min
+              {m === defaultIdleMin ? " (negocio)" : ""}
+            </option>
+          ))}
+        </Select>
+      </label>
+    </section>
   );
 }

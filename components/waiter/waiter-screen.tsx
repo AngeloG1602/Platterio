@@ -1,12 +1,20 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import { CircleCheck, ConciergeBell, Inbox, Volume2, VolumeX } from "lucide-react";
+import {
+  BellRing,
+  CircleCheck,
+  ConciergeBell,
+  Inbox,
+  KeyRound,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PlatterioLogo, RestaurantMark } from "@/components/brand/logos";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { RoleGate, SessionButton } from "@/components/access/role-gate";
-import { IconButton } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/components/ui/toaster";
 import {
@@ -15,12 +23,14 @@ import {
   useDevice,
   useDishes,
   useNow,
+  useOpenCalls,
   useRestaurant,
   useTables,
   useWaiterBoard,
+  waiterActions,
 } from "@/lib/data";
 import { formatTime, plural } from "@/lib/domain/format";
-import type { Order } from "@/lib/domain/types";
+import type { Order, TableCall } from "@/lib/domain/types";
 import type { TableOverview } from "@/lib/domain/waiter";
 import { playChime, unlockSound } from "@/lib/sound";
 import { cn } from "@/lib/cn";
@@ -44,6 +54,29 @@ function MyBoard() {
   const staff = useCurrentStaff();
   if (!staff?.waiterId) return null;
   return <Board waiterId={staff.waiterId} />;
+}
+
+/** Aviso cuando un cliente pide que abran su mesa (con sonido suave si está activo). */
+function useCallNotices(calls: TableCall[], sound: boolean) {
+  const tables = useTables();
+  const seen = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const next = new Set(calls.map((c) => c.id));
+    const before = seen.current;
+    seen.current = next;
+    if (!before) return;
+    const fresh = calls.filter((c) => !before.has(c.id));
+    fresh.forEach((c) =>
+      toast.warning(
+        `Mesa ${tables.find((t) => t.id === c.tableId)?.number ?? "?"} pide que la abras`,
+        {
+          id: `aviso-${c.id}`,
+          description: "Ábrela y dale el PIN al cliente",
+        },
+      ),
+    );
+    if (sound && fresh.length) playChime("nuevo");
+  }, [calls, tables, sound]);
 }
 
 /** Avisos de pedidos nuevos y rondas listas (con sonido suave si está activo). */
@@ -169,6 +202,9 @@ export function SalonView({
 
   const byTable = new Map(overviews.map((o) => [o.table.id, o]));
   useArrivalNotices(pending, ready, waiterSound);
+  const allCalls = useOpenCalls();
+  const calls = allCalls.filter((c) => !c.resolved && byTable.has(c.tableId));
+  useCallNotices(calls, waiterSound);
 
   const ctxFor = (o: Order) => {
     const ov = byTable.get(o.tableId) as TableOverview;
@@ -194,6 +230,41 @@ export function SalonView({
             <Stat label="En cocina" value={inKitchen.length} tone="neutral" />
           </dl>
         </div>
+        {calls.length > 0 && (
+          <section aria-labelledby="piden-mesa" className="mt-5">
+            <h2 id="piden-mesa" className="sr-only">
+              Mesas que piden que las abras
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {calls.map((c) => {
+                const number = byTable.get(c.tableId)?.table.number;
+                return (
+                  <li
+                    key={c.id}
+                    className="border-warning/40 bg-warning-soft flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3"
+                  >
+                    <BellRing className="text-warning-ink size-5 shrink-0" aria-hidden />
+                    <span className="flex-1 text-[15px] font-semibold">
+                      La Mesa {number} pide que la abras
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const r = waiterActions.openTable(c.tableId);
+                        if (!r.ok) return toast.error("No se pudo abrir", { description: r.error });
+                        setSelected(c.tableId);
+                      }}
+                    >
+                      <KeyRound aria-hidden /> Abrir mesa
+                      <span className="sr-only"> {number}</span>
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {overviews.length === 0 ? (
           <EmptyState
             icon={ConciergeBell}

@@ -290,3 +290,34 @@ pueden cambiar sin rehacer pantallas.
     encargado y el administrador, sobre todas. Antes bastaba con elegir un mesero de una lista.
 91. **Caja (`/caja`).** Pantalla del encargado: el mismo salón del mesero pero con todas las
     mesas, más "Mesas y meseros" y "Equipo". El administrador también puede entrar.
+
+## Fase 2: mesas con QR fijo y PIN
+
+92. **El QR de la mesa es fijo y no da acceso por sí solo.** Escanearlo sin una sesión abierta
+    muestra "Pide al mesero que abra tu mesa", con un botón para avisarle. Así nadie puede pedir
+    con un enlace guardado en el historial ni desde fuera del local.
+93. **El mesero (o el encargado, o el administrador) abre la mesa.** Cada sesión nace con un PIN
+    de 4 dígitos, sin repetirse entre las mesas abiertas, que el mesero da de palabra o muestra
+    como QR (`/mesa/N?pin=XXXX`, que lo trae prellenado). El PIN solo vale mientras la sesión
+    esté abierta. Un mesero solo abre sus mesas; encargado y administrador, todas.
+94. **Entrar exige el PIN, una sola vez por dispositivo.** El que ya está dentro vuelve a entrar
+    sin PIN. Si la mesa se cierra y se abre otra vez, la sesión nueva tiene otro PIN y todos
+    deben entrar de nuevo. Antes de entrar no se muestran los nombres de quienes ya están
+    (solo cuántos).
+95. **Aviso "abre mi mesa".** El cliente de una mesa cerrada puede avisar; al personal le sale
+    una tarjeta "La Mesa N pide que la abras" con el botón para abrirla, y un aviso. No se
+    duplican avisos sin atender y se atienden al abrir la mesa. Es la base de otros avisos
+    futuros (llamar al mesero, pedir la cuenta).
+96. **Cierre automático.** Una mesa se cierra sola cuando no tiene rondas sin entregar ni
+    rechazar y pasan N minutos sin actividad (entrar, mover el carrito o cualquier movimiento de
+    sus rondas; cuenta desde lo último). Nunca se cierra con rondas pendientes. El negocio lo
+    define en Configuración (por defecto 30 min, de 5 a 240) y el mesero puede cambiarlo para una
+    mesa en particular.
+97. **Cancelar una mesa.** Solo el encargado y el administrador. Cierra la mesa aunque tenga
+    rondas sin entregar, que quedan rechazadas con el motivo "Mesa cancelada". Es para casos
+    especiales y queda el motivo de cierre en la sesión (`mesero`, `cancelada`, `inactividad`).
+98. **El cierre automático lo ejecuta cualquier pestaña abierta** (junto al vigilante de
+    alertas), calculando siempre sobre el estado actual, así que dos pestañas a la vez no se
+    estorban. Con la base de datos pasará a una tarea en el servidor.
+99. **La demo.** "Simular otro comensal" abre la mesa por su cuenta si estaba cerrada, como
+    lo haría un mesero.

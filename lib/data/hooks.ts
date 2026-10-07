@@ -29,6 +29,9 @@ export const useTables = () => useAppStore((s) => s.tables);
 export const useWaiters = () => useAppStore((s) => s.waiters);
 export const useStaff = () => useAppStore((s) => s.staff);
 
+/** Avisos sin atender de clientes que piden que abran su mesa. */
+export const useOpenCalls = () => useAppStore((s) => s.calls);
+
 /** Meseros que pueden recibir mesas (sin los desactivados). */
 export function useActiveWaiters() {
   const waiters = useAppStore((s) => s.waiters);

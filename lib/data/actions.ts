@@ -32,6 +32,14 @@ import { adjustOrderItem, releaseSession, type ItemAdjustment } from "@/lib/doma
 import type { Order, OrderStatus } from "@/lib/domain/types";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
+import {
+  cancelSession,
+  openSession,
+  requestOpen,
+  resolveCalls,
+  setIdleClose,
+  validateIdleMinutes,
+} from "@/lib/domain/tableAccess";
 import type { Allergen } from "@/lib/domain/types";
 import {
   addStaff,
@@ -95,8 +103,8 @@ export const deviceActions = {
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 export const tableActions = {
-  /** Entrar por QR: abre o se une a la sesión de la mesa con un alias. */
-  join(tableNumber: number, alias: string): ActionResult {
+  /** Entrar a la mesa que abrió el mesero: con un alias y el PIN de la mesa. */
+  join(tableNumber: number, alias: string, pin?: string): ActionResult {
     const state = useAppStore.getState();
     const table = state.tables.find((t) => t.number === tableNumber);
     if (!table) return { ok: false, error: "Esta mesa no existe" };
@@ -106,11 +114,21 @@ export const tableActions = {
       deviceId: device.deviceId,
       alias,
       restrictions: device.restrictions,
+      pin,
       now: nowIso(),
       newId,
     });
     if (!result.ok) return result;
     useAppStore.setState({ sessions: result.sessions });
+    return { ok: true };
+  },
+  /** Desde una mesa cerrada: avisar al personal para que la abra. */
+  requestOpen(tableNumber: number): ActionResult {
+    const state = useAppStore.getState();
+    const table = state.tables.find((t) => t.number === tableNumber);
+    if (!table) return { ok: false, error: "Esta mesa no existe" };
+    if (findOpenSession(state.sessions, table.id)) return { ok: true };
+    useAppStore.setState({ calls: requestOpen(state.calls, table.id, nowIso(), newId) });
     return { ok: true };
   },
 };
@@ -124,9 +142,13 @@ function mine(tableId: string) {
   return { state, session, diner };
 }
 
+/** Cualquier cambio en la mesa cuenta como actividad (para el cierre automático). */
 function replaceSession(session: { id: string }, patch: object) {
+  const now = nowIso();
   useAppStore.setState((s) => ({
-    sessions: s.sessions.map((x) => (x.id === session.id ? { ...x, ...patch } : x)),
+    sessions: s.sessions.map((x) =>
+      x.id === session.id ? { ...x, lastActivityAt: now, ...patch } : x,
+    ),
   }));
 }
 
@@ -214,17 +236,26 @@ export const demoDinerActions = {
     const state = useAppStore.getState();
     const table = state.tables.find((t) => t.number === tableNumber);
     if (!table) return { ok: false, error: "Esa mesa no existe" };
-    const open = findOpenSession(state.sessions, table.id);
-    const taken = new Set(open?.diners.map((d) => d.alias.toLowerCase()) ?? []);
+    // Si la mesa no estaba abierta, la abre el propio panel de demo (como lo haría un mesero).
+    let sessions = state.sessions;
+    let open = findOpenSession(sessions, table.id);
+    if (!open) {
+      const opened = openSession(sessions, { tableId: table.id, now: nowIso(), newId });
+      if (!opened.ok) return opened;
+      sessions = opened.value.sessions;
+      open = opened.value.session;
+    }
+    const taken = new Set(open.diners.map((d) => d.alias.toLowerCase()));
     const alias =
       DEMO_ALIASES.find((a) => !taken.has(a.toLowerCase())) ??
       `Invitado ${(open?.diners.length ?? 0) + 1}`;
     const deviceId = newId("demo");
-    const joined = joinTable(state.sessions, {
+    const joined = joinTable(sessions, {
       tableId: table.id,
       deviceId,
       alias,
       restrictions: [],
+      pin: open.pin,
       now: nowIso(),
       newId,
     });
@@ -241,7 +272,7 @@ export const demoDinerActions = {
     if (!dish) return { ok: false, error: "No hay platos activos" };
     const variant = dish.variants[Math.floor(Math.random() * dish.variants.length)]!;
 
-    const sessions = joined.sessions.map((s) =>
+    const withCart = joined.sessions.map((s) =>
       s.id === joined.sessionId
         ? {
             ...s,
@@ -253,7 +284,7 @@ export const demoDinerActions = {
           }
         : s,
     );
-    useAppStore.setState({ sessions });
+    useAppStore.setState({ sessions: withCart, calls: resolveCalls(state.calls, table.id) });
     return {
       ok: true,
       alias,
@@ -378,6 +409,52 @@ export const waiterActions = {
       replaceOrder(result.order);
       return { ok: true };
     });
+  },
+  /** Abre la mesa: genera su PIN y atiende los avisos de "abre mi mesa". */
+  openTable(tableId: string): ActionResult & { pin?: string } {
+    const check = checkWaiterTable(tableId);
+    if (!check.ok) return check;
+    const state = useAppStore.getState();
+    const r = openSession(state.sessions, {
+      tableId,
+      openedBy: currentStaff()?.id,
+      now: nowIso(),
+      newId,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState({
+      sessions: r.value.sessions,
+      calls: resolveCalls(state.calls, tableId),
+    });
+    return { ok: true, pin: r.value.session.pin };
+  },
+  /** Cierra la mesa aunque tenga rondas sin entregar, que quedan rechazadas. */
+  cancelTable(tableId: string): ActionResult & { rejected?: number } {
+    const allowed = requirePermission("mesas.cancelar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const session = findOpenSession(state.sessions, tableId);
+    if (!session) return { ok: false, error: "La mesa ya estaba cerrada" };
+    const r = cancelSession(session, state.orders, nowIso());
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      sessions: s.sessions.map((x) => (x.id === session.id ? r.value.session : x)),
+      orders: r.value.orders,
+    }));
+    return { ok: true, rejected: r.value.rejected };
+  },
+  /** Minutos sin actividad para que esta mesa se cierre sola (`null`: el del negocio). */
+  setIdleClose(tableId: string, minutes: number | null): ActionResult {
+    const check = checkWaiterTable(tableId);
+    if (!check.ok) return check;
+    const session = findOpenSession(useAppStore.getState().sessions, tableId);
+    if (!session) return { ok: false, error: "La mesa ya estaba cerrada" };
+    const r = setIdleClose(session, minutes);
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      sessions: s.sessions.map((x) => (x.id === session.id ? r.value : x)),
+    }));
+    return { ok: true };
   },
   releaseTable(tableId: string): ActionResult {
     const check = checkWaiterTable(tableId);
@@ -525,6 +602,12 @@ export const configActions = {
     useAppStore.setState((s) => ({
       restaurant: { ...s.restaurant, serviceAlertThreshold: value },
     }));
+    return { ok: true };
+  },
+  setSessionIdle(value: number): ActionResult {
+    const error = validateIdleMinutes(value);
+    if (error) return { ok: false, error };
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, sessionIdleMin: value } }));
     return { ok: true };
   },
   setConfirmTimeout(value: number): ActionResult {

@@ -138,5 +138,5 @@ export function releaseSession(
       error: `Hay ${open.length === 1 ? "una ronda" : `${open.length} rondas`} sin entregar`,
     };
   }
-  return { ok: true, session: { ...session, closedAt: now, cart: [] } };
+  return { ok: true, session: { ...session, closedAt: now, cart: [], closeReason: "mesero" } };
 }

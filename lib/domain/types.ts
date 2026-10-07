@@ -39,6 +39,8 @@ export interface Restaurant {
   logoUrl?: string;
   serviceAlertThreshold: number;
   confirmTimeoutMin: number;
+  /** Minutos sin actividad (y sin pedidos por entregar) para que una mesa se cierre sola. */
+  sessionIdleMin: number;
 }
 
 export interface Category {
@@ -118,6 +120,24 @@ export interface TableSession {
   closedAt?: string;
   diners: Diner[];
   cart: CartItem[];
+  /** PIN de 4 dígitos que da el mesero al abrir la mesa. Las sesiones del historial no lo tienen. */
+  pin?: string;
+  /** Quién abrió la mesa (usuario del personal). */
+  openedBy?: string;
+  /** Última actividad: entrar, mover el carrito, etc. Los pedidos cuentan por sus fechas. */
+  lastActivityAt?: string;
+  /** Minutos de inactividad para cerrarse sola, si el mesero cambió el del negocio. */
+  idleCloseMin?: number;
+  closeReason?: "mesero" | "cancelada" | "inactividad";
+}
+
+/** Aviso de un cliente al personal desde la mesa (hoy: pedir que abran la mesa). */
+export interface TableCall {
+  id: string;
+  tableId: string;
+  kind: "abrir_mesa";
+  createdAt: string;
+  resolved: boolean;
 }
 
 export interface OrderItem extends CartItem {

@@ -14,9 +14,29 @@ export function watch(page, name, errors) {
   return page;
 }
 
-export async function joinTable(page, table, alias, { restriction } = {}) {
+/**
+ * Un mesero abre la mesa (si no lo estaba) y devuelve su PIN, como en el salón: la mesa no
+ * deja entrar a los clientes hasta que la abre el personal.
+ */
+export async function abrirMesa(ctx, mesa) {
+  const nombre = mesa <= 3 ? "Carlos" : "Daniela";
+  const p = await ctx.newPage();
+  await p.setViewportSize({ width: 900, height: 900 });
+  await p.goto(`${BASE}/mesero`);
+  await entrarComo(p, nombre);
+  await p.getByRole("button", { name: new RegExp(`^Mesa ${mesa}:`) }).click();
+  const abrir = p.getByRole("button", { name: /Abrir mesa/ });
+  if (await visible(abrir, 1500)) await abrir.click();
+  const pin = (await p.getByLabel(`PIN de la mesa ${mesa}`, { exact: true }).textContent())?.trim();
+  await p.close();
+  return pin;
+}
+
+export async function joinTable(page, table, alias, { restriction, pin } = {}) {
+  const elPin = pin ?? (await abrirMesa(page.context(), table));
   await page.goto(`${BASE}/mesa/${table}`);
   await page.getByLabel("¿Cómo te llamamos?").fill(alias);
+  await page.getByLabel("PIN de la mesa").fill(elPin);
   await page.getByRole("button", { name: /Ver la carta/ }).click();
   await page.waitForURL(`**/mesa/${table}/menu`);
   const sheet = page.getByRole("dialog");

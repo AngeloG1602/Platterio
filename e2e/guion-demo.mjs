@@ -1,7 +1,17 @@
 // Guion de demo de la sustentación (BRIEF §16), automatizado con cinco pestañas del mismo
 // navegador. Sirve para ensayar y para comprobar que todo el flujo funciona sin tropiezos.
 // Uso: con la app corriendo, `npm run e2e` (E2E_URL para otra dirección, HEADED=1 para verlo).
-import { addDish, BASE, check, entrarComo, joinTable, launch, visible, watch } from "./helpers.mjs";
+import {
+  abrirMesa,
+  addDish,
+  BASE,
+  check,
+  entrarComo,
+  joinTable,
+  launch,
+  visible,
+  watch,
+} from "./helpers.mjs";
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } });
@@ -27,7 +37,17 @@ await hub.keyboard.press("Escape");
 // 2. Pestaña A: Ana, alergia a lácteos
 const ana = await tab("Ana");
 await ana.goto(`${BASE}/mesa/3`);
+check(
+  "2. Una mesa sin abrir no deja entrar",
+  await visible(ana.getByText("Pide al mesero que abra tu mesa.")),
+);
+const pin3 = await abrirMesa(ctx, 3);
+check("2. El mesero abre la mesa y obtiene un PIN de 4 dígitos", /^\d{4}$/.test(pin3 ?? ""), pin3);
 await ana.getByLabel("¿Cómo te llamamos?").fill("Ana");
+await ana.getByLabel("PIN de la mesa").fill("0000" === pin3 ? "1111" : "0000");
+await ana.getByRole("button", { name: /Ver la carta/ }).click();
+check("2. Con otro PIN no entra", await visible(ana.getByText("Ese PIN no es el de la mesa")));
+await ana.getByLabel("PIN de la mesa").fill(pin3);
 await ana.getByRole("button", { name: /Ver la carta/ }).click();
 await ana.waitForURL("**/menu");
 const before = await (async () => {
@@ -236,6 +256,44 @@ await caja.goto(`${BASE}/admin`);
 check(
   "9. El encargado no entra al panel completo",
   await visible(caja.getByText("Esta sección no es para tu usuario")),
+);
+
+// 10. Mesa cerrada: avisar al mesero, abrir con PIN y liberar
+const nora = await tab("Nora", 390, 800);
+await nora.goto(`${BASE}/mesa/5`);
+await nora.getByRole("button", { name: "Avisar al mesero" }).click();
+check(
+  "10. El cliente avisó al mesero",
+  await visible(nora.getByText("Ya avisamos al mesero").first()),
+);
+const daniela = await tab("Daniela", 900, 900);
+await daniela.goto(`${BASE}/mesero`);
+await entrarComo(daniela, "Daniela");
+check(
+  "10. El mesero ve que la Mesa 5 pide que la abra",
+  await visible(daniela.getByText("La Mesa 5 pide que la abras")),
+);
+await daniela.getByRole("button", { name: /Abrir mesa/ }).click();
+const pin5 = (await daniela.getByLabel("PIN de la mesa 5", { exact: true }).textContent())?.trim();
+check("10. Al abrir, el aviso se atiende y aparece el PIN", /^\d{4}$/.test(pin5 ?? ""), pin5);
+check(
+  "10. A la clienta le pide el PIN sin recargar",
+  await visible(nora.getByLabel("PIN de la mesa")),
+);
+await nora.getByLabel("¿Cómo te llamamos?").fill("Nora");
+await nora.getByLabel("PIN de la mesa").fill(pin5);
+await nora.getByRole("button", { name: /Ver la carta/ }).click();
+await nora.waitForURL("**/mesa/5/menu");
+await nora.getByRole("dialog").getByRole("button", { name: "Omitir" }).click();
+check(
+  "10. Con el PIN, la clienta entra a la carta",
+  await visible(nora.locator("section[aria-labelledby=recomendados]")),
+);
+await daniela.getByRole("button", { name: "Liberar mesa" }).click();
+await daniela.getByRole("button", { name: "Sí, liberar" }).click();
+check(
+  "10. Al liberar la mesa, la clienta lo ve",
+  await visible(nora.getByText(/La mesa se liberó/)),
 );
 
 // Limpieza: hora automática
