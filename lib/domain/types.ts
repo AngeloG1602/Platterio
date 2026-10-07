@@ -230,3 +230,44 @@ export interface Alert {
   stars?: number;
   orderId?: string;
 }
+
+/* ——— Cobro y cierre de caja ——— */
+
+export type PaymentMethod = "efectivo" | "tarjeta" | "transferencia" | "otro";
+
+/** Un pago registrado por caja contra la cuenta de una mesa (una cuenta puede tener varios). */
+export interface Payment {
+  id: string;
+  sessionId: string;
+  tableId: string;
+  shiftId?: string;
+  amount: number;
+  method: PaymentMethod;
+  at: string;
+  /** Nombre de quien registró el pago. */
+  by: string;
+}
+
+/** Resumen congelado al cerrar el turno de caja. */
+export interface ShiftSummary {
+  byMethod: Record<PaymentMethod, number>;
+  total: number;
+  payments: number;
+  /** Efectivo que debía haber: fondo inicial + pagos en efectivo. */
+  expectedCash: number;
+  countedCash: number;
+  /** Contado menos esperado: negativo es faltante, positivo es sobrante. */
+  difference: number;
+}
+
+/** Turno de caja: se abre con un fondo y se cierra contando el efectivo. */
+export interface CashShift {
+  id: string;
+  openedAt: string;
+  openedBy: string;
+  openingFloat: number;
+  closedAt?: string;
+  closedBy?: string;
+  note?: string;
+  summary?: ShiftSummary;
+}

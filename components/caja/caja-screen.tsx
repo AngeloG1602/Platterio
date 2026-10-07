@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RoleGate, SessionButton } from "@/components/access/role-gate";
 import { RestaurantMark, PlatterioLogo } from "@/components/brand/logos";
+import { CashPanel } from "./cash-panel";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { TableAssignments } from "@/components/team/table-assignments";
 import { TeamManager } from "@/components/team/team-manager";
@@ -11,7 +12,7 @@ import { SalonView } from "@/components/waiter/waiter-screen";
 import { useNow, useRestaurant, useSalonBoard } from "@/lib/data";
 import { formatTime, plural } from "@/lib/domain/format";
 
-type Tab = "salon" | "mesas" | "equipo";
+type Tab = "salon" | "caja" | "mesas" | "equipo";
 
 /**
  * Caja: para el encargado (y el administrador). Ve y opera todo el salón y administra al
@@ -53,9 +54,10 @@ function Caja() {
           label="Secciones de caja"
           value={tab}
           onChange={setTab}
-          className="w-full sm:w-auto sm:min-w-[420px]"
+          className="w-full sm:w-auto sm:min-w-[520px]"
           options={[
             { value: "salon", label: "Salón" },
+            { value: "caja", label: "Caja" },
             { value: "mesas", label: "Mesas y meseros" },
             { value: "equipo", label: "Equipo" },
           ]}
@@ -75,6 +77,7 @@ function Caja() {
           inKitchen={board.inKitchen}
         />
       )}
+      {tab === "caja" && <CashPanel />}
       {tab === "mesas" && (
         <main className="mx-auto max-w-6xl px-4 pt-5 pb-16 sm:px-6">
           <TableAssignments onTeam={() => setTab("equipo")} />

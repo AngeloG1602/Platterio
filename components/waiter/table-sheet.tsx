@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, DoorOpen, KeyRound, NotebookPen, Pencil, Timer } from "lucide-react";
+import { Ban, Banknote, DoorOpen, KeyRound, NotebookPen, Pencil, Timer } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,18 @@ import { Sheet } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "@/components/ui/toaster";
 import { Select } from "@/components/ui/field";
-import { useCategories, useCurrentStaff, useRestaurant, waiterActions } from "@/lib/data";
+import { PaymentSheet } from "@/components/caja/payment-sheet";
+import { sessionBalance } from "@/lib/domain/cash";
+import {
+  useCategories,
+  useCurrentStaff,
+  useLivePayments,
+  useRestaurant,
+  waiterActions,
+} from "@/lib/data";
 import { can } from "@/lib/domain/access";
 import { cartCount } from "@/lib/domain/cart";
-import { formatTime, plural } from "@/lib/domain/format";
+import { formatCOP, formatTime, plural } from "@/lib/domain/format";
 import { consolidateTicket } from "@/lib/domain/ticket";
 import type { Dish } from "@/lib/domain/types";
 import type { TableOverview } from "@/lib/domain/waiter";
@@ -33,18 +41,22 @@ export function TableSheet({
   const [confirmRelease, setConfirmRelease] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [taking, setTaking] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const payments = useLivePayments();
   const [editingId, setEditingId] = useState<string | null>(null);
   const staff = useCurrentStaff();
   const restaurant = useRestaurant();
   const categories = useCategories();
   const canTake = can(staff?.role, "pedidos.crear");
   const canEdit = can(staff?.role, "pedidos.editar");
+  const canCharge = can(staff?.role, "cobrar");
   const { table, session, orders } = overview;
   const ticket = session
     ? consolidateTicket({ sessionId: session.id, orders, dishes, diners: session.diners })
     : null;
   const open = orders.filter((o) => o.status !== "entregado" && o.status !== "rechazado");
   const unsent = session ? cartCount(session.cart) : 0;
+  const balance = session ? sessionBalance(orders, payments, session.id) : null;
 
   return (
     <>
@@ -84,6 +96,11 @@ export function TableSheet({
               {canTake && (
                 <Button block size="lg" onClick={() => setTaking(true)}>
                   <NotebookPen aria-hidden /> Tomar pedido
+                </Button>
+              )}
+              {canCharge && (
+                <Button variant="secondary" block onClick={() => setPaying(true)}>
+                  <Banknote aria-hidden /> Cobrar
                 </Button>
               )}
               {open.length > 0 && (
@@ -160,6 +177,11 @@ export function TableSheet({
               <span className="text-muted text-[15px]">Total de la mesa</span>
               <Price value={ticket.total} className="text-xl" />
             </div>
+            {balance && balance.paid > 0 && (
+              <p className="text-ink-soft -mt-2 text-right text-sm">
+                Pagado <Price value={balance.paid} /> · Falta <Price value={balance.pending} />
+              </p>
+            )}
           </div>
         )}
       </Sheet>
@@ -170,6 +192,14 @@ export function TableSheet({
           dishes={dishes}
           categories={categories}
           onClose={() => setTaking(false)}
+        />
+      )}
+      {paying && session && (
+        <PaymentSheet
+          tableId={table.id}
+          tableNumber={table.number}
+          sessionId={session.id}
+          onClose={() => setPaying(false)}
         />
       )}
       {editingId && (
@@ -214,7 +244,11 @@ export function TableSheet({
         open={confirmRelease}
         onOpenChange={setConfirmRelease}
         title={`¿Liberar la Mesa ${table.number}?`}
-        description="Se cierra la sesión de la mesa. El próximo escaneo del QR abre una sesión nueva."
+        description={
+          canCharge && balance && balance.pending > 0
+            ? `Ojo: todavía falta cobrar ${formatCOP(balance.pending)}. Se cierra la sesión de la mesa igual y queda marcada como sin cobro.`
+            : "Se cierra la sesión de la mesa. El próximo escaneo del QR abre una sesión nueva."
+        }
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmRelease(false)}>

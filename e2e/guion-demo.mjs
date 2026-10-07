@@ -374,6 +374,45 @@ await admin.getByRole("button", { name: "Quitar", exact: true }).click();
 await admin.getByRole("radio", { name: /Cálido/ }).click();
 check("12. Volver a Cálido restaura la marca de la casa", (await bgDe(admin)) === "#FAF7F2");
 
+// 13. Caja: abrir turno, cobrar, cerrar con diferencia y ver el reporte
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+check(
+  "13. Sin turno abierto no se puede cobrar",
+  await visible(caja.getByText("La caja está cerrada")),
+);
+await caja.getByRole("button", { name: "Abrir caja" }).click();
+check("13. La caja se abre con su fondo", await visible(caja.getByText(/Caja abierta por Julián/)));
+await caja.getByRole("button", { name: /Cobrar.*Mesa 5/ }).click();
+await caja.getByRole("button", { name: "Registrar pago" }).click();
+check(
+  "13. Se cobra la cuenta completa y sale de las pendientes",
+  !(await visible(caja.getByRole("button", { name: /Cobrar.*Mesa 5/ }), 2000)),
+);
+await caja.getByRole("button", { name: "Cerrar caja" }).click();
+await caja.getByLabel("Efectivo contado").fill("1000");
+await caja.getByRole("button", { name: "Cerrar caja" }).last().click();
+check(
+  "13. Con diferencia, el cierre exige explicarla",
+  await visible(caja.getByText("Hay diferencia: cuéntanos a qué se debe")),
+);
+await caja.getByLabel("Nota").fill("Conteo de prueba");
+await caja.getByRole("button", { name: "Cerrar caja" }).last().click();
+check("13. La caja queda cerrada", await visible(caja.getByText("La caja está cerrada")));
+await admin.goto(`${BASE}/admin/reportes`);
+check(
+  "13. El reporte muestra el cobro por forma de pago",
+  await visible(admin.getByText("Cobrado por forma de pago")),
+);
+check(
+  "13. El reporte muestra el cambio del mesero",
+  await visible(admin.getByText("Error al tomar el pedido")),
+);
+check(
+  "13. El reporte muestra el cierre con su nota",
+  await visible(admin.getByText("Conteo de prueba")),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

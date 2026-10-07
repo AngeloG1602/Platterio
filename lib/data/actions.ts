@@ -68,6 +68,8 @@ import {
   type FontId,
 } from "@/lib/domain/brand";
 import type { Brand } from "@/lib/domain/types";
+import { closeShift, openShift, registerPayment } from "@/lib/domain/cash";
+import type { PaymentMethod } from "@/lib/domain/types";
 import { newId } from "./ids";
 import { useDeviceStore } from "./device";
 import { createSeedState } from "./seed";
@@ -615,6 +617,67 @@ export const kitchenActions = {
     const order = useAppStore.getState().orders.find((o) => o.id === orderId);
     if (!order) return { ok: false, error: "No encontramos ese pedido" };
     replaceOrder(acknowledgeChanges(order, nowIso()));
+    return { ok: true };
+  },
+};
+
+/* ——— Caja: turnos y cobros ——— */
+
+export const cashActions = {
+  openShift(openingFloat: number): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const r = openShift(useAppStore.getState().shifts, {
+      openingFloat,
+      now: nowIso(),
+      id: newId("turno"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ shifts: [...s.shifts, r.value] }));
+    return { ok: true };
+  },
+  /** Registra un pago contra la cuenta de la mesa abierta. */
+  pay(tableId: string, amount: number, method: PaymentMethod): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const session = findOpenSession(state.sessions, tableId);
+    if (!session) return { ok: false, error: "La mesa ya no está abierta" };
+    const r = registerPayment({
+      shift: state.shifts.find((x) => !x.closedAt),
+      session,
+      orders: state.orders,
+      payments: state.payments,
+      amount,
+      method,
+      now: nowIso(),
+      id: newId("pago"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
+    replaceSession(session, {});
+    return { ok: true };
+  },
+  closeShift(countedCash: number, note?: string): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const shift = state.shifts.find((x) => !x.closedAt);
+    if (!shift) return { ok: false, error: "No hay una caja abierta" };
+    const r = closeShift({
+      shift,
+      payments: state.payments,
+      countedCash,
+      note,
+      now: nowIso(),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      shifts: s.shifts.map((x) => (x.id === shift.id ? r.value : x)),
+    }));
     return { ok: true };
   },
 };

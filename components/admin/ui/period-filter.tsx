@@ -22,7 +22,8 @@ export function usePeriod(initial: PeriodPreset = "7d") {
     to: iso(minuteNow),
   }));
   const period: Period = useMemo(
-    () => periodRange(preset, minuteNow, custom),
+    // Hasta el final del minuto actual, para no dejar fuera lo que acaba de pasar.
+    () => periodRange(preset, minuteNow + 59_999, custom),
     [preset, minuteNow, custom],
   );
   return { preset, setPreset, custom, setCustom, period, now: minuteNow };

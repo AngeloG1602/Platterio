@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   ChartColumn,
+  FileSpreadsheet,
   LayoutDashboard,
   MessageSquareText,
   Settings2,
@@ -33,6 +34,7 @@ const NAV: NavItem[] = [
   { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles },
   { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
+  { href: "/admin/reportes", label: "Reportes", icon: FileSpreadsheet },
   { href: "/admin/equipo", label: "Equipo", icon: Users },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];

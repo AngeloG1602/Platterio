@@ -26,6 +26,7 @@ export const useOrders = () => useAppStore((s) => s.orders);
 export const useCategories = () => useAppStore((s) => s.categories);
 export const useTimeSlots = () => useAppStore((s) => s.timeSlots);
 export const useDishes = () => useAppStore((s) => s.dishes);
+export const useSessions = () => useAppStore((s) => s.sessions);
 export const useTables = () => useAppStore((s) => s.tables);
 export const useWaiters = () => useAppStore((s) => s.waiters);
 export const useStaff = () => useAppStore((s) => s.staff);
@@ -267,6 +268,22 @@ export function useServiceFeedback(session: TableSession) {
 
 /* ——— Administrador ——— */
 
+export function useAllPayments() {
+  const history = useHistory();
+  const live = useAppStore((s) => s.payments);
+  return useMemo(() => [...history.payments, ...live], [history, live]);
+}
+
+export function useAllShifts() {
+  const history = useHistory();
+  const live = useAppStore((s) => s.shifts);
+  return useMemo(() => [...history.shifts, ...live], [history, live]);
+}
+
+/** La caja abierta ahora, si la hay. */
+export const useOpenShift = () => useAppStore((s) => s.shifts.find((x) => !x.closedAt));
+export const useLivePayments = () => useAppStore((s) => s.payments);
+
 /** Todos los datos para analítica: historial sembrado + lo creado en la demo. */
 export function useAnalyticsData() {
   const history = useHistory();
@@ -279,7 +296,8 @@ export function useAnalyticsData() {
     () => [...history.serviceRatings, ...liveService],
     [history, liveService],
   );
-  return { orders, sessions, dishRatings, serviceRatings };
+  const payments = useAllPayments();
+  return { orders, sessions, dishRatings, serviceRatings, payments };
 }
 
 /** Momento de la última siembra o reinicio de los datos. */

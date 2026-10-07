@@ -2,10 +2,12 @@ import type { StaffUser } from "@/lib/domain/access";
 import { createClock, type DemoClock } from "@/lib/domain/clock";
 import type {
   Alert,
+  CashShift,
   Category,
   Dish,
   DishRating,
   Order,
+  Payment,
   Restaurant,
   ServiceRating,
   Table,
@@ -17,7 +19,7 @@ import type {
 import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -43,6 +45,10 @@ export interface AppData {
   /** Avisos de clientes al personal (hoy: "abre mi mesa"). */
   calls: TableCall[];
   orders: Order[];
+  /** Cobros registrados en caja durante la demo (el historial va aparte). */
+  payments: Payment[];
+  /** Turnos de caja de la demo; a lo sumo uno abierto. */
+  shifts: CashShift[];
   dishRatings: DishRating[];
   serviceRatings: ServiceRating[];
   alerts: Alert[];
@@ -75,6 +81,8 @@ export function createSeedState(now: number): AppData {
     sessions: [],
     calls: [],
     orders: [],
+    payments: [],
+    shifts: [],
     dishRatings: [],
     serviceRatings: [],
     alerts: seedAlerts(history, WAITERS),

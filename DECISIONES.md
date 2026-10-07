@@ -347,3 +347,20 @@ pueden cambiar sin rehacer pantallas.
       SVG para no meter código ajeno en la página.
 106.  **Plan.** Plantillas, tipografías y logo se dejan abiertos en el prototipo; la restricción
       por plan (Profesional) se aplica en la Fase 10 junto con los cobros.
+107.  **Cobro sin pasarela.** Platterio no procesa pagos: caja (encargado o administrador) registra
+      lo que el cliente pagó, con la forma (efectivo, tarjeta, transferencia, otro). Una cuenta
+      se puede pagar en partes y con varias formas; no se acepta más de lo que falta. El mesero
+      no cobra (no tiene el permiso `cobrar`).
+108.  **Turno de caja.** Se abre con un fondo en efectivo y solo hay uno abierto a la vez. Sin caja
+      abierta no se registran pagos. Al cerrar se cuenta el efectivo: esperado = fondo + pagos en
+      efectivo del turno. Si hay diferencia, la nota es obligatoria. El resumen queda congelado
+      en el turno. Cerrar con mesas por cobrar se permite, pero se avisa.
+109.  **Mesas cerradas sin cobro.** Liberar o auto-cerrar una mesa con saldo no se bloquea (el
+      servicio no puede quedar atascado), pero la cuenta queda marcada y aparece en el reporte
+      "Mesas cerradas sin cobro registrado", para que el dueño vea el dinero sin soporte.
+110.  **Reportes.** Nueva sección `/admin/reportes` (Esencial): vendido vs. cobrado, cobrado por
+      forma de pago, ventas por mesero, cambios y anulaciones del personal (con quién y por qué),
+      mesas sin cobro y cierres de caja; todo con CSV (separador ";" y BOM, abre bien en Excel).
+      El historial sembrado ahora trae cobros y un cierre por día, con algunas diferencias y un
+      4 % de mesas sin cobro para que los reportes tengan qué mostrar.
+111.  **Periodos hasta el final del minuto actual**, para que lo que acaba de pasar entre al reporte.

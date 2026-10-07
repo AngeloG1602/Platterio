@@ -37,6 +37,7 @@ const pages = [
   ["Admin ventas", "/admin/ventas", 1366],
   ["Admin configuración", "/admin/configuracion", 1366],
   ["Admin equipo", "/admin/equipo", 1366],
+  ["Admin reportes", "/admin/reportes", 1366],
   ["No encontrada", "/esto-no-existe", 390],
 ];
 
