@@ -1,7 +1,7 @@
 // Guion de demo de la sustentación (BRIEF §16), automatizado con cinco pestañas del mismo
 // navegador. Sirve para ensayar y para comprobar que todo el flujo funciona sin tropiezos.
 // Uso: con la app corriendo, `npm run e2e` (E2E_URL para otra dirección, HEADED=1 para verlo).
-import { addDish, BASE, check, joinTable, launch, visible, watch } from "./helpers.mjs";
+import { addDish, BASE, check, entrarComo, joinTable, launch, visible, watch } from "./helpers.mjs";
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } });
@@ -83,7 +83,8 @@ check("3. Ana ve que Luis envió el pedido", await visible(ana.getByText("Luis e
 
 // 4. Pestaña C: mesero Carlos; quitar un ítem por Agotado; confirmar
 const carlos = await tab("Carlos", 768, 1024);
-await carlos.goto(`${BASE}/mesero?mesero=carlos`);
+await carlos.goto(`${BASE}/mesero`);
+await entrarComo(carlos, "Carlos");
 const ticket = carlos.getByRole("article", { name: /Mesa 3 · Ronda 1/ });
 await ticket.waitFor();
 check("4. Llega el ticket consolidado", (await ticket.locator("li").count()) >= 4);
@@ -104,6 +105,7 @@ await carlos.getByRole("button", { name: /Confirmar y enviar a cocina/ }).click(
 // 5. Pestaña D: cocina; en preparación y listo; mesero entrega
 const cocina = await tab("Cocina", 1280, 800);
 await cocina.goto(`${BASE}/cocina`);
+await entrarComo(cocina, "Cocina");
 await cocina.getByRole("button", { name: "Empezar a preparar" }).click();
 await ana.waitForTimeout(300);
 check(
@@ -147,6 +149,7 @@ check("6. Calificación enviada", await visible(ana.getByText("¡Gracias, Ana!")
 // 7. Pestaña E: administrador
 const admin = await tab("Admin", 1366, 900);
 await admin.goto(`${BASE}/admin`);
+await entrarComo(admin, "Marta");
 check(
   "7. Aparece la alerta de servicio bajo de la Mesa 3",
   await visible(admin.getByText("Servicio bajo en la Mesa 3").first()),
@@ -160,16 +163,14 @@ await admin.getByLabel("Nombre", { exact: true }).fill("Burger del Chef");
 await admin.getByLabel("Categoría").selectOption("hamburguesas");
 await admin.getByLabel("Precio").fill("28900");
 await admin.getByLabel("Ingrediente", { exact: true }).fill("Carne madurada");
-await admin
-  .getByLabel("Subir fotos del plato")
-  .setInputFiles({
-    name: "chef.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DAwMDAxMDAwMDAAAAhIAIBx2YkIAAAAABJRU5ErkJggg==",
-      "base64",
-    ),
-  });
+await admin.getByLabel("Subir fotos del plato").setInputFiles({
+  name: "chef.png",
+  mimeType: "image/png",
+  buffer: Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DAwMDAxMDAwMDAAAAhIAIBx2YkIAAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+});
 await admin.getByText("Principal").waitFor();
 await admin.getByRole("button", { name: /^Almuerzo/ }).click();
 await admin.getByRole("switch", { name: "Destacado por la casa" }).click();
@@ -188,6 +189,53 @@ await sara.goto(`${BASE}/mesa/2/plato/clasica-27`);
 check(
   "8. Botón “Vista 3D — próximamente”",
   await sara.getByRole("button", { name: "Vista 3D — próximamente" }).isDisabled(),
+);
+
+// 9. Roles y acceso
+const pinMal = await tab("PIN", 390, 800);
+await pinMal.goto(`${BASE}/entrar`);
+await pinMal.getByLabel("PIN").fill("9999");
+await pinMal.getByRole("button", { name: "Entrar", exact: true }).click();
+check("9. Un PIN equivocado no entra", await visible(pinMal.getByText("PIN incorrecto")));
+await pinMal.getByLabel("PIN").fill("1111");
+await pinMal.getByRole("button", { name: "Entrar", exact: true }).click();
+await pinMal.waitForURL("**/mesero");
+check(
+  "9. Con su PIN, el mesero llega a su pantalla",
+  await visible(pinMal.getByText("Hola, Carlos")),
+);
+await pinMal.goto(`${BASE}/admin`);
+check(
+  "9. El mesero no entra al panel del administrador",
+  await visible(pinMal.getByText("Esta sección no es para tu usuario")),
+);
+
+const caja = await tab("Caja", 1280, 900);
+await caja.goto(`${BASE}/caja`);
+await entrarComo(caja, "Julián");
+check("9. El encargado ve todo el salón", await visible(caja.getByText("Todo el salón")));
+await caja.getByRole("radio", { name: "Equipo" }).click();
+await caja.getByLabel("Nombre").fill("Juliana");
+await caja.getByLabel("PIN").fill("4444");
+await caja.getByRole("button", { name: "Agregar", exact: true }).click();
+check(
+  "9. El encargado crea un mesero",
+  await visible(caja.getByRole("button", { name: /Editar a Juliana/ })),
+);
+check(
+  "9. El encargado no administra al administrador",
+  await visible(caja.getByText("Solo el administrador").first()),
+);
+await caja.getByRole("button", { name: /Desactivar a Juliana/ }).click();
+await caja.getByRole("button", { name: "Desactivar", exact: true }).click();
+check(
+  "9. Un usuario desactivado queda marcado",
+  await visible(caja.getByText("Desactivado").first()),
+);
+await caja.goto(`${BASE}/admin`);
+check(
+  "9. El encargado no entra al panel completo",
+  await visible(caja.getByText("Esta sección no es para tu usuario")),
 );
 
 // Limpieza: hora automática

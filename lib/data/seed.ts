@@ -1,3 +1,4 @@
+import type { StaffUser } from "@/lib/domain/access";
 import { createClock, type DemoClock } from "@/lib/domain/clock";
 import type {
   Alert,
@@ -12,10 +13,10 @@ import type {
   TimeSlot,
   Waiter,
 } from "@/lib/domain/types";
-import { CATEGORIES, DISHES, RESTAURANT, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
+import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 1;
+export const DATA_VERSION = 2;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -33,6 +34,8 @@ export interface AppData {
   timeSlots: TimeSlot[];
   dishes: Dish[];
   waiters: Waiter[];
+  /** Usuarios del negocio (administrador, encargado, meseros, cocina). */
+  staff: StaffUser[];
   tables: Table[];
   /** Sesiones, pedidos y calificaciones creados durante la demo (el historial va aparte). */
   sessions: TableSession[];
@@ -64,6 +67,7 @@ export function createSeedState(now: number): AppData {
     timeSlots: clone(TIME_SLOTS),
     dishes: clone(DISHES),
     waiters: clone(WAITERS),
+    staff: clone(STAFF),
     tables: clone(TABLES),
     sessions: [],
     orders: [],

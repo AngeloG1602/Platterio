@@ -14,7 +14,6 @@ import {
 } from "./analytics";
 import {
   addTable,
-  addWaiter,
   applyTimeSlots,
   removeTable,
   toggleTableAssignment,
@@ -326,12 +325,6 @@ describe("configuración", () => {
     expect(moved.find((w) => w.id === "daniela")!.tableIds).toContain("mesa-3");
     const back = toggleTableAssignment(moved, "daniela", "mesa-3");
     expect(back.some((w) => w.tableIds.includes("mesa-3"))).toBe(false);
-  });
-
-  it("agrega meseros sin repetir", () => {
-    expect(addWaiter(WAITERS, "carlos").ok).toBe(false);
-    const r = addWaiter(WAITERS, " Juliana ");
-    expect(r.ok && r.value.at(-1)).toEqual({ id: "juliana", name: "Juliana", tableIds: [] });
   });
 
   it("valida umbral y tiempo límite", () => {

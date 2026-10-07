@@ -5,13 +5,12 @@ import { ChefHat, CircleCheck, Clock, Flame, PackageCheck, Timer } from "lucide-
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { PlatterioMark, RestaurantMark } from "@/components/brand/logos";
+import { RoleGate, SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toaster";
 import {
   kitchenActions,
   useDishes,
-  useHydrated,
   useKitchenBoard,
   useNow,
   useRestaurant,
@@ -48,8 +47,6 @@ const COLUMN: Record<
 
 /** Tablero de cocina (US-28): modo oscuro, letra grande y un toque para avanzar. */
 export function KitchenScreen() {
-  const hydrated = useHydrated();
-
   // Tema oscuro en toda la página (incluidos los toasts) mientras la cocina esté abierta.
   useEffect(() => {
     const root = document.documentElement;
@@ -59,7 +56,9 @@ export function KitchenScreen() {
 
   return (
     <div className="bg-bg text-ink min-h-dvh">
-      {hydrated ? <Board /> : <BoardSkeleton />}
+      <RoleGate permission="cocina.tablero" label="Cocina">
+        <Board />
+      </RoleGate>
       <DemoPanel />
     </div>
   );
@@ -108,6 +107,7 @@ function Board() {
         <span className="font-display text-2xl font-semibold tabular-nums">
           {formatTime(new Date(now))}
         </span>
+        <SessionButton />
       </header>
 
       <main className="grid gap-4 p-4 lg:h-[calc(100dvh-65px)] lg:grid-cols-3 lg:gap-5 lg:p-6">
@@ -282,15 +282,5 @@ function KitchenCard({
         </button>
       )}
     </motion.article>
-  );
-}
-
-function BoardSkeleton() {
-  return (
-    <div className="grid gap-5 p-6 lg:grid-cols-3" aria-busy aria-label="Cargando la cocina">
-      {[0, 1, 2].map((i) => (
-        <Skeleton key={i} className="h-[70dvh] rounded-2xl" />
-      ))}
-    </div>
   );
 }

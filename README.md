@@ -37,6 +37,21 @@ npx playwright install chromium       # solo la primera vez
 npm run e2e
 ```
 
+## Usuarios de la demo
+
+Las pantallas del personal piden PIN. En la pantalla de entrada, "Usuarios de la demo" permite
+entrar sin escribirlo (solo existe en la demo).
+
+| Usuario | Rol           | PIN    |
+| ------- | ------------- | ------ |
+| Marta   | Administrador | 246810 |
+| Julián  | Encargado     | 135790 |
+| Carlos  | Mesero        | 1111   |
+| Daniela | Mesero        | 2222   |
+| Cocina  | Cocina        | 3333   |
+
+La sesión es por pestaña, así que cada pestaña puede ser una persona distinta.
+
 ## Guion de demo (5 minutos)
 
 Todo se hace en **pestañas del mismo navegador**: cada pestaña cuenta como un celular o
@@ -55,11 +70,11 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
    cocina_.
    - Para mostrar la alerta: activa **Acelerar el tiempo ×10** en el panel de demo antes de
      confirmar. A los ~18 s la tarjeta se pone en alerta y a los ~36 s se avisa al administrador.
-5. **Pestaña D – Cocina**: _Empezar a preparar_ y luego _Marcar listo_. El cliente ve avanzar
+5. **Pestaña D – Cocina** (entra como _Cocina_ en "Usuarios de la demo"): _Empezar a preparar_ y luego _Marcar listo_. El cliente ve avanzar
    la línea de tiempo y el mesero recibe el aviso. En el mesero: _Marcar entregado_.
 6. **Pestaña A**: _Califica tu experiencia_ → estrellas a los platos → **2 estrellas** al
    servicio.
-7. **Pestaña E – Administrador**: aparece la alerta de servicio bajo de la Mesa 3. Recorre el
+7. **Pestaña E – Administrador** (entra como _Marta_): aparece la alerta de servicio bajo de la Mesa 3. Recorre el
    Resumen, _Ventas_ (más pedidos por franja) y _Calificaciones_ (reseñas). En _Platos → Nuevo
    plato_, crea uno con foto, franja Almuerzo y **Destacado por la casa**: en el cliente sale de
    primero en los recomendados como "Nuevo en la casa".
@@ -82,9 +97,12 @@ agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 | `/mesa/[numero]/carrito`              | Carrito compartido de la mesa y envío                                          |
 | `/mesa/[numero]/pedido`               | Ticket de la mesa y línea de tiempo del pedido                                 |
 | `/mesa/[numero]/calificar`            | Calificar platos y servicio                                                    |
-| `/mesero`                             | Mesero (`?mesero=carlos` o `?mesero=daniela` entra directo)                    |
-| `/cocina`                             | Tablero de cocina en modo oscuro                                               |
-| `/admin`                              | Resumen del administrador                                                      |
+| `/entrar`                             | Entrada del personal con PIN (lleva a la pantalla de su rol)                   |
+| `/mesero`                             | Mesero: sus mesas y pedidos (pide PIN)                                         |
+| `/caja`                               | Encargado de caja: todo el salón, mesas y meseros, equipo (pide PIN)           |
+| `/cocina`                             | Tablero de cocina en modo oscuro (pide PIN)                                    |
+| `/admin`                              | Resumen del administrador (pide PIN)                                           |
+| `/admin/equipo`                       | Usuarios del negocio: roles, PIN, activar y desactivar                         |
 | `/admin/platos`, `/admin/platos/[id]` | Catálogo; `nuevo` como id crea un plato                                        |
 | `/admin/recomendaciones`              | Destacados, franjas y vista previa                                             |
 | `/admin/calificaciones`               | Calificaciones y reseñas                                                       |

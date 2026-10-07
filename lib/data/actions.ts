@@ -13,7 +13,6 @@ import {
 } from "@/lib/domain/dishForm";
 import {
   addTable,
-  addWaiter,
   applyTimeSlots,
   removeTable,
   toggleTableAssignment,
@@ -34,6 +33,17 @@ import type { Order, OrderStatus } from "@/lib/domain/types";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
 import type { Allergen } from "@/lib/domain/types";
+import {
+  addStaff,
+  can,
+  canOperateTable,
+  login,
+  setStaffActive,
+  updateStaff,
+  type Permission,
+  type Role,
+  type StaffUser,
+} from "@/lib/domain/access";
 import { newId } from "./ids";
 import { useDeviceStore } from "./device";
 import { createSeedState } from "./seed";
@@ -57,7 +67,7 @@ export const demoActions = {
   },
   resetData() {
     useAppStore.setState(createSeedState(Date.now()), true);
-    useDeviceStore.setState({ restrictions: [], restrictionsAnswered: false, waiterId: null });
+    useDeviceStore.setState({ restrictions: [], restrictionsAnswered: false, staffId: null });
   },
 };
 
@@ -76,9 +86,6 @@ export const deviceActions = {
     useAppStore.setState((s) => ({
       sessions: updateDinerRestrictions(s.sessions, deviceId, restrictions),
     }));
-  },
-  setWaiter(waiterId: string | null) {
-    useDeviceStore.setState({ waiterId });
   },
   setWaiterSound(waiterSound: boolean) {
     useDeviceStore.setState({ waiterSound });
@@ -271,15 +278,75 @@ function moveOrder(orderId: string, to: OrderStatus, actor: Actor, reason?: stri
   return { ok: true };
 }
 
-/** El mesero seleccionado en esta pestaña solo actúa sobre sus mesas. */
+/** Quien entró en esta pestaña (con PIN) y sigue activo. */
+function currentStaff(): StaffUser | undefined {
+  const { staffId } = useDeviceStore.getState();
+  return useAppStore.getState().staff.find((u) => u.id === staffId && u.active);
+}
+
+/** Exige un permiso a quien entró en esta pestaña. */
+function requirePermission(permission: Permission): ActionResult & { actor?: StaffUser } {
+  const actor = currentStaff();
+  if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+  if (!can(actor.role, permission)) return { ok: false, error: "No tienes permiso para esto" };
+  return { ok: true, actor };
+}
+
+/** El mesero solo actúa sobre sus mesas; el encargado y el administrador, sobre todas. */
 function checkWaiterTable(tableId: string): ActionResult {
-  const { waiterId } = useDeviceStore.getState();
-  const waiter = useAppStore.getState().waiters.find((w) => w.id === waiterId);
-  if (!waiter) return { ok: false, error: "Elige quién eres antes de continuar" };
-  if (!waiter.tableIds.includes(tableId))
+  const actor = currentStaff();
+  if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+  if (!canOperateTable(actor, useAppStore.getState().waiters, tableId))
     return { ok: false, error: "Esa mesa no está asignada a ti" };
   return { ok: true };
 }
+
+export const authActions = {
+  /** Entrar con el PIN. El PIN identifica a la persona. */
+  login(pin: string): ActionResult & { user?: StaffUser } {
+    const r = login(useAppStore.getState().staff, pin);
+    if (!r.ok) return r;
+    useDeviceStore.setState({ staffId: r.value.id });
+    return { ok: true, user: r.value };
+  },
+  /** Atajo de la demo: entrar como alguien sin escribir el PIN. */
+  loginAsDemo(staffId: string): ActionResult {
+    const user = useAppStore.getState().staff.find((u) => u.id === staffId && u.active);
+    if (!user) return { ok: false, error: "Ese usuario no está disponible" };
+    useDeviceStore.setState({ staffId: user.id });
+    return { ok: true };
+  },
+  logout() {
+    useDeviceStore.setState({ staffId: null });
+  },
+};
+
+export const teamActions = {
+  add(input: { name: string; role: Role; pin: string }): ActionResult {
+    const actor = currentStaff();
+    if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+    const r = addStaff(useAppStore.getState(), input, actor.role);
+    if (!r.ok) return r;
+    useAppStore.setState(r.value);
+    return { ok: true };
+  },
+  update(userId: string, patch: { name?: string; pin?: string }): ActionResult {
+    const actor = currentStaff();
+    if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+    const r = updateStaff(useAppStore.getState(), userId, patch, actor.role);
+    if (!r.ok) return r;
+    useAppStore.setState(r.value);
+    return { ok: true };
+  },
+  setActive(userId: string, active: boolean): ActionResult & { released?: string[] } {
+    const actor = currentStaff();
+    if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+    const r = setStaffActive(useAppStore.getState(), userId, active, actor);
+    if (!r.ok) return r;
+    useAppStore.setState({ staff: r.value.staff, waiters: r.value.waiters });
+    return { ok: true, released: r.value.released };
+  },
+};
 
 function withOrderTable(orderId: string, fn: () => ActionResult): ActionResult {
   const order = useAppStore.getState().orders.find((o) => o.id === orderId);
@@ -476,13 +543,10 @@ export const configActions = {
     useAppStore.setState(r.value);
     return { ok: true };
   },
-  toggleAssignment(waiterId: string, tableId: string) {
+  toggleAssignment(waiterId: string, tableId: string): ActionResult {
+    const check = requirePermission("mesas.asignar");
+    if (!check.ok) return check;
     useAppStore.setState((s) => ({ waiters: toggleTableAssignment(s.waiters, waiterId, tableId) }));
-  },
-  addWaiter(name: string): ActionResult {
-    const r = addWaiter(useAppStore.getState().waiters, name);
-    if (!r.ok) return r;
-    useAppStore.setState({ waiters: r.value });
     return { ok: true };
   },
 };

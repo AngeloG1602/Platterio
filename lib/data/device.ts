@@ -14,7 +14,8 @@ interface DeviceState {
   restrictions: Allergen[];
   /** true cuando el cliente ya respondió u omitió la pregunta de restricciones. */
   restrictionsAnswered: boolean;
-  waiterId: string | null;
+  /** Persona que entró con su PIN en este dispositivo (sesión de esta pestaña). */
+  staffId: string | null;
   /** Sonido suave al llegar un pedido en la vista del mesero. */
   waiterSound: boolean;
 }
@@ -25,7 +26,7 @@ export const useDeviceStore = create<DeviceState>()(
       deviceId: newId("dispositivo"),
       restrictions: [],
       restrictionsAnswered: false,
-      waiterId: null,
+      staffId: null,
       waiterSound: false,
     }),
     {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { activeWaiters } from "@/lib/domain/access";
 import { virtualNow } from "@/lib/domain/clock";
 import { effectiveSlot, slotAt, slotMidpoint } from "@/lib/domain/timeSlots";
 import { ratingStatsByDish } from "@/lib/domain/ratings";
@@ -26,6 +27,20 @@ export const useTimeSlots = () => useAppStore((s) => s.timeSlots);
 export const useDishes = () => useAppStore((s) => s.dishes);
 export const useTables = () => useAppStore((s) => s.tables);
 export const useWaiters = () => useAppStore((s) => s.waiters);
+export const useStaff = () => useAppStore((s) => s.staff);
+
+/** Meseros que pueden recibir mesas (sin los desactivados). */
+export function useActiveWaiters() {
+  const waiters = useAppStore((s) => s.waiters);
+  const staff = useAppStore((s) => s.staff);
+  return useMemo(() => activeWaiters(waiters, staff), [waiters, staff]);
+}
+
+/** Persona que entró en este dispositivo (undefined si nadie entró o está desactivada). */
+export function useCurrentStaff() {
+  const staffId = useDeviceStore((s) => s.staffId);
+  return useAppStore((s) => s.staff.find((u) => u.id === staffId && u.active));
+}
 export const useAlerts = () => useAppStore((s) => s.alerts);
 export const useDemoSettings = () => useAppStore((s) => s.demo);
 export const useDevice = () => useDeviceStore();
@@ -186,17 +201,27 @@ export function useWaiter(waiterId: string | null) {
 /** Mesas del mesero con su estado, y las rondas que requieren su atención. */
 export function useWaiterBoard(waiterId: string | null) {
   const waiter = useWaiter(waiterId);
+  return { waiter, ...useBoard(waiter?.tableIds ?? []) };
+}
+
+/** Todo el salón (para el encargado de caja y el administrador). */
+export function useSalonBoard() {
+  return useBoard(null);
+}
+
+/** Mesas con su estado y las rondas que requieren atención. `null` = todas las mesas. */
+function useBoard(tableIds: readonly string[] | null) {
   const tables = useTables();
   const sessions = useAppStore((s) => s.sessions);
   const orders = useAppStore((s) => s.orders);
+  const key = tableIds?.join("|") ?? "*";
   return useMemo(() => {
     const mine = tables
-      .filter((t) => waiter?.tableIds.includes(t.id))
+      .filter((t) => tableIds === null || tableIds.includes(t.id))
       .sort((a, b) => a.number - b.number);
     const overviews = mine.map((t) => tableOverview(t, sessions, orders));
     const byCreated = (a: Order, b: Order) => a.createdAt.localeCompare(b.createdAt);
     return {
-      waiter,
       overviews,
       pending: overviews.flatMap((o) => o.pending).sort(byCreated),
       ready: overviews
@@ -204,7 +229,9 @@ export function useWaiterBoard(waiterId: string | null) {
         .sort((a, b) => (a.readyAt ?? "").localeCompare(b.readyAt ?? "")),
       inKitchen: overviews.flatMap((o) => o.inKitchen).sort(byCreated),
     };
-  }, [waiter, tables, sessions, orders]);
+    // `key` resume el contenido de `tableIds` (el arreglo cambia de identidad en cada render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, tables, sessions, orders]);
 }
 
 /* ——— Cocina ——— */

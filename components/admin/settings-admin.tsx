@@ -1,10 +1,9 @@
 "use client";
 
-import { Check, Download, ExternalLink, Plus, TriangleAlert, Trash2, UserPlus } from "lucide-react";
+import { Check, Download, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { useRef, useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
-import { FilterChip } from "@/components/ui/chip";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/field";
 import { QtyStepper } from "@/components/ui/qty-stepper";
@@ -18,11 +17,11 @@ import {
   useOpenTableNumbers,
   useRestaurant,
   useTables,
-  useWaiters,
 } from "@/lib/data";
 import { isValidHex, strongVariant } from "@/lib/domain/color";
 import type { Table } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
+import { TableAssignments } from "@/components/team/table-assignments";
 import { PageHeader, Panel } from "./ui/page-header";
 
 const PRESETS = ["#E4572E", "#2F7A4F", "#2D5FA3", "#D69A1E", "#8C2F4B", "#1C1917"];
@@ -43,7 +42,7 @@ export function SettingsAdmin() {
             <RulesPanel />
           </div>
           <TablesPanel />
-          <WaitersPanel />
+          <TableAssignments teamHref="/admin/equipo" />
         </>
       ) : (
         <Skeleton className="h-96 rounded-2xl" />
@@ -340,82 +339,5 @@ function QrDownload({ table, origin }: { table: Table; origin: string }) {
         <Download aria-hidden /> PNG
       </Button>
     </>
-  );
-}
-
-function WaitersPanel() {
-  const waiters = useWaiters();
-  const tables = useTables();
-  const [name, setName] = useState("");
-  const unassigned = tables.filter((t) => !waiters.some((w) => w.tableIds.includes(t.id)));
-  return (
-    <Panel
-      title="Meseros y mesas"
-      description="Cada mesa tiene un solo mesero. Toca una mesa para asignarla o quitarla."
-    >
-      {unassigned.length > 0 && (
-        <p className="bg-warning-soft text-warning-ink mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium">
-          <TriangleAlert className="size-4" aria-hidden />
-          Sin mesero: {unassigned.map((t) => `Mesa ${t.number}`).join(", ")}. Sus pedidos no le
-          llegarán a nadie.
-        </p>
-      )}
-      <ul className="divide-line flex flex-col divide-y">
-        {waiters.map((w) => (
-          <li key={w.id} className="flex flex-wrap items-center gap-3 py-3">
-            <span className="font-display bg-accent-soft text-accent-strong flex size-10 items-center justify-center rounded-full font-semibold">
-              {w.name.charAt(0)}
-            </span>
-            <span className="w-28 font-semibold">{w.name}</span>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Mesas de ${w.name}`}>
-              {tables.map((t) => {
-                const on = w.tableIds.includes(t.id);
-                const other = waiters.find((x) => x.id !== w.id && x.tableIds.includes(t.id));
-                return (
-                  <FilterChip
-                    key={t.id}
-                    selected={on}
-                    className="h-9 px-3 text-[13px]"
-                    title={other && !on ? `Ahora es de ${other.name}` : undefined}
-                    onClick={() => configActions.toggleAssignment(w.id, t.id)}
-                  >
-                    {on && <Check aria-hidden />} Mesa {t.number}
-                    {other && !on && (
-                      <span className="text-muted text-xs font-normal">· {other.name}</span>
-                    )}
-                  </FilterChip>
-                );
-              })}
-            </div>
-          </li>
-        ))}
-      </ul>
-      <form
-        className="mt-4 flex max-w-md gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const r = configActions.addWaiter(name);
-          if (!r.ok) return toast.error(r.error);
-          toast.success(`${name.trim()} agregado`, {
-            description: "Asígnale mesas para que reciba pedidos.",
-          });
-          setName("");
-        }}
-      >
-        <label htmlFor="nuevo-mesero" className="sr-only">
-          Nombre del mesero
-        </label>
-        <Input
-          id="nuevo-mesero"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre del nuevo mesero"
-          maxLength={24}
-        />
-        <Button type="submit" variant="secondary">
-          <UserPlus aria-hidden /> Agregar
-        </Button>
-      </form>
-    </Panel>
   );
 }

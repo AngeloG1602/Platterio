@@ -7,6 +7,7 @@ import {
   MessageSquareText,
   Settings2,
   Sparkles,
+  Users,
   UtensilsCrossed,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -14,6 +15,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { PlatterioLogo } from "@/components/brand/logos";
+import { SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { useAlerts, useRestaurant } from "@/lib/data";
 import { cn } from "@/lib/cn";
@@ -31,6 +33,7 @@ const NAV: NavItem[] = [
   { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles },
   { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
+  { href: "/admin/equipo", label: "Equipo", icon: Users },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];
 
@@ -93,7 +96,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto hidden p-4 lg:block">
+        <div className="mt-auto hidden flex-col gap-2 p-4 lg:flex">
+          <SessionButton />
           <Link
             href="/"
             className="text-muted hover:bg-surface-2 hover:text-ink flex h-11 items-center gap-2 rounded-lg px-3 text-sm"

@@ -1,3 +1,4 @@
+import type { StaffUser } from "@/lib/domain/access";
 import type {
   Allergen,
   Category,
@@ -49,6 +50,25 @@ export const TABLES: Table[] = [1, 2, 3, 4, 5, 6].map((number) => ({
 export const WAITERS = [
   { id: "carlos", name: "Carlos", tableIds: ["mesa-1", "mesa-2", "mesa-3"] },
   { id: "daniela", name: "Daniela", tableIds: ["mesa-4", "mesa-5", "mesa-6"] },
+];
+
+/**
+ * Usuarios de la demo. Los PIN se muestran en la pantalla de entrada para poder probar cada
+ * rol; en un negocio real los define el administrador y no se muestran nunca.
+ */
+export const STAFF: StaffUser[] = [
+  { id: "marta", name: "Marta", role: "admin", pin: "246810", active: true },
+  { id: "julian", name: "Julián", role: "encargado", pin: "135790", active: true },
+  { id: "carlos", name: "Carlos", role: "mesero", pin: "1111", active: true, waiterId: "carlos" },
+  {
+    id: "daniela",
+    name: "Daniela",
+    role: "mesero",
+    pin: "2222",
+    active: true,
+    waiterId: "daniela",
+  },
+  { id: "cocina", name: "Cocina", role: "cocina", pin: "3333", active: true },
 ];
 
 const ALL_SLOTS = TIME_SLOTS.map((s) => s.id);

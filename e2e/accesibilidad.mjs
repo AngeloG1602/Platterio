@@ -1,7 +1,7 @@
 // Escaneo de accesibilidad (axe-core, WCAG 2.1 A/AA) de todas las vistas con datos reales.
 // Uso: con la app corriendo, `npm run e2e:a11y` (E2E_URL para otra dirección).
 import AxeBuilder from "@axe-core/playwright";
-import { addDish, BASE, joinTable, launch, watch } from "./helpers.mjs";
+import { addDish, asegurarSesion, BASE, joinTable, launch, watch } from "./helpers.mjs";
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -24,8 +24,10 @@ const pages = [
   ["Carrito", "/mesa/3/carrito", 390],
   ["Pedido", "/mesa/3/pedido", 390],
   ["Calificar", "/mesa/3/calificar", 390],
-  ["Mesero", "/mesero?mesero=carlos", 768],
+  ["Entrada con PIN", "/entrar", 390],
+  ["Mesero", "/mesero", 768],
   ["Cocina", "/cocina", 1280],
+  ["Caja", "/caja", 1280],
   ["Admin resumen", "/admin", 1366],
   ["Admin platos", "/admin/platos", 1366],
   ["Admin ficha", "/admin/platos/clasica-27", 1366],
@@ -33,7 +35,16 @@ const pages = [
   ["Admin calificaciones", "/admin/calificaciones", 1366],
   ["Admin ventas", "/admin/ventas", 1366],
   ["Admin configuración", "/admin/configuracion", 1366],
+  ["Admin equipo", "/admin/equipo", 1366],
   ["No encontrada", "/esto-no-existe", 390],
+];
+
+// Quién entra a cada sección; el administrador también entra a la caja.
+const WHO = [
+  ["/mesero", "Carlos"],
+  ["/cocina", "Cocina"],
+  ["/caja", "Julián"],
+  ["/admin", "Marta"],
 ];
 
 const guest = watch(
@@ -47,6 +58,9 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
   await p.setViewportSize({ width, height: 900 });
   const errorsBefore = errors.length;
   await p.goto(BASE + path);
+  // Cada sección del personal pide el PIN: se entra con el atajo de la demo del rol que toca.
+  const who = WHO.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
+  if (who && p === page) await asegurarSesion(p, who[1]);
   await p.waitForTimeout(900);
   // La página inexistente responde 404 a propósito: no es un error de la app.
   if (path === "/esto-no-existe") errors.splice(errorsBefore);

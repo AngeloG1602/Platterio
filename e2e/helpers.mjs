@@ -57,3 +57,22 @@ export async function visible(locator, timeout = 4000) {
     return false;
   }
 }
+
+/**
+ * Entra al sistema como alguien de la demo (atajo de la pantalla de entrada). Espera estar
+ * en una pantalla protegida que muestre el acceso con PIN.
+ */
+export async function entrarComo(page, nombre) {
+  await page.getByText("Usuarios de la demo").click();
+  await page.getByRole("button", { name: new RegExp(`Entrar como ${nombre}`) }).click();
+}
+
+/**
+ * Deja la pestaña con la sesión de `nombre`: si hay otra sesión sin permiso la cambia, y si
+ * ya estaba bien (o no pide PIN) no hace nada.
+ */
+export async function asegurarSesion(page, nombre) {
+  const otro = page.getByRole("button", { name: /Entrar con otro usuario/ });
+  if (await visible(otro, 1200)) await otro.click();
+  if (await visible(page.getByText("Usuarios de la demo"), 1200)) await entrarComo(page, nombre);
+}

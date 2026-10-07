@@ -257,3 +257,36 @@ pueden cambiar sin rehacer pantallas.
     la app corriendo.
 81. **Después de agregar un plato** la ficha vuelve a la pantalla anterior (la carta, en el flujo
     normal) para conservar los filtros y la posición.
+
+## Hacia el producto vendible — Fase 1: usuarios y roles
+
+82. **Nuevo rumbo del producto.** Platterio pasa de demo a producto por suscripción, con una
+    cuenta por negocio, usuarios con rol y base de datos real (decisiones y orden de trabajo en
+    `docs/negocio/HOJA-DE-RUTA.md`). Primero se termina el software sobre el almacenamiento local
+    y la base de datos se conecta al final; por eso las reglas van en funciones puras.
+83. **Cuatro roles.** Administrador, encargado de caja, mesero y cocina, con una matriz de
+    permisos (`lib/domain/access.ts`). El encargado opera todo el salón, asigna mesas, administra
+    al equipo de servicio y cobra, pero no entra al panel completo (menú, marca, reportes
+    completos, usuarios de cualquier rol). El administrador no tiene "mesas propias": no es mesero.
+84. **Entrada con PIN.** El PIN identifica a la persona, por eso no se repite en el negocio.
+    Administrador y encargado: 6 a 8 dígitos; mesero y cocina: 4 a 6. Sin lista pública de
+    nombres. En la demo, la pantalla de entrada ofrece los usuarios de ejemplo con su PIN (marcado
+    "Solo en la demo") para probar cada rol.
+85. **El prototipo no es seguridad real.** Los PIN y la sesión viven en el navegador; las guardas
+    de ruta son de interfaz. Con la base de datos, el acceso pasa a Supabase Auth y las mismas
+    reglas se aplican en el servidor (RLS). Pendiente entonces: limitar intentos y cerrar sesión
+    por inactividad.
+86. **La sesión de quien entra es por pestaña** (sessionStorage), igual que la identidad del
+    dispositivo en la demo: cada pestaña puede ser una persona distinta. En el producto real será
+    persistente en el dispositivo.
+87. **Quién administra a quién.** El administrador crea y modifica cualquier rol; el encargado,
+    solo meseros y cocina. Nadie se desactiva a sí mismo y siempre queda un administrador activo.
+88. **No se borra a nadie, se desactiva.** Así el historial de pedidos y calificaciones conserva
+    el nombre. Un mesero desactivado deja libres sus mesas (se avisa al desactivarlo).
+89. **Crear un mesero crea su ficha.** El alta de mesero ya no está en Configuración: se hace en
+    "Equipo", con su PIN, y la ficha (mesas, calificaciones) se crea con él. Asignar mesas sigue
+    en Configuración y en la Caja.
+90. **Operar una mesa depende de quién entró.** El mesero actúa solo sobre sus mesas; el
+    encargado y el administrador, sobre todas. Antes bastaba con elegir un mesero de una lista.
+91. **Caja (`/caja`).** Pantalla del encargado: el mismo salón del mesero pero con todas las
+    mesas, más "Mesas y meseros" y "Equipo". El administrador también puede entrar.

@@ -1,5 +1,5 @@
-import type { Dish, Table, TableSession, TimeSlot, Waiter } from "./types";
 import { slugify } from "./dishForm";
+import type { Dish, Table, TableSession, TimeSlot, Waiter } from "./types";
 
 export type ConfigResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -55,27 +55,6 @@ export function toggleTableAssignment(
       };
     return had ? w : { ...w, tableIds: w.tableIds.filter((id) => id !== tableId) };
   });
-}
-
-export function addWaiter(waiters: readonly Waiter[], name: string): ConfigResult<Waiter[]> {
-  const clean = name.trim();
-  if (!clean) return { ok: false, error: "Escribe el nombre del mesero" };
-  if (waiters.some((w) => w.name.toLowerCase() === clean.toLowerCase()))
-    return { ok: false, error: "Ya hay un mesero con ese nombre" };
-  return {
-    ok: true,
-    value: [
-      ...waiters,
-      {
-        id: slugify(
-          clean,
-          waiters.map((w) => w.id),
-        ),
-        name: clean,
-        tableIds: [],
-      },
-    ],
-  };
 }
 
 export function validateThreshold(value: number): string | null {
