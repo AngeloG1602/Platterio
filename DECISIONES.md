@@ -409,3 +409,27 @@ pueden cambiar sin rehacer pantallas.
       separador de miles, pero **no convierte** los precios ya escritos, y los precios van en
       unidades enteras (sin centavos). Si un cliente necesita centavos, se pasa a guardar en la
       unidad menor de la moneda (cambio grande, se evalúa cuando haga falta).
+123.  **El visor 3D vive en la ficha del plato.** Los platos que tienen personalización configurada
+      (hoy Clásica 27, Brasa BBQ, La Diabla y el Calentado) muestran **Ver en 3D**: se abre una hoja
+      con el plato girando, el control para separar los ingredientes y la lista para quitar, pedir
+      extra, reemplazar o cambiar el acompañante. Al cerrar, la ficha muestra "Tu versión" con el
+      cambio de precio y **Agregar** lo manda al carrito. El laboratorio sigue existiendo para
+      probar modelos y comparte las piezas de la lista con la ficha.
+124.  **La personalización queda congelada en el carrito y viaja con el pedido.** Cada línea guarda
+      lo que suma al precio, las líneas de comanda (en español: "SIN Cebolla", "EXTRA Queso") y los
+      alérgenos resultantes. El precio y la comanda los **recalcula la acción de agregar** a partir
+      de las elecciones; no se confía en lo que mande el celular. Líneas con distinta
+      personalización no se juntan. Quitar un ingrediente no descuenta (como en la propuesta).
+      Cocina y mesero ven las líneas destacadas (rojo = sin, verde = extra/agregar); el cliente las
+      ve en su idioma. Un plato personalizado no cambia de opción/tamaño ni en el carrito ni por
+      el mesero: se quita y se vuelve a pedir (el precio de los extras depende del tamaño).
+125.  **El 3D se descarga solo si se usa.** Three.js y el modelo (~1,3 MB) no se cargan con la ficha:
+      se adelantan al acercar el dedo o el puntero al botón (salvo con "ahorro de datos") y, si no,
+      al abrirlo. Dibuja solo cuando algo se mueve, baja la calidad si el equipo no da y respeta
+      "reducir movimiento" (no gira solo). Sin WebGL queda el mensaje y la lista sigue sirviendo.
+      El modelo CC BY muestra su crédito en el visor.
+126.  **El 3D es un servicio por plato.** Un plato lo tiene activo cuando hay modelo y personalización
+      configurados; en el panel se ve "Visor 3D activo" o "Modelo 3D subido, aún sin activar". La
+      configuración la hacemos nosotros (hoy vive en código; con la base de datos, Fase 9, pasa a
+      datos del plato) y el cobro por plato se aplica en la Fase 10. Pendiente: personalizar
+      también desde `/domicilio` y desde "Tomar pedido" del mesero (hoy esos usan la nota).

@@ -313,6 +313,25 @@ function KitchenCard({
               {dish && dish.variants.length > 1 && variant && (
                 <p className="text-ink-soft text-[17px]">{variant.name}</p>
               )}
+              {item.custom && !item.removed && (
+                <ul className="mt-1.5 flex flex-col gap-1" aria-label="Personalización">
+                  {item.custom.kitchen.map((line) => (
+                    <li
+                      key={line}
+                      className={cn(
+                        "inline-block w-fit rounded-md px-2.5 py-0.5 text-[17px] font-bold",
+                        line.startsWith("SIN")
+                          ? "bg-danger-soft text-danger-ink"
+                          : line.startsWith("EXTRA") || line.startsWith("AGREGAR")
+                            ? "bg-success-soft text-success-ink"
+                            : "bg-accent-soft text-accent-strong",
+                      )}
+                    >
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {item.note && (
                 <p className="bg-warning-soft text-warning-ink mt-1.5 inline-block rounded-md px-2.5 py-1 text-[17px] font-semibold">
                   Nota: {item.note}

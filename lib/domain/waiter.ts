@@ -108,6 +108,11 @@ export function adjustOrderItem(
     if (change.qty === item.qty) return { ok: false, error: "La cantidad es la misma" };
     next = { ...item, qty: change.qty, adjustReason: why, adjustedFrom: original };
   } else {
+    if (item.custom)
+      return {
+        ok: false,
+        error: "Este plato está personalizado. Quítalo y tómalo de nuevo con la otra opción.",
+      };
     const variant = dish?.variants.find((v) => v.id === change.variantId);
     if (!variant) return { ok: false, error: "Elige una opción válida" };
     if (variant.id === item.variantId) return { ok: false, error: "Es la misma opción" };

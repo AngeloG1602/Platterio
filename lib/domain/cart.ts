@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import type { CartItem, Dish } from "./types";
 
 export type NewCartItem = Omit<CartItem, "id">;
@@ -7,6 +8,7 @@ function sameLine(a: NewCartItem, b: NewCartItem): boolean {
     a.dishId === b.dishId &&
     a.variantId === b.variantId &&
     a.dinerId === b.dinerId &&
+    JSON.stringify(a.custom?.choices ?? null) === JSON.stringify(b.custom?.choices ?? null) &&
     (a.note?.trim() ?? "") === (b.note?.trim() ?? "")
   );
 }
@@ -25,13 +27,21 @@ export function unitPrice(dish: Dish | undefined, variantId: string): number {
   return dish?.variants.find((v) => v.id === variantId)?.price ?? 0;
 }
 
+/** Precio de una unidad de la línea: el de la opción más lo que sume su personalización. */
+export function itemUnitPrice(
+  item: Pick<CartItem, "variantId" | "custom">,
+  dish: Dish | undefined,
+): number {
+  return unitPrice(dish, item.variantId) + (item.custom?.priceDelta ?? 0);
+}
+
 export function cartCount(cart: readonly CartItem[]): number {
   return cart.reduce((sum, i) => sum + i.qty, 0);
 }
 
 export function cartTotal(cart: readonly CartItem[], dishes: readonly Dish[]): number {
   const byId = new Map(dishes.map((d) => [d.id, d]));
-  return cart.reduce((sum, i) => sum + unitPrice(byId.get(i.dishId), i.variantId) * i.qty, 0);
+  return cart.reduce((sum, i) => sum + itemUnitPrice(i, byId.get(i.dishId)) * i.qty, 0);
 }
 
 export type CartError = { ok: false; error: string };
@@ -48,6 +58,13 @@ export function updateCartItem(
   if (!item) return { ok: false, error: "Este plato ya no está en el carrito" };
   if (item.dinerId !== dinerId)
     return { ok: false, error: "Solo puedes cambiar lo que agregaste tú" };
+  if (item.custom && patch.variantId && patch.variantId !== item.variantId)
+    return {
+      ok: false,
+      error: t(
+        "Este plato está personalizado. Quítalo y personalízalo de nuevo para cambiar la opción.",
+      ),
+    };
   const qty = patch.qty ?? item.qty;
   if (!Number.isInteger(qty) || qty < 1 || qty > 20)
     return { ok: false, error: "La cantidad va de 1 a 20" };

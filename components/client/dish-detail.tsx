@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Plus, TriangleAlert, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Plus, Rotate3d, TriangleAlert, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DishImage } from "@/components/dish/dish-image";
 import { Viewer3DSlot } from "@/components/dish/viewer-3d-slot";
+import dynamic from "next/dynamic";
 import { AllergenChip, AllergenList } from "@/components/ui/allergen";
 import { Button, buttonClasses, IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,8 +19,17 @@ import { Spice } from "@/components/ui/spice";
 import { RatingSummary } from "@/components/ui/stars";
 import { toast } from "@/components/ui/toaster";
 import { cartActions, useCategories, useDevice, useDish, useDishRatingStats } from "@/lib/data";
-import { ALLERGEN_LABEL, conflictingAllergens, dishAllergens } from "@/lib/domain/allergens";
-import { formatMoney, plural } from "@/lib/domain/format";
+import { customizationSpecFor } from "@/lib/data/customization-specs";
+import { ALLERGEN_LABEL, dishAllergens } from "@/lib/domain/allergens";
+import {
+  describeCustomization,
+  EMPTY_CUSTOMIZATION,
+  priceDelta,
+  resultingAllergens,
+  toCartCustomization,
+  type Customization,
+} from "@/lib/domain/customization";
+import { formatMoney, formatPriceDelta, plural } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
@@ -28,6 +38,22 @@ import { TableGate, type TableContext } from "./table-gate";
 import { localized, t } from "@/lib/i18n";
 
 const NOTE_MAX = 140;
+
+/** Adelanta la descarga del visor cuando el cliente "va hacia" el botón, salvo con ahorro de datos. */
+function prefetch3d() {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (connection?.saveData) return;
+  void import("@/components/dish/dish-3d-sheet");
+  void import("@/components/viewer3d/dish-scene");
+}
+
+// El visor 3D (y Three.js) solo se descarga cuando el cliente lo abre.
+const Dish3DSheet = dynamic(
+  () => import("@/components/dish/dish-3d-sheet").then((m) => m.Dish3DSheet),
+  {
+    ssr: false,
+  },
+);
 
 export function DishDetailScreen({ numero, dishId }: { numero: string; dishId: string }) {
   return (
@@ -78,14 +104,34 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
   const [variantId, setVariantId] = useState(dish.variants[0]!.id);
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
+  const spec = customizationSpecFor(dish.id);
+  const [custom, setCustom] = useState<Customization>(EMPTY_CUSTOMIZATION);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const variant = dish.variants.find((v) => v.id === variantId) ?? dish.variants[0]!;
   const base = Math.min(...dish.variants.map((v) => v.price));
-  const conflicts = conflictingAllergens(dish, restrictions);
+  const delta = spec ? priceDelta(spec, custom, variantId) : 0;
+  const customSummary = describeCustomization(
+    spec ? toCartCustomization(spec, custom, variantId) : undefined,
+  );
+  const allergens = spec ? resultingAllergens(spec, custom, variantId) : dishAllergens(dish);
+  const conflicts = allergens.filter((a) => restrictions.includes(a));
+
+  // Las cantidades base dependen de la opción (la Doble trae más carne): al cambiarla se parte de ahí.
+  function chooseVariant(id: string) {
+    setVariantId(id);
+    setCustom((c) => ({ ...c, counts: {} }));
+  }
   const category = categories.find((c) => c.id === dish.categoryId);
 
   function add() {
-    const result = cartActions.add(ctx.table.id, { dishId: dish.id, variantId, qty, note });
+    const result = cartActions.add(ctx.table.id, {
+      dishId: dish.id,
+      variantId,
+      qty,
+      note,
+      ...(customSummary || delta !== 0 ? { customization: custom } : {}),
+    });
     if (!result.ok) {
       toast.error(t("No se pudo agregar"), { description: t(result.error) });
       return;
@@ -102,7 +148,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
 
   return (
     <>
-      <Gallery dish={dish} onBack={onBack} />
+      <Gallery dish={dish} onBack={onBack} on3d={spec ? () => setViewerOpen(true) : undefined} />
 
       <div className="bg-bg relative -mt-6 flex-1 rounded-t-3xl px-4 pt-6 pb-32">
         {category && (
@@ -150,13 +196,42 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
             <Segmented
               label={t("Opción del plato")}
               value={variantId}
-              onChange={setVariantId}
+              onChange={chooseVariant}
               options={dish.variants.map((v) => ({
                 value: v.id,
                 label: t(v.name),
                 hint: v.price === base ? formatMoney(v.price) : `+${formatMoney(v.price - base)}`,
               }))}
             />
+          </section>
+        )}
+
+        {spec && (
+          <section
+            aria-labelledby="personalizar"
+            className="border-accent-line bg-accent-soft mt-7 rounded-2xl border p-4"
+          >
+            <h2 id="personalizar" className="flex items-center gap-2 text-[15px] font-semibold">
+              <Rotate3d className="text-accent-strong size-5" aria-hidden />{" "}
+              {t("Míralo en 3D y personalízalo")}
+            </h2>
+            <p className="text-ink-soft mt-1 text-sm">
+              {customSummary
+                ? t("Tu versión: {summary}", { summary: customSummary })
+                : t("Quita, agrega o cambia ingredientes y mira cómo queda antes de pedir.")}
+              {delta !== 0 && <> · {formatPriceDelta(delta)}</>}
+            </p>
+            <Button
+              className="mt-3"
+              variant="secondary"
+              block
+              onPointerEnter={prefetch3d}
+              onFocus={prefetch3d}
+              onTouchStart={prefetch3d}
+              onClick={() => setViewerOpen(true)}
+            >
+              <Rotate3d aria-hidden /> {customSummary ? t("Editar en 3D") : t("Ver en 3D")}
+            </Button>
           </section>
         )}
 
@@ -194,7 +269,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
           <h2 id="alergenos" className="mb-2.5 text-[15px] font-semibold">
             {t("Alérgenos")}
           </h2>
-          <AllergenList allergens={dishAllergens(dish)} restrictions={restrictions} />
+          <AllergenList allergens={allergens} restrictions={restrictions} />
         </section>
 
         <section className="mt-7">
@@ -222,15 +297,26 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
         <div className="flex items-center gap-3">
           <QtyStepper value={qty} onChange={setQty} />
           <Button size="lg" className="flex-1" onClick={add}>
-            <Plus aria-hidden /> {t("Agregar")} · <Price value={variant.price * qty} />
+            <Plus aria-hidden /> {t("Agregar")} · <Price value={(variant.price + delta) * qty} />
           </Button>
         </div>
       </div>
+      {viewerOpen && spec && (
+        <Dish3DSheet
+          dish={dish}
+          spec={spec}
+          variantId={variantId}
+          custom={custom}
+          onChange={setCustom}
+          restrictions={restrictions}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </>
   );
 }
 
-function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
+function Gallery({ dish, onBack, on3d }: { dish: Dish; onBack: () => void; on3d?: () => void }) {
   const [index, setIndex] = useState(0);
   const photos = dish.photos.length > 0 ? dish.photos : [undefined];
   return (
@@ -278,7 +364,21 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
         </div>
       )}
       <div className="absolute right-3 bottom-9">
-        <Viewer3DSlot model={dish.model3d} />
+        {on3d ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="bg-surface/90 shadow-card backdrop-blur"
+            onPointerEnter={prefetch3d}
+            onFocus={prefetch3d}
+            onTouchStart={prefetch3d}
+            onClick={on3d}
+          >
+            <Rotate3d aria-hidden /> {t("Ver en 3D")}
+          </Button>
+        ) : (
+          <Viewer3DSlot model={dish.model3d} />
+        )}
       </div>
     </div>
   );

@@ -173,6 +173,20 @@ export interface Diner {
   joinedAt?: string;
 }
 
+/**
+ * Personalización de un plato elegida en el visor 3D, congelada al agregarlo al carrito: lo que
+ * cambia el precio, lo que ve la cocina y los alérgenos resultantes.
+ */
+export interface CartCustomization {
+  /** Elecciones del cliente, para volver a abrirlas en el visor. */
+  choices: { counts: Record<string, number>; replaced: Record<string, string>; side?: string };
+  /** Lo que suma (o resta) al precio de una unidad del plato. */
+  priceDelta: number;
+  /** Líneas de la comanda, en español: "SIN Cebolla caramelizada", "EXTRA Queso cheddar". */
+  kitchen: string[];
+  allergens: Allergen[];
+}
+
 export interface CartItem {
   id: string;
   dishId: string;
@@ -180,6 +194,7 @@ export interface CartItem {
   qty: number;
   note?: string;
   dinerId: string;
+  custom?: CartCustomization;
 }
 
 export interface TableSession {

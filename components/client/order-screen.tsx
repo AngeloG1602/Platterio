@@ -30,6 +30,7 @@ import { LiveDot, ScreenHeader } from "./screen-header";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
 import { localized, t } from "@/lib/i18n";
+import { describeCustomization } from "@/lib/domain/customization";
 
 export function OrderScreen({ numero }: { numero: string }) {
   return (
@@ -233,6 +234,11 @@ function RoundCard({ round, myDinerId }: { round: TicketRound; myDinerId: string
                       <span className="text-muted"> · {t(variant.name)}</span>
                     ) : null}
                   </p>
+                  {item.custom && (
+                    <p className="text-accent-strong text-[13px] font-medium">
+                      {describeCustomization(item.custom)}
+                    </p>
+                  )}
                   {item.note && <p className="text-ink-soft text-[13px] italic">“{item.note}”</p>}
                   {item.removed && (
                     <p className="text-warning-ink text-[13px] font-medium">

@@ -80,8 +80,10 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
    Resumen, _Ventas_ (más pedidos por franja) y _Calificaciones_ (reseñas). En _Platos → Nuevo
    plato_, crea uno con foto, franja Almuerzo y **Destacado por la casa**: en el cliente sale de
    primero en los recomendados como "Nuevo en la casa".
-8. **Cierre**: en cualquier ficha con modelo (Clásica 27, Brasa BBQ, La Diabla) está el botón
-   **Vista 3D — próximamente**: es la siguiente épica (EPIC-03).
+8. **Cierre**: en la ficha de la Clásica 27 (también Brasa BBQ, La Diabla y el Calentado) toca
+   **Ver en 3D**: gira el plato, sepáralo, quita la cebolla o pide queso extra. El precio se
+   actualiza, **Agregar** lo manda al carrito con "Sin cebolla · Extra queso", y el mesero y la
+   cocina lo ven en su comanda.
 
 9. **Pedido del mesero**: con Carlos o Daniela en una mesa (libre o abierta), _Tomar pedido_ →
    elige platos y _Enviar a cocina_ (llega directo, sin confirmar). Luego _Editar_ la ronda →

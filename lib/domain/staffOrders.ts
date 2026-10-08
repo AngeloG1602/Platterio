@@ -180,6 +180,11 @@ export function editOrder(params: {
       detail: `${item.qty} → ${edit.qty}`,
     });
   } else {
+    if (item.custom)
+      return {
+        ok: false,
+        error: "Este plato está personalizado. Quítalo y tómalo de nuevo con la otra opción.",
+      };
     const variant = dishOf(item.dishId)?.variants.find((v) => v.id === edit.variantId);
     if (!variant) return { ok: false, error: "Elige una opción válida" };
     if (variant.id === item.variantId) return { ok: false, error: "Es la misma opción" };

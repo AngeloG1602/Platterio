@@ -1,4 +1,4 @@
-import { unitPrice } from "./cart";
+import { itemUnitPrice } from "./cart";
 import type { Dish, Order, TableSession } from "./types";
 import { localized, t } from "@/lib/i18n";
 
@@ -60,7 +60,7 @@ export function submitRound(params: {
     sentByDinerId: dinerId,
     items: session.cart.map((c) => ({
       ...c,
-      unitPrice: unitPrice(byId.get(c.dishId), c.variantId),
+      unitPrice: itemUnitPrice(c, byId.get(c.dishId)),
     })),
   };
   return { ok: true, order, session: { ...session, cart: [] } };

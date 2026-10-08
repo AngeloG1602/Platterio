@@ -17,7 +17,7 @@ import { DishCardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "@/components/ui/toaster";
 import { cartActions, useDishes, useSessionOrders } from "@/lib/data";
-import { cartCount, cartTotal, countByDiner, unitPrice } from "@/lib/domain/cart";
+import { cartCount, cartTotal, countByDiner, itemUnitPrice, unitPrice } from "@/lib/domain/cart";
 import { formatMoney, plural } from "@/lib/domain/format";
 import type { CartItem, Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
@@ -26,6 +26,7 @@ import { LiveDot, ScreenHeader } from "./screen-header";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
 import { localized, t } from "@/lib/i18n";
+import { describeCustomization } from "@/lib/domain/customization";
 
 export function CartScreen({ numero }: { numero: string }) {
   return (
@@ -262,7 +263,7 @@ function CartRow({
   onRemove: () => void;
 }) {
   const variant = dish?.variants.find((v) => v.id === item.variantId);
-  const price = unitPrice(dish, item.variantId);
+  const price = itemUnitPrice(item, dish);
   const unavailable = !dish?.active;
   return (
     <div className="flex gap-3 py-3.5">
@@ -285,6 +286,11 @@ function CartRow({
           {dish && dish.variants.length > 1 && variant ? `${t(variant.name)} · ` : ""}
           {formatMoney(price)} {t("c/u")}
         </p>
+        {item.custom && (
+          <p className="text-accent-strong mt-1 text-[13px] font-medium">
+            {describeCustomization(item.custom)}
+          </p>
+        )}
         {item.note && <p className="text-ink-soft mt-1 text-[13px] italic">“{item.note}”</p>}
         {unavailable && (
           <p className="text-danger-ink mt-1 text-[13px] font-medium">
@@ -299,7 +305,7 @@ function CartRow({
               onChange={onQty}
               label={t("Cantidad de {dish}", { dish: dish ? localized(dish) : t("plato") })}
             />
-            {dish && dish.variants.length > 1 && (
+            {dish && dish.variants.length > 1 && !item.custom && (
               <Button variant="ghost" size="sm" className="h-10" onClick={onEdit}>
                 <Pencil aria-hidden /> {t("Cambiar")}
               </Button>

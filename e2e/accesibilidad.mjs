@@ -92,6 +92,25 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
       console.log(`       ${n.target.join(" ")} ${n.failureSummary?.split("\n")[1]?.trim() ?? ""}`);
   }
 }
+// El visor 3D abierto en la ficha del plato (Three.js, lista de ingredientes y personalización).
+{
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`${BASE}/mesa/3/plato/clasica-27`);
+  await page.getByRole("button", { name: "Ver en 3D" }).last().click();
+  await page.waitForTimeout(3000);
+  const result = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  total += result.violations.length;
+  console.log(
+    `${result.violations.length ? "✘" : "✔"} Visor 3D (/mesa/3/plato/clasica-27) — ${result.violations.length} problemas`,
+  );
+  for (const v of result.violations) {
+    console.log(`   · [${v.impact}] ${v.id}: ${v.help}`);
+    for (const n of v.nodes.slice(0, 3)) console.log(`       ${n.target.join(" ")}`);
+  }
+}
+
 // La carta de domicilios y la entrada a la mesa, en inglés (idioma del celular).
 const english = watch(
   await (

@@ -84,6 +84,13 @@ import type { DeliveryConfig } from "@/lib/domain/types";
 import { useDeliveryClient, type DeliveryClientState } from "./delivery-store";
 import { isCurrency } from "@/lib/domain/format";
 import { enabledLangs } from "@/lib/i18n";
+import { customizationSpecFor } from "./customization-specs";
+import {
+  toCartCustomization,
+  validateCustomization,
+  type Customization,
+} from "@/lib/domain/customization";
+import type { CartCustomization } from "@/lib/domain/types";
 import { newId } from "./ids";
 import { useDeviceStore } from "./device";
 import { createSeedState } from "./seed";
@@ -259,7 +266,14 @@ export const cartActions = {
   /** Agrega al carrito compartido de la mesa, a nombre del comensal de este dispositivo. */
   add(
     tableId: string,
-    item: { dishId: string; variantId: string; qty: number; note?: string },
+    item: {
+      dishId: string;
+      variantId: string;
+      qty: number;
+      note?: string;
+      /** Elecciones del visor 3D; el precio y la comanda se calculan aquí, no vienen del cliente. */
+      customization?: Customization;
+    },
   ): ActionResult & { count?: number } {
     const state = useAppStore.getState();
     const session = findOpenSession(state.sessions, tableId);
@@ -270,7 +284,20 @@ export const cartActions = {
     if (!dish?.active) return { ok: false, error: "Este plato ya no está disponible" };
     if (!dish.variants.some((v) => v.id === item.variantId))
       return { ok: false, error: "Elige una opción válida" };
-    const cart = addToCart(session.cart, { ...item, dinerId: diner.id }, newId("item"));
+    const { customization, ...base } = item;
+    let custom: CartCustomization | undefined;
+    if (customization) {
+      const spec = customizationSpecFor(item.dishId);
+      if (!spec) return { ok: false, error: "Este plato no se puede personalizar" };
+      const errors = validateCustomization(spec, customization, item.variantId);
+      if (errors.length > 0) return { ok: false, error: errors[0]! };
+      custom = toCartCustomization(spec, customization, item.variantId);
+    }
+    const cart = addToCart(
+      session.cart,
+      { ...base, ...(custom ? { custom } : {}), dinerId: diner.id },
+      newId("item"),
+    );
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === session.id ? { ...x, cart } : x)),
     }));

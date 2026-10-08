@@ -204,11 +204,11 @@ check(
   (await recsOf(sara)).join(", "),
 );
 
-// 8. Cierre: Vista 3D — próximamente
+// 8. Cierre: la ficha tiene el visor 3D (se prueba a fondo en la sección 16)
 await sara.goto(`${BASE}/mesa/2/plato/clasica-27`);
 check(
-  "8. Botón “Vista 3D — próximamente”",
-  await sara.getByRole("button", { name: "Vista 3D — próximamente" }).isDisabled(),
+  "8. La ficha ofrece “Ver en 3D”",
+  await visible(sara.getByRole("button", { name: "Ver en 3D" }).first()),
 );
 
 // 9. Roles y acceso
@@ -534,6 +534,48 @@ check(
 );
 await admin.getByLabel("Moneda de los precios").selectOption("COP");
 await turista.close();
+
+// 16. Visor 3D: personalizar un plato y verlo en carrito, mesero y cocina
+await sara.goto(`${BASE}/mesa/2/plato/clasica-27`);
+await sara.getByRole("button", { name: "Ver en 3D" }).last().click();
+const visor = sara.getByRole("dialog");
+check(
+  "16. Se abre el visor con la personalización",
+  await visible(visor.getByText("Personaliza tu Clásica 27")),
+);
+await visor.getByRole("button", { name: "Menos Cebolla caramelizada" }).click();
+await visor.getByRole("button", { name: /Más Queso cheddar/ }).click();
+await visor.getByRole("button", { name: /^Listo/ }).click();
+check(
+  "16. La ficha muestra “Tu versión” con el cambio de precio",
+  await visible(sara.getByText(/Tu versión: .*Sin /)),
+);
+await sara.getByRole("button", { name: /^Agregar ·/ }).click();
+await sara.waitForURL("**/mesa/2/menu");
+await sara.goto(`${BASE}/mesa/2/carrito`);
+check(
+  "16. El carrito muestra lo que cambió",
+  await visible(sara.getByText(/Sin .*Extra|Extra .*Sin/).first()),
+);
+await sara.getByRole("button", { name: "Enviar pedido" }).click();
+await sara.getByRole("button", { name: /Sí, enviar/ }).click();
+await sara.waitForURL("**/pedido");
+await carlos.goto(`${BASE}/mesero`);
+await carlos.getByRole("button", { name: /^Mesa 2:/ }).click();
+check(
+  "16. El mesero ve la comanda personalizada",
+  await visible(carlos.getByText(/^SIN /).first()),
+);
+await carlos.keyboard.press("Escape");
+await carlos
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .first()
+  .click();
+const personalizada = cocina.locator('article[aria-label="Mesa 2, ronda 1"]');
+check(
+  "16. Cocina ve “SIN …” y “EXTRA …” destacados",
+  await visible(personalizada.getByText(/^SIN /)),
+);
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);

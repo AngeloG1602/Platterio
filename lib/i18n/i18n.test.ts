@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { CATEGORIES, DISHES, TIME_SLOTS } from "@/lib/data/catalog";
+import { CUSTOMIZATION_SPECS } from "@/lib/data/customization-specs";
 import { ALLERGEN_LABEL, SPICE_LABEL } from "@/lib/domain/allergens";
 import { STATUS_LABEL, STATUS_MESSAGE } from "@/lib/domain/orderStatus";
 import { REASON_LABEL } from "@/lib/domain/recommender";
@@ -78,6 +79,28 @@ describe("diccionario", () => {
       d.ingredients.forEach((i) => {
         need(i.name);
         need(i.description);
+      });
+    }
+    expect(missing).toEqual([]);
+  });
+  it("traduce todo lo que se puede personalizar", () => {
+    const missing: string[] = [];
+    const need = (s: string | undefined) => {
+      if (s && !(s in EN)) missing.push(s);
+    };
+    for (const spec of CUSTOMIZATION_SPECS) {
+      for (const slot of spec.slots) {
+        need(slot.name);
+        need(slot.description);
+        slot.replacements.forEach((o) => {
+          need(o.name);
+          need(o.description);
+        });
+      }
+      need(spec.sides?.name);
+      spec.sides?.options.forEach((o) => {
+        need(o.name);
+        need(o.description);
       });
     }
     expect(missing).toEqual([]);

@@ -23,6 +23,7 @@ import {
 } from "@/lib/data";
 import { matchesQuery, priceRange } from "@/lib/domain/menu";
 import type { Dish } from "@/lib/domain/types";
+import { customizationSpecFor } from "@/lib/data/customization-specs";
 import { cn } from "@/lib/cn";
 import { PageHeader } from "../ui/page-header";
 
@@ -181,7 +182,15 @@ function Table() {
                           >
                             {dish.name}
                           </p>
-                          {dish.model3d && <p className="text-muted text-xs">Con modelo 3D</p>}
+                          {customizationSpecFor(dish.id) ? (
+                            <p className="text-success-ink text-xs font-medium">Visor 3D activo</p>
+                          ) : (
+                            dish.model3d && (
+                              <p className="text-muted text-xs">
+                                Modelo 3D subido, aún sin activar
+                              </p>
+                            )
+                          )}
                         </div>
                       </div>
                     </td>

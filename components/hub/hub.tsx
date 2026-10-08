@@ -48,7 +48,7 @@ const SCRIPT = [
   "Pestaña D (Cocina): pasa el pedido a “En preparación” y luego a “Listo”. El mesero lo marca como entregado.",
   "En el cliente: califica los platos y dale 2 estrellas al servicio.",
   "Pestaña E (Admin): aparece la alerta de servicio bajo. Crea un plato, destácalo y míralo de primero en los recomendados.",
-  "Cierra con el botón “Vista 3D — próximamente”: es la siguiente épica.",
+  "Cierra con “Ver en 3D”: en la Clásica 27 quita la cebolla y pide queso extra; el precio, la cocina y el mesero lo reflejan.",
 ];
 
 export function Hub() {
