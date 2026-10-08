@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <title>Maquetas de estilos</title>
+    <style>
+      @font-face {
+        font-family: "Playfair";
+        src: url("../../node_modules/@fontsource-variable/playfair-display/files/playfair-display-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "DM";
+        src: url("../../node_modules/@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Lora";
+        src: url("../../node_modules/@fontsource-variable/lora/files/lora-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Outfit";
+        src: url("../../node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Grotesk";
+        src: url("../../node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Fraunces";
+        src: url("../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2");
+        font-weight: 100 900;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #d9d4cc;
+        padding: 24px;
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+        font-family: Inter, sans-serif;
+      }
+      .phone {
+        width: 390px;
+        height: 810px;
+        border-radius: 44px;
+        border: 9px solid #1c1917;
+        overflow: hidden;
+        position: relative;
+        flex: none;
+      }
+      .scr {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .photo {
+        background-size: 330%;
+        background-position: 47% 47%;
+        background-image: url("../guia/img/c07-visor-3d.jpg");
+        background-color: #c9a27a;
+        position: relative;
+      }
+      .p2 {
+        background-position: 44% 49%;
+        filter: hue-rotate(-12deg) saturate(1.15);
+      }
+      .p3 {
+        background-position: 48% 45%;
+        filter: hue-rotate(-30deg) saturate(1.35) brightness(0.92);
+      }
+      .p4 {
+        background-position: 46% 50%;
+        filter: saturate(0.85) brightness(1.05);
+      }
+      .fries {
+        background-position: 92% 66%;
+        background-size: 420%;
+      }
+      .bar {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 18px;
+        height: 54px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      /* ——— 1. Bistró oscuro ——— */
+      .bistro {
+        background: #131110;
+        color: #f3ebdd;
+        font-family: DM, sans-serif;
+      }
+      .bistro .top {
+        padding: 22px 22px 6px;
+        text-align: center;
+      }
+      .bistro .logo {
+        font-family: Playfair, serif;
+        letter-spacing: 0.32em;
+        font-size: 15px;
+        color: #d9a441;
+        font-weight: 600;
+      }
+      .bistro .rule {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #d9a441, transparent);
+        margin: 12px 0;
+      }
+      .bistro h1 {
+        font-family: Playfair, serif;
+        font-weight: 500;
+        font-size: 34px;
+        letter-spacing: 0.01em;
+      }
+      .bistro .sub {
+        color: #a89f92;
+        font-size: 13px;
+        margin-top: 3px;
+      }
+      .bistro .search {
+        margin: 16px 22px 10px;
+        border: 1px solid #3a342d;
+        border-radius: 8px;
+        padding: 12px 14px;
+        color: #8a8175;
+        font-size: 14px;
+        background: #1b1816;
+      }
+      .bistro .tabs {
+        display: flex;
+        gap: 20px;
+        padding: 6px 22px;
+        border-bottom: 1px solid #2c2722;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #a89f92;
+      }
+      .bistro .tabs b {
+        color: #d9a441;
+        border-bottom: 2px solid #d9a441;
+        padding-bottom: 8px;
+        font-weight: 600;
+      }
+      .bistro .sec {
+        font-family: Playfair, serif;
+        font-size: 21px;
+        padding: 16px 22px 2px;
+      }
+      .bistro .it {
+        display: flex;
+        gap: 14px;
+        padding: 14px 22px;
+        border-bottom: 1px solid #26221e;
+      }
+      .bistro .it h3 {
+        font-family: Playfair, serif;
+        font-weight: 500;
+        font-size: 17px;
+      }
+      .bistro .it p {
+        color: #a89f92;
+        font-size: 12.5px;
+        line-height: 1.45;
+        margin: 3px 0 6px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .bistro .it .pr {
+        color: #d9a441;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .bistro .it .photo {
+        width: 84px;
+        height: 84px;
+        border-radius: 8px;
+        flex: none;
+        border: 1px solid #d9a44166;
+      }
+      .bistro .bar {
+        background: #d9a441;
+        color: #1a1408;
+        border-radius: 8px;
+      }
+      /* ——— 2. Café minimal ——— */
+      .cafe {
+        background: #fff;
+        color: #111;
+        font-family: Outfit, sans-serif;
+      }
+      .cafe .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 22px 4px;
+      }
+      .cafe .logo {
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+      .cafe .ic {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f2f2f0;
+      }
+      .cafe h1 {
+        font-size: 36px;
+        line-height: 1.05;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        padding: 14px 22px 6px;
+      }
+      .cafe .chips {
+        display: flex;
+        gap: 8px;
+        padding: 10px 22px 14px;
+        overflow: hidden;
+      }
+      .cafe .chips span {
+        padding: 9px 16px;
+        border-radius: 99px;
+        border: 1.5px solid #e4e4e0;
+        font-size: 14px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .cafe .chips b {
+        background: #111;
+        color: #fff;
+        border-color: #111;
+        padding: 9px 16px;
+        border-radius: 99px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .cafe .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 14px;
+        padding: 0 22px;
+      }
+      .cafe .card .photo {
+        aspect-ratio: 1/1.05;
+        border-radius: 24px;
+        position: relative;
+      }
+      .cafe .card .plus {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+      }
+      .cafe .card h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-top: 9px;
+        letter-spacing: -0.01em;
+      }
+      .cafe .card .pr {
+        color: #1f6f5c;
+        font-weight: 600;
+        font-size: 15px;
+        margin-top: 2px;
+      }
+      .cafe .bar {
+        background: #111;
+        color: #fff;
+        border-radius: 99px;
+      }
+      /* ——— 3. Gourmet editorial ——— */
+      .edit {
+        background: #f5efe3 radial-gradient(circle at 20% 10%, #fffaf0 0, transparent 55%);
+        color: #2a2118;
+        font-family: Lora, serif;
+      }
+      .edit .top {
+        text-align: center;
+        padding: 26px 28px 8px;
+      }
+      .edit .logo {
+        font-family: Playfair, serif;
+        font-size: 13px;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+        color: #7a2e1e;
+      }
+      .edit h1 {
+        font-family: Playfair, serif;
+        font-weight: 500;
+        font-size: 52px;
+        line-height: 1;
+        margin-top: 10px;
+        font-style: italic;
+      }
+      .edit .orn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 12px 0;
+        color: #7a2e1e;
+      }
+      .edit .orn i {
+        flex: 1;
+        height: 1px;
+        background: #7a2e1e55;
+      }
+      .edit .cats {
+        text-align: center;
+        font-size: 11.5px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #6b5d4e;
+        padding: 0 20px 8px;
+      }
+      .edit .cats b {
+        color: #7a2e1e;
+        border-bottom: 1px solid #7a2e1e;
+        padding-bottom: 2px;
+      }
+      .edit .feat {
+        margin: 8px 28px 4px;
+        position: relative;
+      }
+      .edit .feat .photo {
+        height: 150px;
+        border-radius: 2px;
+        border: 1px solid #2a211833;
+      }
+      .edit .feat small {
+        display: block;
+        text-align: center;
+        font-style: italic;
+        color: #6b5d4e;
+        font-size: 12px;
+        margin-top: 6px;
+      }
+      .edit .row {
+        padding: 9px 28px 0;
+      }
+      .edit .line {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .edit .line h3 {
+        font-family: Playfair, serif;
+        font-weight: 600;
+        font-size: 17px;
+        white-space: nowrap;
+      }
+      .edit .line i {
+        flex: 1;
+        border-bottom: 1.5px dotted #2a211866;
+        transform: translateY(-4px);
+      }
+      .edit .line b {
+        font-family: Playfair, serif;
+        font-weight: 600;
+        font-size: 16px;
+        color: #7a2e1e;
+      }
+      .edit .row p {
+        font-style: italic;
+        color: #6b5d4e;
+        font-size: 12.5px;
+        line-height: 1.4;
+        margin-top: 2px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .edit .bar {
+        background: #2a2118;
+        color: #f5efe3;
+        border-radius: 2px;
+        font-family: Playfair, serif;
+        letter-spacing: 0.04em;
+      }
+      /* ——— 4. Parrilla rústica ——— */
+      .rust {
+        background: #e6d8bc;
+        color: #3b2a1a;
+        font-family: Lora, serif;
+      }
+      .rust .banner {
+        background: #3b2a1a;
+        color: #f2e6cc;
+        padding: 24px 22px 20px;
+        text-align: center;
+        border-bottom: 5px double #a63a2a;
+      }
+      .rust .logo {
+        font-family: Playfair, serif;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .rust .tag {
+        font-size: 11px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: #d9b777;
+        margin-top: 4px;
+      }
+      .rust .tabs {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px 4px;
+        overflow: hidden;
+      }
+      .rust .tabs span,
+      .rust .tabs b {
+        border: 2px solid #3b2a1a;
+        padding: 6px 12px;
+        border-radius: 3px;
+        font-size: 12.5px;
+        font-weight: 700;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .rust .tabs b {
+        background: #a63a2a;
+        color: #fff;
+        border-color: #a63a2a;
+      }
+      .rust .sec {
+        font-family: Playfair, serif;
+        font-size: 22px;
+        font-weight: 700;
+        padding: 10px 16px 2px;
+      }
+      .rust .card {
+        display: flex;
+        gap: 12px;
+        margin: 8px 16px;
+        padding: 10px;
+        background: #f4ead3;
+        border: 2px dashed #8c6a43;
+        border-radius: 4px;
+        position: relative;
+      }
+      .rust .card .photo {
+        width: 84px;
+        height: 84px;
+        border-radius: 3px;
+        border: 2px solid #3b2a1a;
+        flex: none;
+      }
+      .rust .card > div:nth-child(2) {
+        padding-right: 62px;
+      }
+      .rust .card h3 {
+        font-family: Playfair, serif;
+        font-size: 17px;
+        font-weight: 700;
+      }
+      .rust .card p {
+        font-size: 12px;
+        line-height: 1.4;
+        color: #5a4630;
+        margin: 2px 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .rust .stamp {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        border: 2px solid #a63a2a;
+        color: #a63a2a;
+        border-radius: 50%;
+        width: 58px;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+        transform: rotate(-8deg);
+        text-align: center;
+        line-height: 1.05;
+        background: #f4ead3;
+      }
+      .rust .bar {
+        background: #a63a2a;
+        color: #fff;
+        border-radius: 3px;
+        border: 2px solid #3b2a1a;
+        font-family: Playfair, serif;
+      }
+      /* ——— 5. Urbano colorido ——— */
+      .urb {
+        background: #fff3d6;
+        color: #111;
+        font-family: Grotesk, sans-serif;
+      }
+      .urb .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 18px 6px;
+      }
+      .urb .logo {
+        background: #ffd23f;
+        border: 2.5px solid #111;
+        box-shadow: 3px 3px 0 #111;
+        padding: 5px 12px;
+        font-weight: 700;
+        font-size: 19px;
+        border-radius: 10px;
+        transform: rotate(-2deg);
+      }
+      .urb .ic {
+        width: 40px;
+        height: 40px;
+        border: 2.5px solid #111;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 3px 3px 0 #111;
+      }
+      .urb h1 {
+        font-size: 38px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        padding: 14px 18px 4px;
+      }
+      .urb h1 mark {
+        background: #ff4f8b;
+        color: #fff;
+        padding: 0 8px;
+        border-radius: 8px;
+      }
+      .urb .chips {
+        display: flex;
+        gap: 9px;
+        padding: 12px 18px;
+        overflow: hidden;
+      }
+      .urb .chips span,
+      .urb .chips b {
+        border: 2.5px solid #111;
+        border-radius: 10px;
+        padding: 7px 13px;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        background: #fff;
+        box-shadow: 3px 3px 0 #111;
+      }
+      .urb .chips b {
+        background: #5bd6b0;
+      }
+      .urb .card {
+        display: flex;
+        gap: 12px;
+        margin: 10px 18px 14px;
+        padding: 12px;
+        background: #fff;
+        border: 2.5px solid #111;
+        border-radius: 14px;
+        box-shadow: 5px 5px 0 #111;
+        position: relative;
+      }
+      .urb .card .photo {
+        width: 92px;
+        height: 92px;
+        border-radius: 10px;
+        border: 2.5px solid #111;
+        flex: none;
+      }
+      .urb .card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .urb .card p {
+        font-size: 12.5px;
+        line-height: 1.35;
+        margin: 3px 0;
+        color: #333;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .urb .tagp {
+        position: absolute;
+        right: -6px;
+        top: -12px;
+        background: #ff4f8b;
+        color: #fff;
+        border: 2.5px solid #111;
+        border-radius: 8px;
+        padding: 2px 9px;
+        font-weight: 700;
+        font-size: 14px;
+        transform: rotate(4deg);
+      }
+      .urb .bar {
+        background: #ff4f8b;
+        color: #fff;
+        border: 2.5px solid #111;
+        border-radius: 12px;
+        box-shadow: 4px 4px 0 #111;
+      }
+      /* ——— 6. Fresco redondeado ——— */
+      .fresh {
+        background: #eff9f4;
+        color: #12302a;
+        font-family: Outfit, sans-serif;
+      }
+      .fresh .cover {
+        height: 200px;
+        background: linear-gradient(160deg, #12a58e, #0b7a6a 70%);
+        border-radius: 0 0 34px 34px;
+        padding: 26px 22px;
+        color: #fff;
+        position: relative;
+      }
+      .fresh .cover .logo {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .fresh .cover p {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-top: 4px;
+      }
+      .fresh .cover h1 {
+        font-size: 30px;
+        font-weight: 600;
+        line-height: 1.05;
+        margin-top: 30px;
+        letter-spacing: -0.02em;
+      }
+      .fresh .cover::after {
+        content: "";
+        position: absolute;
+        right: -30px;
+        top: -30px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: #ffffff22;
+      }
+      .fresh .search {
+        margin: -22px 20px 10px;
+        background: #fff;
+        border-radius: 20px;
+        padding: 15px 18px;
+        font-size: 14px;
+        color: #7b9a92;
+        box-shadow: 0 10px 24px -10px #12302a40;
+        position: relative;
+      }
+      .fresh .pills {
+        display: flex;
+        gap: 8px;
+        padding: 6px 20px 10px;
+        overflow: hidden;
+      }
+      .fresh .pills span,
+      .fresh .pills b {
+        padding: 9px 16px;
+        border-radius: 99px;
+        font-size: 14px;
+        font-weight: 500;
+        background: #fff;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px #12302a14;
+      }
+      .fresh .pills b {
+        background: #12a58e;
+        color: #fff;
+      }
+      .fresh .card {
+        margin: 6px 20px 12px;
+        background: #fff;
+        border-radius: 28px;
+        padding: 10px;
+        box-shadow: 0 12px 26px -14px #12302a50;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .fresh .card .photo {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        flex: none;
+      }
+      .fresh .card h3 {
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .fresh .card p {
+        font-size: 12.5px;
+        color: #58766d;
+        line-height: 1.35;
+        margin: 2px 0 6px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .fresh .pr {
+        display: inline-block;
+        background: #dff5ee;
+        color: #0b7a6a;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 3px 11px;
+        border-radius: 99px;
+      }
+      .fresh .bar {
+        background: #12a58e;
+        color: #fff;
+        border-radius: 99px;
+      }
+      .label {
+        width: 100%;
+        font:
+          600 15px Inter,
+          sans-serif;
+        color: #44403c;
+        margin-top: -10px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      const D = [
+        {
+          n: "Clásica 27",
+          d: "Nuestra hamburguesa de siempre: carne de res a la parrilla, cheddar fundido y cebolla caramelizada en pan brioche.",
+          p: "$22.900",
+          from: true,
+          k: "",
+        },
+        {
+          n: "Brasa BBQ",
+          d: "Carne a la brasa con tocineta ahumada, provolone y cebolla crocante, bañada en BBQ de panela con un toque de chipotle.",
+          p: "$27.900",
+          from: true,
+          k: "p2",
+        },
+        {
+          n: "La Diabla",
+          d: "Para valientes: carne de res, pepper jack, jalapeños y salsa de habanero. Pica de verdad.",
+          p: "$26.900",
+          from: true,
+          k: "p3",
+        },
+        {
+          n: "Pollo crispy",
+          d: "Pechuga de pollo apanada y crocante con repollo encurtido y mayonesa ligeramente picante.",
+          p: "$23.900",
+          from: false,
+          k: "p4",
+        },
+      ];
+      const f = (x) => (x.from ? "Desde " + x.p : x.p);
+      const phone = (cls, html) => `<div class="phone"><div class="scr ${cls}">${html}</div></div>`;
+      let out = "";
+      out += phone(
+        "bistro",
+        `
+ <div class="top"><div class="logo">FOGÓN 27</div><div class="rule"></div><h1>La carta</h1><div class="sub">Para el almuerzo · elegidos para esta hora</div></div>
+ <div class="search">Plato o ingrediente</div>
+ <div class="tabs"><b>Todo</b><span>Desayunos</span><span>Hamburguesas</span><span>Perros</span></div>
+ <div class="sec">Hamburguesas</div>
+ ${D.map((x) => `<div class="it"><div><h3>${x.n}</h3><p>${x.d}</p><div class="pr">${f(x)}</div></div><div class="photo ${x.k}"></div></div>`).join("")}
+ <div class="bar"><span>Ver carrito de la mesa</span><span>$45.800</span></div>`,
+      );
+      out += phone(
+        "cafe",
+        `
+ <div class="top"><div class="logo">fogón 27</div><div class="ic"></div></div>
+ <h1>¿Qué pedimos hoy?</h1>
+ <div class="chips"><b>Todo</b><span>Desayunos</span><span>Hamburguesas</span><span>Perros</span></div>
+ <div class="grid">${D.map((x) => `<div class="card"><div class="photo ${x.k}"><div class="plus">+</div></div><h3>${x.n}</h3><div class="pr">${f(x)}</div></div>`).join("")}</div>
+ <div class="bar"><span>Ver carrito · 2</span><span>$45.800</span></div>`,
+      );
+      out += phone(
+        "edit",
+        `
+ <div class="top"><div class="logo">Fogón 27</div><h1>La Carta</h1><div class="orn"><i></i>✦<i></i></div></div>
+ <div class="cats"><b>Hamburguesas</b> · Desayunos · Perros · Bebidas</div>
+ <div class="feat"><div class="photo"></div><small>El plato de la casa — Clásica 27</small></div>
+ ${D.map((x) => `<div class="row"><div class="line"><h3>${x.n}</h3><i></i><b>${x.p}</b></div><p>${x.d}</p></div>`).join("")}
+ <div class="bar"><span>Ver carrito de la mesa</span><span>$45.800</span></div>`,
+      );
+      out += phone(
+        "rust",
+        `
+ <div class="banner"><div class="logo">Fogón 27</div><div class="tag">Parrilla · cocina de casa</div></div>
+ <div class="tabs"><b>Todo</b><span>Desayunos</span><span>Hamburguesas</span><span>Perros</span></div>
+ <div class="sec">Hamburguesas</div>
+ ${D.slice(0, 3)
+   .map(
+     (x) =>
+       `<div class="card"><div class="photo ${x.k}"></div><div><h3>${x.n}</h3><p>${x.d}</p></div><div class="stamp">${x.p.replace("$", "$<br>")}</div></div>`,
+   )
+   .join("")}
+ <div class="bar"><span>Ver carrito de la mesa</span><span>$45.800</span></div>`,
+      );
+      out += phone(
+        "urb",
+        `
+ <div class="top"><div class="logo">Fogón 27</div><div class="ic"></div></div>
+ <h1>¿Qué se te <mark>antoja</mark>?</h1>
+ <div class="chips"><b>Todo</b><span>Desayunos</span><span>Burgers</span><span>Perros</span></div>
+ ${D.slice(0, 3)
+   .map(
+     (x) =>
+       `<div class="card"><div class="tagp">${x.p}</div><div class="photo ${x.k}"></div><div><h3>${x.n}</h3><p>${x.d}</p></div></div>`,
+   )
+   .join("")}
+ <div class="bar"><span>Ver carrito · 2</span><span>$45.800</span></div>`,
+      );
+      out += phone(
+        "fresh",
+        `
+ <div class="cover"><div class="logo">Fogón 27</div><p>Mesa 3 · Hola, Ana</p><h1>¿Qué se te<br>antoja hoy?</h1></div>
+ <div class="search">Plato o ingrediente</div>
+ <div class="pills"><b>Todo</b><span>Desayunos</span><span>Hamburguesas</span><span>Perros</span></div>
+ ${D.slice(0, 3)
+   .map(
+     (x) =>
+       `<div class="card"><div class="photo ${x.k}"></div><div><h3>${x.n}</h3><p>${x.d}</p><span class="pr">${f(x)}</span></div></div>`,
+   )
+   .join("")}
+ <div class="bar"><span>Ver carrito · 2</span><span>$45.800</span></div>`,
+      );
+      document.body.innerHTML = out;
+    </script>
+  </body>
+</html>
