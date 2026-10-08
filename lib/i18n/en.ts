@@ -702,13 +702,17 @@ export const EN: Record<string, string> = {
   "Tajadas de maduro": "Sweet plantain slices",
   "Tu mesa ya está abierta": "Your table is open",
   "Estás mirando la carta": "You're browsing the menu",
-  "Entra con el PIN que te dio el mesero para pedir.": "Enter the PIN your server gave you to order.",
-  "Ya avisamos al mesero. Cuando abra tu mesa, ponte el PIN para pedir.": "We told your server. Once they open your table, enter the PIN to order.",
-  "Para pedir, tu mesero abre la mesa y te da un PIN.": "To order, your server opens the table and gives you a PIN.",
+  "Entra con el PIN que te dio el mesero para pedir.":
+    "Enter the PIN your server gave you to order.",
+  "Ya avisamos al mesero. Cuando abra tu mesa, ponte el PIN para pedir.":
+    "We told your server. Once they open your table, enter the PIN to order.",
+  "Para pedir, tu mesero abre la mesa y te da un PIN.":
+    "To order, your server opens the table and gives you a PIN.",
   "Poner PIN": "Enter PIN",
-  "Avisado": "Notified",
+  Avisado: "Notified",
   "Solo mirando": "Just browsing",
   "Mira la carta con calma": "Take your time with the menu",
   "Ver la carta mientras tanto": "Browse the menu meanwhile",
-  "Puedes mirar la carta con sus precios; para pedir necesitas el PIN del mesero.": "You can browse the menu and its prices; to order you need your server's PIN.",
+  "Puedes mirar la carta con sus precios; para pedir necesitas el PIN del mesero.":
+    "You can browse the menu and its prices; to order you need your server's PIN.",
 };
