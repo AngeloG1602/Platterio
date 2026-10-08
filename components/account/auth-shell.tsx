@@ -37,7 +37,11 @@ export function AuthShell({
             <Skeleton className="mt-3 h-14 rounded-lg" />
           </div>
         ) : account ? (
-          <AlreadySignedIn businessName={account.businessName} email={account.email} />
+          <AlreadySignedIn
+            businessName={account.businessName}
+            email={account.email}
+            slug={account.slug}
+          />
         ) : (
           <>
             <h1 className="font-display text-[34px] leading-tight font-semibold">{title}</h1>
@@ -60,7 +64,15 @@ export function AuthShell({
   );
 }
 
-function AlreadySignedIn({ businessName, email }: { businessName: string; email: string }) {
+function AlreadySignedIn({
+  businessName,
+  email,
+  slug,
+}: {
+  businessName: string;
+  email: string;
+  slug: string;
+}) {
   return (
     <div>
       <h1 className="font-display text-[30px] leading-tight font-semibold">Ya iniciaste sesión</h1>
@@ -68,7 +80,7 @@ function AlreadySignedIn({ businessName, email }: { businessName: string; email:
         Estás dentro de <b>{businessName}</b> con {email}.
       </p>
       <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-        <Link href="/admin" className={buttonClasses({ size: "lg" })}>
+        <Link href={`/${slug}/admin`} className={buttonClasses({ size: "lg" })}>
           Ir a mi panel
         </Link>
         <Button variant="secondary" size="lg" onClick={accountActions.signOut}>

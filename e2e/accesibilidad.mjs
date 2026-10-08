@@ -32,6 +32,7 @@ const pages = [
   ["Registro", "/registro", 390],
   ["Registro (escritorio)", "/registro", 1280],
   ["Iniciar sesión", "/iniciar-sesion", 390],
+  ["Entrada del personal", "/personal", 390],
   ["Menú", "/mesa/3/menu", 390],
   ["Ficha", "/mesa/3/plato/clasica-27", 390],
   ["Carrito", "/mesa/3/carrito", 390],

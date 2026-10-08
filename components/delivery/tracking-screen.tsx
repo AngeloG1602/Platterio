@@ -26,6 +26,7 @@ import {
 import { formatMoney, formatTime } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
 import { localized, t } from "@/lib/i18n";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 export function TrackingScreen({ id }: { id: string }) {
   return (
@@ -36,6 +37,7 @@ export function TrackingScreen({ id }: { id: string }) {
 }
 
 function Tracking({ id }: { id: string }) {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   const item = useDeliveryOrder(id);
   const dishes = useDishes();
@@ -53,7 +55,7 @@ function Tracking({ id }: { id: string }) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <h1 className="font-display text-[26px] font-semibold">{t("No encontramos ese pedido")}</h1>
-        <Link href="/domicilio" className="text-accent-strong font-semibold underline">
+        <Link href={href("/domicilio")} className="text-accent-strong font-semibold underline">
           {t("Ir a la carta")}
         </Link>
       </main>
@@ -70,7 +72,7 @@ function Tracking({ id }: { id: string }) {
     <>
       <header className="flex items-center gap-2 px-2 pt-3">
         <Link
-          href="/domicilio"
+          href={href("/domicilio")}
           aria-label={t("Volver a la carta")}
           className="hover:bg-surface-2 flex size-11 items-center justify-center rounded-full"
         >

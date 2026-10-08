@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useHydrated, useMyDiner, useSeedEpoch, useTableByNumber } from "@/lib/data";
 import type { Diner, Table, TableSession } from "@/lib/domain/types";
 import { t } from "@/lib/i18n";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 export interface TableContext {
   table: Table;
@@ -26,6 +27,7 @@ export type TableAccess =
 
 /** Resuelve la mesa del QR y si este dispositivo ya entró a su sesión. */
 export function useTableAccess(numero: string): TableAccess {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   const n = /^\d+$/.test(numero) ? Number(numero) : NaN;
   const table = useTableByNumber(n);
@@ -33,7 +35,7 @@ export function useTableAccess(numero: string): TableAccess {
   if (!hydrated) return { status: "loading" };
   if (!table) return { status: "invalid" };
   if (!session || !diner) return { status: "guest", table, session };
-  return { status: "ready", table, session, diner, base: `/mesa/${table.number}` };
+  return { status: "ready", table, session, diner, base: href(`/mesa/${table.number}`) };
 }
 
 export function InvalidTable() {
@@ -93,12 +95,13 @@ export function TableGate({
 }) {
   const access = useTableAccess(numero);
   const router = useRouter();
+  const href = useBusinessHref();
   const shouldRedirect = access.status === "guest";
   useSessionEndNotice(access);
 
   useEffect(() => {
-    if (shouldRedirect) router.replace(`/mesa/${numero}`);
-  }, [shouldRedirect, numero, router]);
+    if (shouldRedirect) router.replace(href(`/mesa/${numero}`));
+  }, [shouldRedirect, numero, router, href]);
 
   if (access.status === "invalid") return <InvalidTable />;
   if (access.status !== "ready") return <>{fallback}</>;
@@ -128,6 +131,7 @@ export function TableViewGate({
   children: (view: TableView) => ReactNode;
 }) {
   const access = useTableAccess(numero);
+  const href = useBusinessHref();
   useSessionEndNotice(access);
   if (access.status === "invalid") return <InvalidTable />;
   if (access.status === "loading") return <>{fallback}</>;
@@ -139,7 +143,7 @@ export function TableViewGate({
     <>
       {children({
         table: access.table,
-        base: `/mesa/${access.table.number}`,
+        base: href(`/mesa/${access.table.number}`),
         member: null,
         sessionOpen: Boolean(access.session),
       })}

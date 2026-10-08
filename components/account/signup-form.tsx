@@ -43,7 +43,7 @@ export function SignupForm() {
       setErrors({ ...r.fields, ...(r.fields ? {} : { form: r.error }) });
       return;
     }
-    router.push("/admin");
+    router.push(`/${r.account.slug}/admin`);
   }
 
   return (

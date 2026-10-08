@@ -42,10 +42,12 @@ import { formatMoney } from "@/lib/domain/format";
 import { ALLERGENS, type SpiceLevel } from "@/lib/domain/types";
 import { resizeImage } from "@/lib/image";
 import { cn } from "@/lib/cn";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 const MAX_PHOTOS = 4;
 
 export function DishEditorScreen({ id }: { id: string }) {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   const dishes = useDishes();
   if (!hydrated) return <Skeleton className="mx-auto h-[70dvh] max-w-6xl rounded-2xl" />;
@@ -57,7 +59,7 @@ export function DishEditorScreen({ id }: { id: string }) {
         icon={CircleAlert}
         title="No encontramos ese plato"
         action={
-          <Link href="/admin/platos" className={buttonClasses({ variant: "secondary" })}>
+          <Link href={href("/admin/platos")} className={buttonClasses({ variant: "secondary" })}>
             Volver a Platos
           </Link>
         }
@@ -69,6 +71,7 @@ export function DishEditorScreen({ id }: { id: string }) {
 
 /** Crear y editar la ficha del plato (US-11, US-12), con validación de campos obligatorios. */
 function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) {
+  const href = useBusinessHref();
   const router = useRouter();
   const categories = useCategories();
   const slots = useTimeSlots();
@@ -114,7 +117,7 @@ function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) 
           : "Ya lo ven los clientes."
         : "Está desactivado: no se muestra en la carta.",
     });
-    router.push("/admin/platos");
+    router.push(href("/admin/platos"));
   }
 
   async function addPhotos(files: FileList | null) {
@@ -134,7 +137,7 @@ function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) 
   return (
     <div className="mx-auto max-w-6xl pb-28">
       <Link
-        href="/admin/platos"
+        href={href("/admin/platos")}
         className={buttonClasses({ variant: "ghost", size: "sm", className: "-ml-2" })}
       >
         <ArrowLeft aria-hidden /> Platos
@@ -621,7 +624,7 @@ function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) 
               : "Desactivado: no se mostrará en la carta."}{" "}
             Picante: {SPICE_LABEL[draft.spiceLevel].toLowerCase()}.
           </p>
-          <Link href="/admin/platos" className={buttonClasses({ variant: "secondary" })}>
+          <Link href={href("/admin/platos")} className={buttonClasses({ variant: "secondary" })}>
             Cancelar
           </Link>
           <Button onClick={save}>{isNew ? "Crear plato" : "Guardar cambios"}</Button>

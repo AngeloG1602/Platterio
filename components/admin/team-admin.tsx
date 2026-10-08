@@ -4,6 +4,7 @@ import { TeamManager } from "@/components/team/team-manager";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/lib/data";
 import { PageHeader } from "./ui/page-header";
+import { StaffEntryCard } from "./staff-entry-card";
 
 /** Equipo: usuarios del negocio, sus roles y PIN. */
 export function TeamAdmin() {
@@ -14,6 +15,7 @@ export function TeamAdmin() {
         title="Equipo"
         description="Quién entra al sistema y qué puede hacer. Administrador, encargado de caja, meseros y cocina."
       />
+      {hydrated && <StaffEntryCard />}
       {hydrated ? <TeamManager /> : <Skeleton className="h-96 rounded-2xl" />}
     </div>
   );

@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { TrialBanner } from "@/components/account/account-status";
 import { PlatterioLogo, RestaurantMark } from "@/components/brand/logos";
@@ -21,6 +20,7 @@ import { SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { useAlerts, useRestaurant } from "@/lib/data";
 import { cn } from "@/lib/cn";
+import { useBusinessHref, useScreenPath } from "@/components/providers/business-scope";
 
 interface NavItem {
   href: string;
@@ -42,7 +42,8 @@ const NAV: NavItem[] = [
 
 /** Estructura del panel del administrador: identidad del negocio, navegación lateral y contenido. */
 export function AdminShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const screen = useScreenPath();
+  const href = useBusinessHref();
   const restaurant = useRestaurant();
   const openAlerts = useAlerts().filter((a) => !a.resolved).length;
 
@@ -67,7 +68,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         >
           {NAV.map((item) => {
             const active =
-              item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+              item.href === "/admin" ? screen === "/admin" : screen.startsWith(item.href);
             const content = (
               <>
                 <item.icon className="size-5 shrink-0" aria-hidden strokeWidth={1.8} />
@@ -89,7 +90,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href(item.href)}
                 aria-current={active ? "page" : undefined}
                 className={cls}
               >

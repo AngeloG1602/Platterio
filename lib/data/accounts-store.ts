@@ -112,6 +112,13 @@ export const accountActions = {
     return { ok: true, account };
   },
 
+  /** Reabre la sesión de administrador en esta pestaña cuando el dueño ya inició sesión en el navegador. */
+  resumeOwner(): boolean {
+    const { accounts, currentId } = useAccountsStore.getState();
+    const account = accounts.find((a) => a.id === currentId);
+    return account ? openOwnerSession(account) : false;
+  },
+
   signOut() {
     useAccountsStore.setState({ currentId: null });
     authActions.logout();

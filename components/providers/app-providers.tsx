@@ -1,6 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { BusinessScope } from "./business-scope";
+import { splitBusinessPath } from "@/lib/domain/routes";
 import { Fragment, useEffect, type ReactNode } from "react";
 import { toast, Toaster } from "@/components/ui/toaster";
 import { brandVars } from "@/lib/domain/brand";
@@ -25,7 +27,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // El idioma solo cambia lo que ve el cliente; el personal siempre trabaja en español.
-  const customerView = pathname.startsWith("/mesa") || pathname.startsWith("/domicilio");
+  const screen = splitBusinessPath(pathname).path;
+  const customerView = screen.startsWith("/mesa") || screen.startsWith("/domicilio");
   const lang =
     hydrated && customerView
       ? pickLang({
@@ -104,7 +107,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <>
       {/* Al cambiar de idioma o de moneda se vuelve a pintar todo con los textos nuevos. */}
-      <Fragment key={`${lang}-${currency}`}>{children}</Fragment>
+      <Fragment key={`${lang}-${currency}`}>
+        <BusinessScope>{children}</BusinessScope>
+      </Fragment>
       <Toaster />
     </>
   );
