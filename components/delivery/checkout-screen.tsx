@@ -32,6 +32,7 @@ import {
 import { formatMoney } from "@/lib/domain/format";
 import type { DeliveryPayWith, FulfillmentType } from "@/lib/domain/types";
 import { localized, t } from "@/lib/i18n";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 export function CheckoutScreen() {
   return (
@@ -42,6 +43,7 @@ export function CheckoutScreen() {
 }
 
 function Checkout() {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   const router = useRouter();
   const config = useDeliveryConfig();
@@ -93,7 +95,7 @@ function Checkout() {
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <h1 className="font-display text-[26px] font-semibold">{t("Tu pedido está vacío")}</h1>
         <p className="text-ink-soft">{t("Agrega algo de la carta para continuar.")}</p>
-        <Link href="/domicilio" className="text-accent-strong font-semibold underline">
+        <Link href={href("/domicilio")} className="text-accent-strong font-semibold underline">
           {t("Volver a la carta")}
         </Link>
       </main>
@@ -109,14 +111,14 @@ function Checkout() {
       if (r.errors) setErrors(r.errors);
       return toast.error(t("No pudimos enviar tu pedido"), { description: r.error });
     }
-    router.push(`/domicilio/seguimiento/${r.orderId}`);
+    router.push(href(`/domicilio/seguimiento/${r.orderId}`));
   }
 
   return (
     <>
       <header className="flex items-center gap-2 px-2 pt-3">
         <Link
-          href="/domicilio"
+          href={href("/domicilio")}
           aria-label={t("Volver a la carta")}
           className="hover:bg-surface-2 flex size-11 items-center justify-center rounded-full"
         >

@@ -26,11 +26,13 @@ import { BrandIdentityPanel } from "./brand-panel";
 import { DeliveryPanel } from "./delivery-panel";
 import { LocalePanel } from "./locale-panel";
 import { PageHeader, Panel } from "./ui/page-header";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 const PRESETS = ["#E4572E", "#2F7A4F", "#2D5FA3", "#D69A1E", "#8C2F4B", "#1C1917"];
 
 /** Configuración (US-21, US-27, US-34): marca, umbrales, mesas con QR y meseros. */
 export function SettingsAdmin() {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -48,7 +50,7 @@ export function SettingsAdmin() {
           <LocalePanel />
           <DeliveryPanel />
           <TablesPanel />
-          <TableAssignments teamHref="/admin/equipo" />
+          <TableAssignments teamHref={href("/admin/equipo")} />
         </>
       ) : (
         <Skeleton className="h-96 rounded-2xl" />
@@ -223,6 +225,7 @@ function RulesPanel() {
 }
 
 function TablesPanel() {
+  const href = useBusinessHref();
   const tables = useTables();
   const openTables = useOpenTableNumbers();
   // Este panel solo se monta en el cliente (después de hidratar), así que window existe.
@@ -262,7 +265,7 @@ function TablesPanel() {
             <div className="mt-1 rounded-lg bg-white p-2">
               {origin ? (
                 <QRCodeSVG
-                  value={`${origin}/mesa/${t.number}`}
+                  value={`${origin}${href(`/mesa/${t.number}`)}`}
                   size={112}
                   level="M"
                   aria-label={`Código QR de la Mesa ${t.number}`}
@@ -278,7 +281,7 @@ function TablesPanel() {
             <div className="mt-2 flex w-full gap-1">
               <QrDownload table={t} origin={origin} />
               <a
-                href={`/mesa/${t.number}`}
+                href={href(`/mesa/${t.number}`)}
                 target="_blank"
                 rel="noreferrer"
                 aria-label={`Abrir la Mesa ${t.number} en otra pestaña`}
@@ -322,6 +325,7 @@ function TablesPanel() {
 
 /** Descarga una tarjeta imprimible (PNG) con el nombre del restaurante, la mesa y el QR. */
 function QrDownload({ table, origin }: { table: Table; origin: string }) {
+  const href = useBusinessHref();
   const restaurant = useRestaurant();
   const holder = useRef<HTMLDivElement>(null);
   function download() {
@@ -357,7 +361,7 @@ function QrDownload({ table, origin }: { table: Table; origin: string }) {
       <div ref={holder} className="hidden" aria-hidden>
         {origin && (
           <QRCodeCanvas
-            value={`${origin}/mesa/${table.number}`}
+            value={`${origin}${href(`/mesa/${table.number}`)}`}
             size={400}
             level="M"
             marginSize={1}

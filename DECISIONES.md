@@ -500,3 +500,21 @@ pueden cambiar sin rehacer pantallas.
       guarda con huella SHA-256 solo para no verla en claro; no es seguridad real, que llega con la
       base de datos. Faltan: direcciones por negocio (`/negocio/...`), alta de usuarios con PIN
       con código del negocio, y los cobros con Hotmart (fase 10).
+134.  **Direcciones por negocio y entrada del personal.** Cada negocio tiene una dirección corta
+      (su "código", por ejemplo `casa-verde`, creada al registrarse) y sus pantallas viven bajo
+      ella: `/casa-verde/mesa/3/menu` (el QR de cada mesa), `/casa-verde/domicilio`,
+      `/casa-verde/admin`, `/mesero`, `/cocina` y `/caja`. Las rutas sin negocio (`/mesa/3`,
+      `/admin`…) siguen siendo las de la demo. Técnicamente las pantallas no se duplican: una
+      reescritura de `next.config` sirve `/{negocio}/mesa/3` con la pantalla `/mesa/3`, y cada
+      enlace se arma con `useBusinessHref()` para conservar el negocio al navegar. El servidor
+      siempre pinta sin negocio y el navegador lo lee al hidratar (así no hay diferencias entre
+      ambos). Una dirección con un negocio que no existe muestra "No encontramos este negocio".
+      Los códigos no pueden chocar con rutas de la plataforma (admin, demo, personal…), y las
+      pruebas lo cubren. **Entrada del personal:** `/personal` pide el código del negocio y luego
+      el PIN (no hace falta correo ni usuario, porque el PIN ya es único en el negocio);
+      `/{negocio}/entrar` pide solo el PIN. En Equipo, el administrador ve el código y el enlace
+      de entrada para compartirlos. El dueño que ya inició sesión con su correo no repite el PIN al
+      abrir el panel en otra pestaña (solo en el panel; mesero, caja y cocina siempre piden PIN).
+      Pendiente para la fase 9: límite de intentos del PIN (con 4 dígitos hay solo 10.000
+      combinaciones), datos separados por negocio y subdominios o dominio propio, que serán un
+      cambio de enrutado y no de pantallas.

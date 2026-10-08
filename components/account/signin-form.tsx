@@ -33,7 +33,7 @@ export function SigninForm() {
       setPassword("");
       return;
     }
-    router.push("/admin");
+    router.push(`/${r.account.slug}/admin`);
   }
 
   return (
@@ -84,9 +84,9 @@ export function SigninForm() {
       </form>
       <p className="text-muted border-line mt-5 border-t pt-4 text-[14px]">
         ¿Eres mesero, de cocina o de caja? No necesitas correo: entra con tu PIN desde la pantalla
-        de tu rol (por ejemplo{" "}
-        <Link href="/mesero" className="text-accent-strong font-semibold underline">
-          mesero
+        con el código de tu negocio (desde{" "}
+        <Link href="/personal" className="text-accent-strong font-semibold underline">
+          la entrada del personal
         </Link>
         ).
       </p>

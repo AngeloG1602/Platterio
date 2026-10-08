@@ -53,6 +53,8 @@ describe("dirección corta del negocio", () => {
     expect(uniqueSlug("Fogón 27", ["fogon-27", "fogon-27-2"])).toBe("fogon-27-3");
     expect(uniqueSlug("Admin", [])).toBe("admin-2");
     expect(uniqueSlug("Demo", [])).toBe("demo-2");
+    expect(uniqueSlug("Personal", [])).toBe("personal-2");
+    expect(uniqueSlug("Mesa", [])).toBe("mesa-2");
   });
 });
 

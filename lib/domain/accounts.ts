@@ -67,6 +67,11 @@ export function slugify(name: string): string {
 /** Palabras que no pueden ser el nombre de un negocio porque son rutas de la plataforma. */
 const RESERVED = new Set([
   "admin",
+  "personal",
+  "cuenta",
+  "soporte",
+  "login",
+  "negocio",
   "api",
   "app",
   "caja",

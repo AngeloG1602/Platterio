@@ -2,7 +2,7 @@
 
 import { LogOut, ShieldOff } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { LoginScreen } from "@/components/access/login-screen";
 import { buttonClasses, Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,8 +13,10 @@ import {
   useCurrentAccount,
   useCurrentStaff,
   useHydrated,
+  useStaff,
 } from "@/lib/data";
 import { can, HOME, ROLE_LABEL, type Permission } from "@/lib/domain/access";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 /**
  * Deja ver una sección solo a quien tenga el permiso: sin sesión pide el PIN, y con sesión
@@ -36,7 +38,14 @@ export function RoleGate({
   const account = useCurrentAccount();
   const status = useAccountStatus();
 
-  if (!hydrated) {
+  // El dueño que ya inició sesión con su correo no vuelve a pedir PIN en otra pestaña del panel.
+  const hasAdmin = useStaff().some((u) => u.role === "admin" && u.active);
+  const resume = hydrated && !staff && Boolean(account) && hasAdmin && permission === "panel.admin";
+  useEffect(() => {
+    if (resume) accountActions.resumeOwner();
+  }, [resume]);
+
+  if (!hydrated || resume) {
     return (
       <div className="mx-auto max-w-md px-5 pt-10" aria-busy aria-label="Cargando">
         <Skeleton className="h-6 w-40" />
@@ -54,6 +63,7 @@ export function RoleGate({
 }
 
 function NoAccess({ label }: { label: string }) {
+  const href = useBusinessHref();
   const staff = useCurrentStaff();
   if (!staff) return null;
   return (
@@ -69,7 +79,7 @@ function NoAccess({ label }: { label: string }) {
         rol.
       </p>
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-        <Link href={HOME[staff.role]} className={buttonClasses({})}>
+        <Link href={href(HOME[staff.role])} className={buttonClasses({})}>
           Ir a mi pantalla
         </Link>
         <Button variant="secondary" onClick={authActions.logout}>

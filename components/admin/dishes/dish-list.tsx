@@ -26,9 +26,11 @@ import type { Dish } from "@/lib/domain/types";
 import { customizationSpecFor } from "@/lib/data/customization-specs";
 import { cn } from "@/lib/cn";
 import { PageHeader } from "../ui/page-header";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 /** Catálogo de platos (US-11): tabla con buscador, activar/desactivar y destacar. */
 export function DishList() {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -36,7 +38,7 @@ export function DishList() {
         title="Platos"
         description="Todo lo que aparece en la carta. Los platos desactivados no se muestran ni se recomiendan, pero conservan su información."
         actions={
-          <Link href="/admin/platos/nuevo" className={buttonClasses({})}>
+          <Link href={href("/admin/platos/nuevo")} className={buttonClasses({})}>
             <Plus aria-hidden /> Nuevo plato
           </Link>
         }
@@ -47,6 +49,7 @@ export function DishList() {
 }
 
 function Table() {
+  const href = useBusinessHref();
   const dishes = useDishes();
   const categories = useCategories();
   const slots = useTimeSlots();
@@ -260,7 +263,7 @@ function Table() {
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <Link
-                        href={`/admin/platos/${dish.id}`}
+                        href={href(`/admin/platos/${dish.id}`)}
                         className={buttonClasses({ variant: "ghost", size: "sm" })}
                       >
                         <Pencil aria-hidden /> Editar

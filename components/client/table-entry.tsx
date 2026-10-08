@@ -15,13 +15,14 @@ import type { Table } from "@/lib/domain/types";
 import { ClientShell } from "./client-shell";
 import { InvalidTable, useTableAccess } from "./table-gate";
 import { localized, t } from "@/lib/i18n";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 /** A dónde volver tras poner el PIN: la pantalla de la carta donde estaba, o la carta. */
-function nextPath(numero: string): string {
+function nextPath(numero: string, href: (path: string) => string): string {
   const next = new URLSearchParams(window.location.search).get("next");
-  return next?.startsWith(`/mesa/${numero}/`) && !next.includes("//")
+  return next?.startsWith(href(`/mesa/${numero}/`)) && !next.includes("//")
     ? next
-    : `/mesa/${numero}/menu`;
+    : href(`/mesa/${numero}/menu`);
 }
 
 const BROWSE_LINK =
@@ -34,13 +35,14 @@ const COLLAGE = ["clasica-27", "salchipapa-27", "limonada-de-coco"];
  * la mesa, se entra con un alias corto y el PIN que él da; si no, se le puede avisar.
  */
 export function TableEntry({ numero }: { numero: string }) {
+  const href = useBusinessHref();
   const access = useTableAccess(numero);
   const router = useRouter();
   const ready = access.status === "ready";
 
   useEffect(() => {
-    if (ready) router.replace(nextPath(numero));
-  }, [ready, numero, router]);
+    if (ready) router.replace(nextPath(numero, href));
+  }, [ready, numero, router, href]);
 
   return (
     <ClientShell>
@@ -58,6 +60,7 @@ export function TableEntry({ numero }: { numero: string }) {
 }
 
 function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: number }) {
+  const href = useBusinessHref();
   const restaurant = useRestaurant();
   const dishes = useDishes();
   const router = useRouter();
@@ -78,7 +81,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
       setError(t(result.error));
       return;
     }
-    router.replace(nextPath(String(tableNumber)));
+    router.replace(nextPath(String(tableNumber), href));
   }
 
   return (
@@ -175,7 +178,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
           {t("Ver la carta")} <ArrowRight aria-hidden />
         </Button>
       </form>
-      <Link href={`/mesa/${tableNumber}/menu`} className={BROWSE_LINK}>
+      <Link href={href(`/mesa/${tableNumber}/menu`)} className={BROWSE_LINK}>
         {t("Ver la carta mientras tanto")}
       </Link>
 
@@ -185,6 +188,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
 }
 
 function ClosedTable({ table }: { table: Table }) {
+  const href = useBusinessHref();
   const restaurant = useRestaurant();
   const asked = useOpenCalls().some((c) => c.tableId === table.id && !c.resolved);
   return (
@@ -216,7 +220,7 @@ function ClosedTable({ table }: { table: Table }) {
       >
         <BellRing aria-hidden /> {asked ? t("Ya avisamos al mesero") : t("Avisar al mesero")}
       </Button>
-      <Link href={`/mesa/${table.number}/menu`} className={BROWSE_LINK}>
+      <Link href={href(`/mesa/${table.number}/menu`)} className={BROWSE_LINK}>
         {t("Ver la carta mientras tanto")}
       </Link>
       {asked && (

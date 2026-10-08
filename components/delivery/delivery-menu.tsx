@@ -29,6 +29,7 @@ import {
 import { deliveryCount, deliverySubtotal, isDeliveryOpen } from "@/lib/domain/delivery";
 import type { Dish } from "@/lib/domain/types";
 import { localized, t } from "@/lib/i18n";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 // La hoja de "agregar" solo se descarga cuando alguien toca un plato.
 const AddDishSheet = dynamic(() => import("./add-dish-sheet").then((m) => m.AddDishSheet), {
@@ -45,6 +46,7 @@ export function DeliveryMenu() {
 }
 
 function Menu() {
+  const href = useBusinessHref();
   const hydrated = useHydrated();
   const restaurant = useRestaurant();
   const config = useDeliveryConfig();
@@ -106,7 +108,7 @@ function Menu() {
         )}
         {active && (
           <Link
-            href={`/domicilio/seguimiento/${active.order.id}`}
+            href={href(`/domicilio/seguimiento/${active.order.id}`)}
             className="bg-accent-soft text-accent-strong mt-4 flex items-center gap-2 rounded-xl px-4 py-3 text-[15px] font-semibold"
           >
             <Receipt className="size-5" aria-hidden /> {t("Seguir mi pedido")} {active.info.code}
@@ -150,7 +152,7 @@ function Menu() {
       {count > 0 && (
         <div className="from-bg via-bg/95 pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md bg-gradient-to-t to-transparent px-4 pt-6 pb-4">
           <Link
-            href="/domicilio/pedido"
+            href={href("/domicilio/pedido")}
             className={buttonClasses({
               size: "lg",
               block: true,

@@ -27,6 +27,7 @@ import type { Dish } from "@/lib/domain/types";
 import type { TableOverview } from "@/lib/domain/waiter";
 import { EditOrderSheet } from "./edit-order-sheet";
 import { StaffOrderSheet } from "./staff-order-sheet";
+import { useBusinessHref } from "@/components/providers/business-scope";
 
 /** Detalle de una mesa: comensales, rondas, total y liberar mesa (US-21). */
 export function TableSheet({
@@ -288,6 +289,7 @@ function TableAccessCard({
   idleMin?: number;
   defaultIdleMin: number;
 }) {
+  const href = useBusinessHref();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const current = idleMin ?? defaultIdleMin;
   const choices = [...new Set([...IDLE_CHOICES, current])].sort((a, b) => a - b);
@@ -319,7 +321,7 @@ function TableAccessCard({
         </div>
         {pin && origin && (
           <QRCodeSVG
-            value={`${origin}/mesa/${tableNumber}?pin=${pin}`}
+            value={`${origin}${href(`/mesa/${tableNumber}`)}?pin=${pin}`}
             size={104}
             marginSize={1}
             title={`QR para entrar a la Mesa ${tableNumber}`}

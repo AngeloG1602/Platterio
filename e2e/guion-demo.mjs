@@ -655,6 +655,7 @@ await admin.goto(`${BASE}/admin/configuracion`);
 await estilos.getByRole("radio", { name: /^Café minimal/ }).click();
 await admin.getByRole("button", { name: "Usar Café minimal" }).click();
 await estilista.goto(`${BASE}/domicilio`);
+await estilista.getByRole("heading", { name: /Pide a domicilio/ }).waitFor();
 check(
   "18. Con otro estilo cambia la distribución (cuadrícula)",
   await estilista.evaluate(() => {
@@ -746,6 +747,80 @@ check(
     !(await visible(dueno.getByText(/Prueba gratis/), 1200)),
 );
 await dueno.close();
+
+// 20. Direcciones por negocio y entrada del personal con código + PIN
+const verde = await tab("Casa Verde", 1200, 900);
+await verde.goto(`${BASE}/iniciar-sesion`);
+check(
+  "20. Con la sesión abierta, iniciar sesión ofrece ir al panel",
+  await visible(verde.getByRole("heading", { name: "Ya iniciaste sesión" })),
+);
+await verde.getByRole("link", { name: "Ir a mi panel" }).click();
+await verde.waitForURL("**/casa-verde/admin");
+check(
+  "20. El panel del dueño vive en la dirección de su negocio",
+  verde.url().endsWith("/casa-verde/admin"),
+);
+check(
+  "20. Los enlaces del panel llevan el negocio",
+  await visible(verde.locator('a[href="/casa-verde/admin/platos"]')),
+);
+await verde.goto(`${BASE}/casa-verde/admin/configuracion`);
+check(
+  "20. Las mesas se abren en la dirección del negocio",
+  await visible(verde.locator('a[href="/casa-verde/mesa/1"]')),
+);
+await verde.goto(`${BASE}/casa-verde/admin/equipo`);
+check(
+  "20. El equipo muestra el código del negocio para el personal",
+  (await visible(verde.getByRole("heading", { name: "Entrada del personal" }))) &&
+    (await visible(verde.getByText("casa-verde", { exact: true }))),
+);
+await verde.goto(`${BASE}/casa-verde/admin/platos`);
+check(
+  "20. Editar un plato conserva el negocio en la dirección",
+  await visible(verde.locator('a[href^="/casa-verde/admin/platos/"]')),
+);
+
+const publico = await tab("Público", 390, 900);
+await publico.goto(`${BASE}/casa-verde/domicilio`);
+check(
+  "20. La carta de domicilios es pública en la dirección del negocio",
+  await visible(publico.getByRole("heading", { name: /Pide a domicilio/ })),
+);
+await publico.goto(`${BASE}/casa-verde/mesa/6`);
+await publico.getByRole("link", { name: "Ver la carta mientras tanto" }).click();
+await publico.waitForURL("**/casa-verde/mesa/6/menu");
+check(
+  "20. La carta de la mesa también, sin perder el negocio al navegar",
+  await visible(publico.getByText("Solo mirando")),
+);
+await publico.goto(`${BASE}/no-existe/domicilio`);
+check(
+  "20. Un negocio que no existe se avisa",
+  await visible(publico.getByText("No encontramos este negocio")),
+);
+
+const personal = await tab("Personal", 390, 900);
+await personal.goto(`${BASE}/personal`);
+await personal.getByLabel("Código del negocio").fill("otro-codigo");
+await personal.getByRole("button", { name: "Continuar" }).click();
+check(
+  "20. Un código equivocado no deja pasar",
+  await visible(personal.getByText(/No encontramos un negocio con ese código/)),
+);
+await personal.getByLabel("Código del negocio").fill("Casa-Verde");
+await personal.getByRole("button", { name: "Continuar" }).click();
+await personal.getByLabel("PIN", { exact: true }).fill("1111");
+await personal.getByRole("button", { name: "Entrar" }).click();
+await personal.waitForURL("**/casa-verde/mesero");
+check(
+  "20. El mesero entra con código y PIN, sin correo, a la pantalla de su negocio",
+  await visible(personal.getByRole("button", { name: /Salir de la sesión de Carlos/ })),
+);
+await verde.close();
+await publico.close();
+await personal.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);

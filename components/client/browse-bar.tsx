@@ -2,7 +2,7 @@
 
 import { BellRing, KeyRound } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useBusinessHref, useScreenPath } from "@/components/providers/business-scope";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { tableActions, useOpenCalls } from "@/lib/data";
 import { t } from "@/lib/i18n";
@@ -20,7 +20,8 @@ function useBrowseAction(view: TableView) {
  */
 export function BrowseBar({ view }: { view: TableView }) {
   const { asked, ask } = useBrowseAction(view);
-  const pathname = usePathname();
+  const screen = useScreenPath();
+  const href = useBusinessHref();
   return (
     <div className="pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-3">
       <div
@@ -41,7 +42,7 @@ export function BrowseBar({ view }: { view: TableView }) {
         </span>
         {view.sessionOpen ? (
           <Link
-            href={`${view.base}?next=${encodeURIComponent(pathname)}`}
+            href={`${view.base}?next=${encodeURIComponent(href(screen))}`}
             className={buttonClasses({ size: "sm", className: "shrink-0" })}
           >
             <KeyRound aria-hidden /> {t("Poner PIN")}
