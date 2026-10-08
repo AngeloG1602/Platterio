@@ -1,5 +1,6 @@
-import { unitPrice } from "./cart";
+import { itemUnitPrice } from "./cart";
 import type { Dish, Order, TableSession } from "./types";
+import { localized, t } from "@/lib/i18n";
 
 export type SubmitResult =
   { ok: true; order: Order; session: TableSession } | { ok: false; error: string };
@@ -38,10 +39,13 @@ export function submitRound(params: {
 
   const byId = new Map(dishes.map((d) => [d.id, d]));
   const unavailable = session.cart.find((c) => !byId.get(c.dishId)?.active);
+  const unavailableDish = unavailable ? byId.get(unavailable.dishId) : undefined;
   if (unavailable) {
     return {
       ok: false,
-      error: `${byId.get(unavailable.dishId)?.name ?? "Un plato"} ya no está disponible. Quítalo para enviar.`,
+      error: t("{dish} ya no está disponible. Quítalo para enviar.", {
+        dish: unavailableDish ? localized(unavailableDish) : t("Un plato"),
+      }),
     };
   }
 
@@ -56,7 +60,7 @@ export function submitRound(params: {
     sentByDinerId: dinerId,
     items: session.cart.map((c) => ({
       ...c,
-      unitPrice: unitPrice(byId.get(c.dishId), c.variantId),
+      unitPrice: itemUnitPrice(c, byId.get(c.dishId)),
     })),
   };
   return { ok: true, order, session: { ...session, cart: [] } };

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Category } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
+import { localized, t } from "@/lib/i18n";
 
 /** Pestañas de categoría fijas arriba. "Todo" muestra la carta completa agrupada. */
 export function CategoryTabs({
@@ -15,7 +16,12 @@ export function CategoryTabs({
   onChange: (id: string | null) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
-  const tabs = [{ id: null, name: "Todo" }, ...[...categories].sort((a, b) => a.order - b.order)];
+  const tabs = [
+    { id: null, name: t("Todo") },
+    ...[...categories]
+      .sort((a, b) => a.order - b.order)
+      .map((c) => ({ id: c.id, name: localized(c) })),
+  ];
 
   useEffect(() => {
     const active = listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]');
@@ -27,11 +33,11 @@ export function CategoryTabs({
       <div
         ref={listRef}
         role="tablist"
-        aria-label="Categorías"
+        aria-label={t("Categorías")}
         className="no-scrollbar flex gap-1 overflow-x-auto px-2"
         onKeyDown={(e) => {
           if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-          const i = tabs.findIndex((t) => t.id === value);
+          const i = tabs.findIndex((x) => x.id === value);
           const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length]!;
           onChange(next.id);
           requestAnimationFrame(() =>

@@ -1,3 +1,4 @@
+import { localized } from "@/lib/i18n";
 import { AllergenList } from "@/components/ui/allergen";
 import { Price } from "@/components/ui/price";
 import { Spice } from "@/components/ui/spice";
@@ -6,6 +7,7 @@ import { dishAllergens } from "@/lib/domain/allergens";
 import type { Allergen, Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { DishImage } from "./dish-image";
+import {} from "@/lib/i18n";
 
 /** Fila de plato del menú: texto a la izquierda, foto a la derecha. */
 export function DishCard({
@@ -25,9 +27,11 @@ export function DishCard({
     <article className={cn("flex gap-4 py-4", className)}>
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="font-display text-ink text-[17px] leading-snug font-semibold">
-          {dish.name}
+          {localized(dish)}
         </h3>
-        <p className="text-muted mt-1 line-clamp-2 text-sm leading-relaxed">{dish.description}</p>
+        <p className="text-muted mt-1 line-clamp-2 text-sm leading-relaxed">
+          {localized(dish, "description")}
+        </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
           <Price value={minPrice} from={new Set(prices).size > 1} className="text-[15px]" />
           <Spice level={dish.spiceLevel} />
@@ -42,7 +46,7 @@ export function DishCard({
       </div>
       <DishImage
         src={dish.photos[0]}
-        name={dish.name}
+        name={localized(dish)}
         sizes="112px"
         className="shadow-card size-28 shrink-0"
         rounded="rounded-xl"

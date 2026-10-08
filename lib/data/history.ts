@@ -1,6 +1,9 @@
 import { toMinutes } from "@/lib/domain/timeSlots";
 import type {
   Alert,
+  CashShift,
+  Payment,
+  PaymentMethod,
   Allergen,
   Diner,
   Dish,
@@ -28,6 +31,10 @@ export interface History {
   orders: Order[];
   dishRatings: DishRating[];
   serviceRatings: ServiceRating[];
+  /** Cobros de las mesas ya cerradas (algunas quedan sin cobrar a propósito). */
+  payments: Payment[];
+  /** Un turno de caja por día, ya cerrado; hoy no hay (se abre desde Caja). */
+  shifts: CashShift[];
 }
 
 export interface HistoryCatalog {
@@ -461,7 +468,113 @@ export function generateHistory(catalog: HistoryCatalog, seedEpoch: number): His
   }
 
   dishRatings.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  return { sessions, orders, dishRatings, serviceRatings };
+  const { payments, shifts } = generateCash(sessions, orders, seedEpoch);
+  return { sessions, orders, dishRatings, serviceRatings, payments, shifts };
+}
+
+/** Cobros y cierres de caja del historial, con su propio generador para no mover el resto. */
+function generateCash(
+  sessions: readonly TableSession[],
+  orders: readonly Order[],
+  seedEpoch: number,
+): { payments: Payment[]; shifts: CashShift[] } {
+  const rand = createRandom(0xca5a);
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const today = startOfLocalDay(seedEpoch);
+  const total = (sessionId: string) =>
+    orders
+      .filter((o) => o.sessionId === sessionId)
+      .reduce(
+        (s, o) => s + o.items.reduce((a, i) => a + (i.removed ? 0 : i.unitPrice * i.qty), 0),
+        0,
+      );
+  const methods: [PaymentMethod, number][] = [
+    ["tarjeta", 0.42],
+    ["efectivo", 0.36],
+    ["transferencia", 0.22],
+  ];
+  const pickMethod = (): PaymentMethod => {
+    let r = rand.next();
+    for (const [m, w] of methods) {
+      if ((r -= w) < 0) return m;
+    }
+    return "tarjeta";
+  };
+
+  const payments: Payment[] = [];
+  let seq = 0;
+  const closed = sessions
+    .filter((s) => s.closedAt)
+    .sort((a, b) => a.closedAt!.localeCompare(b.closedAt!));
+  const byDay = new Map<number, TableSession[]>();
+  for (const session of closed) {
+    const day = startOfLocalDay(Date.parse(session.closedAt!));
+    const list = byDay.get(day) ?? [];
+    list.push(session);
+    byDay.set(day, list);
+  }
+
+  const shifts: CashShift[] = [];
+  for (const [day, list] of [...byDay].sort((a, b) => a[0] - b[0])) {
+    const shiftId = day < today ? `h-turno-${day}` : undefined;
+    const dayPayments: Payment[] = [];
+    for (const session of list) {
+      const due = total(session.id);
+      if (due <= 0 || rand.chance(0.04)) continue; // se fueron sin que quedara registrado
+      const at = Date.parse(session.closedAt!) - rand.int(2, 10) * MINUTE;
+      const split = due > 40_000 && rand.chance(0.12);
+      const first = split ? Math.round(due / 2 / 100) * 100 : due;
+      const parts: [number, PaymentMethod][] = [[first, pickMethod()]];
+      if (split) parts.push([due - first, pickMethod()]);
+      for (const [amount, method] of parts) {
+        dayPayments.push({
+          id: `h-pago-${++seq}`,
+          sessionId: session.id,
+          tableId: session.tableId,
+          ...(shiftId ? { shiftId } : {}),
+          amount,
+          method,
+          at: iso(at),
+          by: "Julián",
+        });
+      }
+    }
+    payments.push(...dayPayments);
+    if (!shiftId || dayPayments.length === 0) continue;
+
+    const byMethod: Record<PaymentMethod, number> = {
+      efectivo: 0,
+      tarjeta: 0,
+      transferencia: 0,
+      otro: 0,
+    };
+    for (const p of dayPayments) byMethod[p.method] += p.amount;
+    const openingFloat = 100_000;
+    const expectedCash = openingFloat + byMethod.efectivo;
+    const difference = rand.chance(0.25) ? rand.pick([-3000, -1500, 500, 2000]) : 0;
+    const first = Math.min(...list.map((s) => Date.parse(s.openedAt)));
+    const last = Math.max(...dayPayments.map((p) => Date.parse(p.at)));
+    shifts.push({
+      id: shiftId,
+      openedAt: iso(first - 20 * MINUTE),
+      openedBy: "Julián",
+      openingFloat,
+      closedAt: iso(last + 20 * MINUTE),
+      closedBy: "Julián",
+      ...(difference
+        ? { note: difference < 0 ? "Faltante al dar cambios" : "Propina en efectivo sin separar" }
+        : {}),
+      summary: {
+        byMethod,
+        total: dayPayments.reduce((s, p) => s + p.amount, 0),
+        payments: dayPayments.length,
+        expectedCash,
+        countedCash: expectedCash + difference,
+        difference,
+      },
+    });
+  }
+  return { payments, shifts };
 }
 
 /** Alertas iniciales: la calificación baja de ayer queda sin resolver. */

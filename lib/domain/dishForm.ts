@@ -15,6 +15,9 @@ export interface DishDraft {
   active: boolean;
   featured: boolean;
   model3d?: { fileName: string; sizeBytes: number };
+  /** Nombre y descripción en inglés (opcionales). */
+  nameEn: string;
+  descriptionEn: string;
 }
 
 export interface DishFormErrors {
@@ -51,6 +54,8 @@ export function emptyDraft(categoryId = ""): DishDraft {
     timeSlotIds: [],
     active: true,
     featured: false,
+    nameEn: "",
+    descriptionEn: "",
   };
 }
 
@@ -72,6 +77,8 @@ export function dishToDraft(dish: Dish): DishDraft {
     active: dish.active,
     featured: dish.featured,
     model3d: dish.model3d,
+    nameEn: dish.en?.name ?? "",
+    descriptionEn: dish.en?.description ?? "",
   };
 }
 
@@ -165,6 +172,13 @@ export function draftToDish(
     createdAt: ctx.existing?.createdAt ?? ctx.now,
   };
   if (draft.model3d) dish.model3d = draft.model3d;
+  const nameEn = draft.nameEn.trim();
+  const descriptionEn = draft.descriptionEn.trim();
+  if (nameEn || descriptionEn)
+    dish.en = {
+      ...(nameEn ? { name: nameEn } : {}),
+      ...(descriptionEn ? { description: descriptionEn } : {}),
+    };
   return dish;
 }
 

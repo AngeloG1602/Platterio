@@ -26,7 +26,7 @@ export function syncUnconfirmedAlerts(params: {
     return { ...a, resolved: true };
   });
   for (const order of orders) {
-    if (order.status !== "pendiente") continue;
+    if (order.status !== "pendiente" || order.tableId === "domicilio") continue;
     if (confirmLevel(order.createdAt, now, timeoutMin) !== "critica") continue;
     const id = unconfirmedAlertId(order.id);
     if (byId.has(id)) continue;

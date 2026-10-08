@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 /** Hoja inferior (bottom sheet) para móvil; en pantallas anchas se centra con ancho máximo. */
 export function Sheet({
@@ -59,7 +60,7 @@ export function Sheet({
             </div>
             {dismissible && (
               <Dialog.Close
-                aria-label="Cerrar"
+                aria-label={t("Cerrar")}
                 className="text-muted hover:bg-surface-2 hover:text-ink -mt-1 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full"
               >
                 <X className="size-5" aria-hidden />

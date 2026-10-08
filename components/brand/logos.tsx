@@ -1,4 +1,8 @@
+"use client";
+
+import { useAppStore } from "@/lib/data/store";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 /** Marca de Platterio: un plato visto desde arriba con el borde abierto. */
 export function PlatterioMark({ className }: { className?: string }) {
@@ -46,11 +50,16 @@ export function PlatterioLogo({
 
 /** Marca tipográfica del restaurante de ejemplo. */
 export function RestaurantMark({ name, className }: { name: string; className?: string }) {
+  const logo = useAppStore((s) => s.restaurant.brand?.logo);
   const match = /^(.*?)(\s*\d+)$/.exec(name);
   const words = match ? match[1]! : name;
   const number = match ? match[2]!.trim() : null;
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
+      {logo && (
+        // eslint-disable-next-line @next/next/no-img-element -- logo propio del negocio, ya reducido
+        <img src={logo} alt="" className="size-[1.9em] rounded-lg object-contain" />
+      )}
       <span className="font-display text-[1.6em] leading-none font-semibold tracking-tight">
         {words}
       </span>
@@ -66,7 +75,7 @@ export function RestaurantMark({ name, className }: { name: string; className?: 
 export function MadeWithPlatterio({ className }: { className?: string }) {
   return (
     <p className={cn("text-muted flex items-center justify-center gap-1.5 text-xs", className)}>
-      Hecho con
+      {t("Hecho con")}
       <span className="font-display text-ink-soft inline-flex items-center gap-1 text-sm font-semibold">
         <PlatterioMark className="size-4" />
         platterio

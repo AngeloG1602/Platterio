@@ -30,6 +30,7 @@ import { RestrictionsSheet } from "./restrictions-sheet";
 import { useTableActivity } from "./table-activity";
 import { TableBar } from "./table-bar";
 import { TableGate, type TableContext } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
 
 export function MenuScreen({ numero }: { numero: string }) {
   return (
@@ -72,15 +73,17 @@ function Menu({ ctx }: { ctx: TableContext }) {
         <RestaurantMark name={restaurant.name} className="text-[14px]" />
         <div className="flex items-center gap-1">
           <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
-            Mesa {ctx.table.number} · {ctx.diner.alias}
+            {t("Mesa {n}", { n: ctx.table.number })} · {ctx.diner.alias}
           </span>
           <button
             type="button"
             onClick={openRestrictions}
             aria-label={
               restrictions.length
-                ? `Tus restricciones: ${restrictions.map((a) => ALLERGEN_LABEL[a]).join(", ")}. Cambiar`
-                : "Agregar restricciones alimentarias"
+                ? t("Tus restricciones: {list}. Cambiar", {
+                    list: restrictions.map((a) => t(ALLERGEN_LABEL[a])).join(", "),
+                  })
+                : t("Agregar restricciones alimentarias")
             }
             className="text-ink hover:bg-surface-2 relative flex size-11 items-center justify-center rounded-full"
           >
@@ -96,18 +99,18 @@ function Menu({ ctx }: { ctx: TableContext }) {
 
       <div className="px-4 pt-5">
         <p className="text-muted text-[13px] font-medium">
-          Hola, {ctx.diner.alias}
-          {current.slot && !current.upcoming ? ` · ${current.slot.name}` : ""}
+          {t("Hola, {name}", { name: ctx.diner.alias })}
+          {current.slot && !current.upcoming ? ` · ${localized(current.slot)}` : ""}
         </p>
         <h1 className="font-display mt-0.5 text-[30px] leading-[1.1] font-semibold tracking-tight">
-          ¿Qué se te antoja?
+          {t("¿Qué se te antoja?")}
         </h1>
         <SearchRow refinements={refinements} onOpenFilters={() => setFiltersOpen(true)} />
         {restrictions.length > 0 && (
           <p className="text-muted mt-2.5 text-[13px]">
-            Te avisamos si un plato tiene{" "}
+            {t("Te avisamos si un plato tiene")}{" "}
             <span className="text-ink-soft font-medium">
-              {restrictions.map((a) => ALLERGEN_LABEL[a].toLowerCase()).join(", ")}
+              {restrictions.map((a) => t(ALLERGEN_LABEL[a]).toLowerCase()).join(", ")}
             </span>
             .{" "}
             <button
@@ -115,7 +118,7 @@ function Menu({ ctx }: { ctx: TableContext }) {
               onClick={openRestrictions}
               className="text-accent-strong font-semibold underline-offset-2 hover:underline"
             >
-              Cambiar
+              {t("Cambiar")}
             </button>
           </p>
         )}
@@ -182,8 +185,8 @@ function SearchRow({
           type="search"
           value={query}
           onChange={(e) => menuFilterActions.set({ query: e.target.value })}
-          placeholder="Plato o ingrediente"
-          aria-label="Buscar por nombre o ingrediente"
+          placeholder={t("Plato o ingrediente")}
+          aria-label={t("Buscar por nombre o ingrediente")}
           enterKeyHint="search"
           className="border-line-strong bg-surface placeholder:text-muted/80 focus:border-accent focus:ring-accent/15 h-12 w-full rounded-xl border pr-11 pl-11 text-[15px] outline-none focus:ring-4 [&::-webkit-search-cancel-button]:hidden"
         />
@@ -191,7 +194,7 @@ function SearchRow({
           <button
             type="button"
             onClick={() => menuFilterActions.set({ query: "" })}
-            aria-label="Borrar búsqueda"
+            aria-label={t("Borrar búsqueda")}
             className="text-muted hover:text-ink absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 items-center justify-center"
           >
             <X className="size-4.5" aria-hidden />
@@ -201,7 +204,7 @@ function SearchRow({
       <button
         type="button"
         onClick={onOpenFilters}
-        aria-label={refinements ? `Filtros (${refinements} activos)` : "Filtros"}
+        aria-label={refinements ? t("Filtros ({n} activos)", { n: refinements }) : t("Filtros")}
         className={cn(
           "relative flex size-12 shrink-0 items-center justify-center rounded-xl border transition-colors",
           refinements
@@ -225,26 +228,26 @@ function ActiveFilters() {
   const chips: Array<{ key: string; label: string; remove: () => void }> = [
     ...filters.withoutAllergens.map((a) => ({
       key: a,
-      label: `Sin ${ALLERGEN_LABEL[a].toLowerCase()}`,
+      label: t("Sin {list}", { list: t(ALLERGEN_LABEL[a]).toLowerCase() }),
       remove: () => menuFilterActions.toggleAllergen(a),
     })),
     ...filters.spiceLevels.map((l) => ({
       key: `p${l}`,
-      label: SPICE_FILTER_LABEL[l],
+      label: t(SPICE_FILTER_LABEL[l]),
       remove: () => menuFilterActions.toggleSpice(l),
     })),
   ];
   return (
     <div
       className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pt-3"
-      aria-label="Filtros activos"
+      aria-label={t("Filtros activos")}
     >
       {chips.map((c) => (
         <button
           key={c.key}
           type="button"
           onClick={c.remove}
-          aria-label={`Quitar filtro: ${c.label}`}
+          aria-label={t("Quitar filtro: {label}", { label: c.label })}
           className="bg-surface-2 text-ink-soft hover:text-ink inline-flex h-9 shrink-0 items-center gap-1 rounded-full pr-2 pl-3 text-[13px] font-medium"
         >
           {c.label}
@@ -256,7 +259,7 @@ function ActiveFilters() {
         onClick={menuFilterActions.clearRefinements}
         className="text-accent-strong h-9 shrink-0 px-2 text-[13px] font-semibold"
       >
-        Limpiar
+        {t("Limpiar")}
       </button>
     </div>
   );
@@ -290,11 +293,13 @@ function DishResults({
       return (
         <EmptyState
           icon={UtensilsCrossed}
-          title={`${category?.name ?? "Esta categoría"} no tiene platos por ahora`}
-          description="Vuelve más tarde o mira el resto de la carta."
+          title={t("{name} no tiene platos por ahora", {
+            name: category ? localized(category) : t("Esta categoría"),
+          })}
+          description={t("Vuelve más tarde o mira el resto de la carta.")}
           action={
             <Button variant="secondary" onClick={() => menuFilterActions.set({ categoryId: null })}>
-              Ver toda la carta
+              {t("Ver toda la carta")}
             </Button>
           }
         />
@@ -303,11 +308,13 @@ function DishResults({
     return (
       <EmptyState
         icon={SearchX}
-        title="No hay platos que coincidan con estos filtros"
-        description={filters.query.trim() ? `Buscaste “${filters.query.trim()}”.` : undefined}
+        title={t("No hay platos que coincidan con estos filtros")}
+        description={
+          filters.query.trim() ? t("Buscaste “{q}”.", { q: filters.query.trim() }) : undefined
+        }
         action={
           <Button variant="secondary" onClick={menuFilterActions.clearAll}>
-            Limpiar filtros
+            {t("Limpiar filtros")}
           </Button>
         }
       />
@@ -328,7 +335,7 @@ function DishResults({
             id={`cat-${category.id}`}
             className="font-display flex items-baseline gap-2 text-[22px] font-semibold"
           >
-            {category.name}
+            {localized(category)}
             <span className="text-muted font-sans text-[13px] font-medium tabular-nums">
               {list.length}
             </span>
@@ -360,7 +367,7 @@ function DishResults({
 
 function MenuSkeleton() {
   return (
-    <div aria-busy aria-label="Cargando la carta">
+    <div aria-busy aria-label={t("Cargando la carta")}>
       <div className="flex items-center justify-between px-4 pt-4">
         <Skeleton className="h-7 w-28" />
         <Skeleton className="h-8 w-32 rounded-full" />

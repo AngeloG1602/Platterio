@@ -1,5 +1,6 @@
 import { ALLERGEN_LABEL } from "./allergens";
-import { ALLERGENS, type Allergen } from "./types";
+import { t } from "@/lib/i18n";
+import { ALLERGENS, type Allergen, type CartCustomization } from "./types";
 
 /**
  * Personalización de un plato: quitar, pedir extra o reemplazar ingredientes, agregar
@@ -408,3 +409,54 @@ export function allergenChanges(before: readonly Allergen[], after: readonly All
     added: after.filter((a) => !before.includes(a)).map((a) => ALLERGEN_LABEL[a]),
   };
 }
+
+/**
+ * Lo que se guarda en el carrito al agregar un plato personalizado. Si no cambió nada respecto
+ * a la carta devuelve `undefined`: el plato va como cualquier otro.
+ */
+export function toCartCustomization(
+  spec: DishCustomizationSpec,
+  c: Customization,
+  variantId?: string,
+): CartCustomization | undefined {
+  const kitchen = kitchenLines(spec, c, variantId);
+  const priceChange = priceDelta(spec, c, variantId);
+  if (kitchen.length === 0 && priceChange === 0) return undefined;
+  return {
+    choices: {
+      counts: { ...c.counts },
+      replaced: { ...c.replaced },
+      ...(c.side ? { side: c.side } : {}),
+    },
+    priceDelta: priceChange,
+    kitchen,
+    allergens: resultingAllergens(spec, c, variantId),
+  };
+}
+
+/** Las elecciones guardadas, listas para volver a abrirlas en el visor. */
+export const customizationOf = (custom: CartCustomization): Customization => ({
+  counts: { ...custom.choices.counts },
+  replaced: { ...custom.choices.replaced },
+  ...(custom.choices.side ? { side: custom.choices.side } : {}),
+});
+
+/** Una línea de comanda dicha para el cliente, en su idioma: "SIN Queso" → "Sin queso". */
+export function describeKitchenLine(line: string): string {
+  const named = (name: string) => t(name);
+  const sin = /^SIN (.*)$/.exec(line);
+  if (sin) return t("Sin {x}", { x: named(sin[1]!) });
+  const change = /^CAMBIAR .* → (.*)$/.exec(line);
+  if (change) return named(change[1]!);
+  const extra = /^EXTRA (.*?)( ×\d+)?$/.exec(line);
+  if (extra) return t("Extra {x}", { x: named(extra[1]!) }) + (extra[2] ?? "");
+  const add = /^AGREGAR (.*?)( ×\d+)?$/.exec(line);
+  if (add) return t("Con {x}", { x: named(add[1]!) }) + (add[2] ?? "");
+  const side = /^ACOMPAÑANTE (.*)$/.exec(line);
+  if (side) return t("Con {x}", { x: named(side[1]!) });
+  return line;
+}
+
+/** "Sin cebolla · Extra queso" para el carrito y el pedido. */
+export const describeCustomization = (custom: CartCustomization | undefined): string =>
+  custom ? custom.kitchen.map(describeKitchenLine).join(" · ") : "";

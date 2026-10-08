@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/fraunces/full.css";
 import "@fontsource-variable/inter/opsz.css";
+import "@fontsource-variable/playfair-display/wght.css";
+import "@fontsource-variable/lora/wght.css";
+import "@fontsource-variable/outfit/wght.css";
+import "@fontsource-variable/space-grotesk/wght.css";
+import "@fontsource-variable/dm-sans/opsz.css";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 

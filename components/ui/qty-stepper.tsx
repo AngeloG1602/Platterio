@@ -2,13 +2,14 @@
 
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 export function QtyStepper({
   value,
   onChange,
   min = 1,
   max = 20,
-  label = "Cantidad",
+  label = t("Cantidad"),
   size = "md",
 }: {
   value: number;
@@ -33,7 +34,7 @@ export function QtyStepper({
         className={btn}
         onClick={() => onChange(value - 1)}
         disabled={value <= min}
-        aria-label="Quitar uno"
+        aria-label={t("Quitar uno")}
       >
         <Minus className="size-4" aria-hidden />
       </button>
@@ -51,7 +52,7 @@ export function QtyStepper({
         className={btn}
         onClick={() => onChange(value + 1)}
         disabled={value >= max}
-        aria-label="Agregar uno"
+        aria-label={t("Agregar uno")}
       >
         <Plus className="size-4" aria-hidden />
       </button>

@@ -257,3 +257,179 @@ pueden cambiar sin rehacer pantallas.
     la app corriendo.
 81. **Después de agregar un plato** la ficha vuelve a la pantalla anterior (la carta, en el flujo
     normal) para conservar los filtros y la posición.
+
+## Hacia el producto vendible — Fase 1: usuarios y roles
+
+82. **Nuevo rumbo del producto.** Platterio pasa de demo a producto por suscripción, con una
+    cuenta por negocio, usuarios con rol y base de datos real (decisiones y orden de trabajo en
+    `docs/negocio/HOJA-DE-RUTA.md`). Primero se termina el software sobre el almacenamiento local
+    y la base de datos se conecta al final; por eso las reglas van en funciones puras.
+83. **Cuatro roles.** Administrador, encargado de caja, mesero y cocina, con una matriz de
+    permisos (`lib/domain/access.ts`). El encargado opera todo el salón, asigna mesas, administra
+    al equipo de servicio y cobra, pero no entra al panel completo (menú, marca, reportes
+    completos, usuarios de cualquier rol). El administrador no tiene "mesas propias": no es mesero.
+84. **Entrada con PIN.** El PIN identifica a la persona, por eso no se repite en el negocio.
+    Administrador y encargado: 6 a 8 dígitos; mesero y cocina: 4 a 6. Sin lista pública de
+    nombres. En la demo, la pantalla de entrada ofrece los usuarios de ejemplo con su PIN (marcado
+    "Solo en la demo") para probar cada rol.
+85. **El prototipo no es seguridad real.** Los PIN y la sesión viven en el navegador; las guardas
+    de ruta son de interfaz. Con la base de datos, el acceso pasa a Supabase Auth y las mismas
+    reglas se aplican en el servidor (RLS). Pendiente entonces: limitar intentos y cerrar sesión
+    por inactividad.
+86. **La sesión de quien entra es por pestaña** (sessionStorage), igual que la identidad del
+    dispositivo en la demo: cada pestaña puede ser una persona distinta. En el producto real será
+    persistente en el dispositivo.
+87. **Quién administra a quién.** El administrador crea y modifica cualquier rol; el encargado,
+    solo meseros y cocina. Nadie se desactiva a sí mismo y siempre queda un administrador activo.
+88. **No se borra a nadie, se desactiva.** Así el historial de pedidos y calificaciones conserva
+    el nombre. Un mesero desactivado deja libres sus mesas (se avisa al desactivarlo).
+89. **Crear un mesero crea su ficha.** El alta de mesero ya no está en Configuración: se hace en
+    "Equipo", con su PIN, y la ficha (mesas, calificaciones) se crea con él. Asignar mesas sigue
+    en Configuración y en la Caja.
+90. **Operar una mesa depende de quién entró.** El mesero actúa solo sobre sus mesas; el
+    encargado y el administrador, sobre todas. Antes bastaba con elegir un mesero de una lista.
+91. **Caja (`/caja`).** Pantalla del encargado: el mismo salón del mesero pero con todas las
+    mesas, más "Mesas y meseros" y "Equipo". El administrador también puede entrar.
+
+## Fase 2: mesas con QR fijo y PIN
+
+92. **El QR de la mesa es fijo y no da acceso por sí solo.** Escanearlo sin una sesión abierta
+    muestra "Pide al mesero que abra tu mesa", con un botón para avisarle. Así nadie puede pedir
+    con un enlace guardado en el historial ni desde fuera del local.
+93. **El mesero (o el encargado, o el administrador) abre la mesa.** Cada sesión nace con un PIN
+    de 4 dígitos, sin repetirse entre las mesas abiertas, que el mesero da de palabra o muestra
+    como QR (`/mesa/N?pin=XXXX`, que lo trae prellenado). El PIN solo vale mientras la sesión
+    esté abierta. Un mesero solo abre sus mesas; encargado y administrador, todas.
+94. **Entrar exige el PIN, una sola vez por dispositivo.** El que ya está dentro vuelve a entrar
+    sin PIN. Si la mesa se cierra y se abre otra vez, la sesión nueva tiene otro PIN y todos
+    deben entrar de nuevo. Antes de entrar no se muestran los nombres de quienes ya están
+    (solo cuántos).
+95. **Aviso "abre mi mesa".** El cliente de una mesa cerrada puede avisar; al personal le sale
+    una tarjeta "La Mesa N pide que la abras" con el botón para abrirla, y un aviso. No se
+    duplican avisos sin atender y se atienden al abrir la mesa. Es la base de otros avisos
+    futuros (llamar al mesero, pedir la cuenta).
+96. **Cierre automático.** Una mesa se cierra sola cuando no tiene rondas sin entregar ni
+    rechazar y pasan N minutos sin actividad (entrar, mover el carrito o cualquier movimiento de
+    sus rondas; cuenta desde lo último). Nunca se cierra con rondas pendientes. El negocio lo
+    define en Configuración (por defecto 30 min, de 5 a 240) y el mesero puede cambiarlo para una
+    mesa en particular.
+97. **Cancelar una mesa.** Solo el encargado y el administrador. Cierra la mesa aunque tenga
+    rondas sin entregar, que quedan rechazadas con el motivo "Mesa cancelada". Es para casos
+    especiales y queda el motivo de cierre en la sesión (`mesero`, `cancelada`, `inactividad`).
+98. **El cierre automático lo ejecuta cualquier pestaña abierta** (junto al vigilante de
+    alertas), calculando siempre sobre el estado actual, así que dos pestañas a la vez no se
+    estorban. Con la base de datos pasará a una tarea en el servidor.
+99. **La demo.** "Simular otro comensal" abre la mesa por su cuenta si estaba cerrada, como
+    lo haría un mesero.
+100.  **Pedido tomado por el personal.** El mesero (en sus mesas) y el encargado/administrador (en
+      todas) pueden "Tomar pedido" en la ficha de la mesa. La ronda nace ya confirmada y va
+      directo a cocina, porque quien la toma es quien la confirma. Si la mesa estaba libre se abre
+      sola con su PIN. Los platos quedan a nombre de "Mesero" en el ticket y no se piden reseñas.
+101.  **Editar siempre, con rastro.** Cualquier ronda que no esté anulada se puede tocar (quitar,
+      cantidad, opción, agregar platos, anular la ronda), también ya entregada: "a riesgo de ellos",
+      pero cada cambio guarda quién, cuándo, qué y el motivo en `Order.changes`. Todo cambio
+      menos agregar exige motivo. No se deja quitar el último plato: se anula la ronda.
+      El flujo de ajustar antes de confirmar (con aviso al cliente) queda igual.
+102.  **Aviso a cocina.** Los cambios sobre una ronda en cocina aparecen en su tarjeta como
+      "Cambios del mesero" (con aviso emergente) hasta que cocina toca "Visto"; los platos
+      quitados se ven tachados y los agregados marcados "Nuevo".
+103.  **Marca por negocio.** Cada negocio elige una plantilla (Cálido, Clásico, Moderno, Fresco,
+      Rústico: colores de fondo y texto, color de acento y par de tipografías), y encima puede
+      cambiar el acento, las tipografías y subir su logo. Se guarda en `Restaurant.brand` y se
+      aplica como variables CSS a toda la app; la cocina conserva su modo oscuro. Todas las
+      plantillas cumplen contraste AA (hay prueba que lo verifica); el acento siempre pasa por
+      `strongVariant` para botones y textos.
+104.  **Tipografías incluidas, no de Google.** Se sirven desde el paquete (Fontsource), sin pedir
+      nada a servidores externos (privacidad y velocidad). Solo se descarga la que se usa.
+      Subir tipografías propias queda fuera: con dominio propio y Storage (Fase 9) se evalúa.
+105.  **Logo.** PNG, JPG o WebP de hasta 3 MB; el navegador lo reduce a 512 px y debe quedar
+      bajo ~300 KB. Se guarda como data URL (con la base de datos pasa a Storage). No se acepta
+      SVG para no meter código ajeno en la página.
+106.  **Plan.** Plantillas, tipografías y logo se dejan abiertos en el prototipo; la restricción
+      por plan (Profesional) se aplica en la Fase 10 junto con los cobros.
+107.  **Cobro sin pasarela.** Platterio no procesa pagos: caja (encargado o administrador) registra
+      lo que el cliente pagó, con la forma (efectivo, tarjeta, transferencia, otro). Una cuenta
+      se puede pagar en partes y con varias formas; no se acepta más de lo que falta. El mesero
+      no cobra (no tiene el permiso `cobrar`).
+108.  **Turno de caja.** Se abre con un fondo en efectivo y solo hay uno abierto a la vez. Sin caja
+      abierta no se registran pagos. Al cerrar se cuenta el efectivo: esperado = fondo + pagos en
+      efectivo del turno. Si hay diferencia, la nota es obligatoria. El resumen queda congelado
+      en el turno. Cerrar con mesas por cobrar se permite, pero se avisa.
+109.  **Mesas cerradas sin cobro.** Liberar o auto-cerrar una mesa con saldo no se bloquea (el
+      servicio no puede quedar atascado), pero la cuenta queda marcada y aparece en el reporte
+      "Mesas cerradas sin cobro registrado", para que el dueño vea el dinero sin soporte.
+110.  **Reportes.** Nueva sección `/admin/reportes` (Esencial): vendido vs. cobrado, cobrado por
+      forma de pago, ventas por mesero, cambios y anulaciones del personal (con quién y por qué),
+      mesas sin cobro y cierres de caja; todo con CSV (separador ";" y BOM, abre bien en Excel).
+      El historial sembrado ahora trae cobros y un cierre por día, con algunas diferencias y un
+      4 % de mesas sin cobro para que los reportes tengan qué mostrar.
+111.  **Periodos hasta el final del minuto actual**, para que lo que acaba de pasar entre al reporte.
+112.  **Un domicilio es una mesa sin mesa.** Cada pedido a domicilio o para recoger crea una
+      sesión (`tableId: "domicilio"`, con sus datos en `session.delivery`) y una ronda. Así
+      reutiliza sin duplicar la cocina, los estados, el cobro, el registro de cambios y las ventas.
+      No aparece en el salón ni en las alertas de "sin confirmar" (esas son del mesero). Lo
+      gestiona el encargado o el administrador, no el mesero.
+113.  **Flujo del pedido.** Recibido → confirmado (caja) → en preparación y listo (cocina) →
+      despachado con un domiciliario → entregado. Para recoger no hay despacho: se entrega en el
+      mostrador. El cliente solo cancela mientras no lo hayan confirmado; después, solo el
+      personal, con motivo y quedando en el registro de cambios.
+114.  **Cobro al recibir.** Sin pasarela de pagos: el cliente elige cómo pagará (efectivo con
+      cuánto paga para llevar cambio, tarjeta por datáfono o transferencia) y caja registra el
+      pago como cualquier otro. El envío cuenta en la cuenta pero no en "ventas de platos". Un
+      domicilio entregado aún se puede cobrar; si no se cobra, sale en "sin cobro registrado".
+115.  **Zonas, mínimos y horario.** Cada zona tiene envío, pedido mínimo y tiempo; el tiempo
+      prometido es el de la zona más la preparación del negocio. El horario puede cruzar la
+      medianoche y se compara con la hora de la demo. Fuera de horario se puede armar el pedido
+      pero no enviarlo.
+116.  **Datos del cliente.** Nombre y celular colombiano (10 dígitos que empiezan por 3); se
+      recuerdan en su navegador para el próximo pedido. El enlace de seguimiento lleva un
+      identificador aleatorio. Con la base de datos (Fase 9) se suman límites de pedidos por
+      celular y verificación para evitar pedidos falsos.
+117.  **Rendimiento de la carta de domicilios.** Sin animaciones de librería en las pantallas del
+      cliente; la hoja de "agregar plato" se descarga solo al tocar un plato; las secciones de la
+      carta usan `content-visibility`, las filas están memorizadas y las fotos cargan perezosas.
+118.  **Sin propina y sin impuestos.** Platterio no suma propina (ni sugerida ni automática) ni calcula
+      impuestos: el precio de la carta es el precio final y cada negocio maneja la propina y sus
+      obligaciones fiscales (impuesto al consumo, IVA, factura electrónica) como siempre. Quedan
+      fuera a propósito y se dirá en los términos de uso que Platterio no es un sistema de
+      facturación.
+119.  **Idiomas: español e inglés, solo para el cliente.** El texto en español es la clave de
+      traducción (`t("Ver la carta")`): si falta una traducción se ve el español, nunca una pantalla
+      rota. Se traduce todo lo que ve el cliente (entrada a la mesa, carta, ficha, carrito, pedido,
+      calificación y domicilios, con sus mensajes de error). El personal siempre ve español.
+120.  **Cómo se elige el idioma.** El negocio decide si ofrece inglés (Configuración → Idioma y
+      moneda). El cliente ve el de su celular si el negocio lo ofrece, puede cambiarlo con el
+      selector de arriba y se le recuerda en su navegador. Al cambiar, la pantalla se vuelve a
+      pintar con los textos nuevos.
+121.  **Platos en inglés.** Cada plato tiene campos opcionales de nombre y descripción en inglés
+      (en la ficha del plato del panel). Si no los llena, se usa el diccionario (la carta de la demo
+      está completa, con una prueba que lo verifica) y, si tampoco está, queda el español. Falta aún
+      que la búsqueda de la carta entienda los nombres en inglés.
+122.  **Moneda.** El negocio elige entre COP, MXN, USD, EUR, PEN y CLP. Cambia el símbolo y el
+      separador de miles, pero **no convierte** los precios ya escritos, y los precios van en
+      unidades enteras (sin centavos). Si un cliente necesita centavos, se pasa a guardar en la
+      unidad menor de la moneda (cambio grande, se evalúa cuando haga falta).
+123.  **El visor 3D vive en la ficha del plato.** Los platos que tienen personalización configurada
+      (hoy Clásica 27, Brasa BBQ, La Diabla y el Calentado) muestran **Ver en 3D**: se abre una hoja
+      con el plato girando, el control para separar los ingredientes y la lista para quitar, pedir
+      extra, reemplazar o cambiar el acompañante. Al cerrar, la ficha muestra "Tu versión" con el
+      cambio de precio y **Agregar** lo manda al carrito. El laboratorio sigue existiendo para
+      probar modelos y comparte las piezas de la lista con la ficha.
+124.  **La personalización queda congelada en el carrito y viaja con el pedido.** Cada línea guarda
+      lo que suma al precio, las líneas de comanda (en español: "SIN Cebolla", "EXTRA Queso") y los
+      alérgenos resultantes. El precio y la comanda los **recalcula la acción de agregar** a partir
+      de las elecciones; no se confía en lo que mande el celular. Líneas con distinta
+      personalización no se juntan. Quitar un ingrediente no descuenta (como en la propuesta).
+      Cocina y mesero ven las líneas destacadas (rojo = sin, verde = extra/agregar); el cliente las
+      ve en su idioma. Un plato personalizado no cambia de opción/tamaño ni en el carrito ni por
+      el mesero: se quita y se vuelve a pedir (el precio de los extras depende del tamaño).
+125.  **El 3D se descarga solo si se usa.** Three.js y el modelo (~1,3 MB) no se cargan con la ficha:
+      se adelantan al acercar el dedo o el puntero al botón (salvo con "ahorro de datos") y, si no,
+      al abrirlo. Dibuja solo cuando algo se mueve, baja la calidad si el equipo no da y respeta
+      "reducir movimiento" (no gira solo). Sin WebGL queda el mensaje y la lista sigue sirviendo.
+      El modelo CC BY muestra su crédito en el visor.
+126.  **El 3D es un servicio por plato.** Un plato lo tiene activo cuando hay modelo y personalización
+      configurados; en el panel se ve "Visor 3D activo" o "Modelo 3D subido, aún sin activar". La
+      configuración la hacemos nosotros (hoy vive en código; con la base de datos, Fase 9, pasa a
+      datos del plato) y el cobro por plato se aplica en la Fase 10. Pendiente: personalizar
+      también desde `/domicilio` y desde "Tomar pedido" del mesero (hoy esos usan la nota).

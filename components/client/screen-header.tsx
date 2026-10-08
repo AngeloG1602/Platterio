@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { IconButton } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 
 /** Encabezado de las pantallas internas de la mesa: volver, título y un extra opcional. */
 export function ScreenHeader({
@@ -20,7 +21,7 @@ export function ScreenHeader({
   const router = useRouter();
   return (
     <header className="border-line bg-bg/92 sticky top-0 z-20 flex items-center gap-2 border-b px-2 py-2 backdrop-blur-md">
-      <IconButton label="Volver a la carta" onClick={() => router.push(backHref)}>
+      <IconButton label={t("Volver a la carta")} onClick={() => router.push(backHref)}>
         <ArrowLeft aria-hidden />
       </IconButton>
       <div className="min-w-0 flex-1">
@@ -32,7 +33,7 @@ export function ScreenHeader({
   );
 }
 
-export function LiveDot({ label = "En vivo" }: { label?: string }) {
+export function LiveDot({ label = t("En vivo") }: { label?: string }) {
   return (
     <span className="text-success-ink inline-flex items-center gap-1.5 text-xs font-semibold">
       <span className="relative flex size-2" aria-hidden>

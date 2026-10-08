@@ -8,6 +8,7 @@ import { useDishes, useServiceFeedback, useSessionOrders } from "@/lib/data";
 import { cartCount, cartTotal } from "@/lib/domain/cart";
 import { plural } from "@/lib/domain/format";
 import type { TableContext } from "./table-gate";
+import { t } from "@/lib/i18n";
 
 /** Barra inferior del menú: el carrito compartido o, si ya enviaron, el estado del pedido. */
 export function TableBar({ ctx }: { ctx: TableContext }) {
@@ -31,9 +32,9 @@ export function TableBar({ ctx }: { ctx: TableContext }) {
           <Star className="size-5 shrink-0 fill-[#E9A23B] text-[#E9A23B]" aria-hidden />
           <span className="flex flex-1 flex-col leading-tight">
             <span className="text-[15px] font-semibold">
-              ¿Qué tal todo? Califica tu experiencia
+              {t("¿Qué tal todo? Califica tu experiencia")}
             </span>
-            <span className="text-bg/75 text-xs">Tus platos y el servicio</span>
+            <span className="text-bg/75 text-xs">{t("Tus platos y el servicio")}</span>
           </span>
           <ChevronRight className="size-4" aria-hidden />
         </Link>
@@ -49,10 +50,12 @@ export function TableBar({ ctx }: { ctx: TableContext }) {
             </span>
           </span>
           <span className="flex flex-1 flex-col leading-tight">
-            <span className="text-[15px] font-semibold">Ver carrito de la mesa</span>
+            <span className="text-[15px] font-semibold">{t("Ver carrito de la mesa")}</span>
             <span className="text-xs text-white/85">
               {plural(count, "plato", "platos")}
-              {latest ? ` · irá en la ronda ${latest.round + 1}` : " sin enviar"}
+              {latest
+                ? ` · ${t("irá en la ronda {n}", { n: latest.round + 1 })}`
+                : ` ${t("sin enviar")}`}
             </span>
           </span>
           <Price value={cartTotal(ctx.session.cart, dishes)} className="text-[15px]" />
@@ -65,9 +68,9 @@ export function TableBar({ ctx }: { ctx: TableContext }) {
           >
             <ReceiptText className="text-accent-strong size-5 shrink-0" aria-hidden />
             <span className="flex flex-1 flex-col gap-0.5 leading-tight">
-              <span className="text-[15px] font-semibold">Pedido de la mesa</span>
+              <span className="text-[15px] font-semibold">{t("Pedido de la mesa")}</span>
               <span className="text-muted text-xs">
-                {plural(orders.length, "ronda", "rondas")} · toca para ver el estado
+                {plural(orders.length, "ronda", "rondas")} · {t("toca para ver el estado")}
               </span>
             </span>
             <StatusBadge status={latest.status} short />

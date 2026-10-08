@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/domain/orderStatus";
 import type { OrderStatus } from "@/lib/domain/types";
 import { Badge } from "./chip";
+import { t } from "@/lib/i18n";
 
 const CONFIG: Record<
   OrderStatus,
@@ -22,7 +23,7 @@ export function StatusBadge({ status, short = false }: { status: OrderStatus; sh
   return (
     <Badge tone={tone}>
       <Icon aria-hidden />
-      {short && status === "pendiente" ? "Por confirmar" : STATUS_LABEL[status]}
+      {short && status === "pendiente" ? t("Por confirmar") : t(STATUS_LABEL[status])}
     </Badge>
   );
 }

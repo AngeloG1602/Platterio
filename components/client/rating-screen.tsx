@@ -19,6 +19,7 @@ import { ClientShell } from "./client-shell";
 import { ScreenHeader } from "./screen-header";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
 
 export function RatingScreen({ numero }: { numero: string }) {
   return (
@@ -46,14 +47,16 @@ function Rating({ ctx }: { ctx: TableContext }) {
   if (ratable.length === 0) {
     return (
       <>
-        <ScreenHeader title="Califica tu experiencia" backHref={`${ctx.base}/pedido`} />
+        <ScreenHeader title={t("Califica tu experiencia")} backHref={`${ctx.base}/pedido`} />
         <EmptyState
           icon={UtensilsCrossed}
-          title="Aún no hay nada para calificar"
-          description="Podrás calificar tus platos y el servicio cuando te entreguen el pedido."
+          title={t("Aún no hay nada para calificar")}
+          description={t(
+            "Podrás calificar tus platos y el servicio cuando te entreguen el pedido.",
+          )}
           action={
             <Link href={`${ctx.base}/pedido`} className={buttonClasses({ variant: "secondary" })}>
-              Ver el pedido
+              {t("Ver el pedido")}
             </Link>
           }
           className="my-auto"
@@ -65,8 +68,8 @@ function Rating({ ctx }: { ctx: TableContext }) {
   return (
     <>
       <ScreenHeader
-        title="Califica tu experiencia"
-        subtitle={`Mesa ${ctx.table.number}`}
+        title={t("Califica tu experiencia")}
+        subtitle={t("Mesa {n}", { n: ctx.table.number })}
         backHref={`${ctx.base}/pedido`}
       />
       {step !== "gracias" && <Steps step={step} />}
@@ -88,7 +91,7 @@ function Rating({ ctx }: { ctx: TableContext }) {
               alreadyRatedBy={
                 serviceRating
                   ? (ctx.session.diners.find((d) => d.id === serviceRating.dinerId)?.alias ??
-                    "Alguien de la mesa")
+                    t("Alguien de la mesa"))
                   : null
               }
               onDone={(low) => {
@@ -106,12 +109,12 @@ function Rating({ ctx }: { ctx: TableContext }) {
 
 function Steps({ step }: { step: Step }) {
   const items: Array<[Step, string]> = [
-    ["platos", "Tus platos"],
-    ["servicio", "El servicio"],
+    ["platos", t("Tus platos")],
+    ["servicio", t("El servicio")],
   ];
   const current = items.findIndex(([s]) => s === step);
   return (
-    <ol className="flex gap-2 px-4 pt-4" aria-label="Pasos">
+    <ol className="flex gap-2 px-4 pt-4" aria-label={t("Pasos")}>
       {items.map(([s, label], i) => (
         <li key={s} className="flex-1" aria-current={i === current ? "step" : undefined}>
           <span
@@ -163,11 +166,13 @@ function DishStep({
     if (!result.ok) {
       const bad = pending.find((r) => r.dish.id === result.dishId);
       setErrorKey(bad ? keyOf(bad) : null);
-      toast.error(result.error);
+      toast.error(t(result.error));
       return;
     }
     if (result.count)
-      toast.success(`Gracias: ${plural(result.count, "plato calificado", "platos calificados")}`);
+      toast.success(
+        t("Gracias: {n}", { n: plural(result.count, "plato calificado", "platos calificados") }),
+      );
     onDone();
   }
 
@@ -175,10 +180,10 @@ function DishStep({
     <div className="flex flex-1 flex-col">
       <div className="px-4 pt-5">
         <h2 className="font-display text-[26px] leading-tight font-semibold">
-          ¿Qué tal estuvo la comida?
+          {t("¿Qué tal estuvo la comida?")}
         </h2>
         <p className="text-muted mt-1 text-[15px]">
-          Califica cada plato. El comentario es opcional.
+          {t("Califica cada plato. El comentario es opcional.")}
         </p>
       </div>
       <ul className="flex flex-col gap-3 px-4 pt-4 pb-36">
@@ -188,7 +193,7 @@ function DishStep({
             <li key={key}>
               {i === firstOthers && firstOthers > 0 && (
                 <p className="text-muted mt-3 mb-2 text-xs font-semibold tracking-wide uppercase">
-                  También en la mesa
+                  {t("También en la mesa")}
                 </p>
               )}
               <article
@@ -200,18 +205,18 @@ function DishStep({
                 <div className="flex items-center gap-3">
                   <DishImage
                     src={r.dish.photos[0]}
-                    name={r.dish.name}
+                    name={localized(r.dish)}
                     sizes="56px"
                     className="size-14 shrink-0"
                     initialClassName="text-2xl"
                   />
                   <h3 className="font-display flex-1 text-[18px] leading-snug font-semibold">
-                    {r.dish.name}
+                    {localized(r.dish)}
                   </h3>
                 </div>
                 {r.existing ? (
                   <p className="text-success-ink mt-3 flex items-center gap-2 text-sm">
-                    <Check className="size-4" aria-hidden /> Ya lo calificaste{" "}
+                    <Check className="size-4" aria-hidden /> {t("Ya lo calificaste")}{" "}
                     <Stars value={r.existing.stars} />
                   </p>
                 ) : (
@@ -223,20 +228,20 @@ function DishStep({
                           setStars((s) => ({ ...s, [key]: v }));
                           if (errorKey === key) setErrorKey(null);
                         }}
-                        label={`Calificación de ${r.dish.name}`}
+                        label={t("Calificación de {dish}", { dish: localized(r.dish) })}
                       />
                     </div>
                     {open[key] ? (
                       <div className="mt-2">
                         <label htmlFor={`c-${key}`} className="sr-only">
-                          Comentario sobre {r.dish.name}
+                          {t("Comentario sobre {dish}", { dish: localized(r.dish) })}
                         </label>
                         <Textarea
                           id={`c-${key}`}
                           value={comments[key] ?? ""}
                           maxLength={COMMENT_MAX}
                           onChange={(e) => setComments((c) => ({ ...c, [key]: e.target.value }))}
-                          placeholder="¿Qué te gustó o qué mejorarías?"
+                          placeholder={t("¿Qué te gustó o qué mejorarías?")}
                           rows={2}
                           className="min-h-20"
                           autoFocus
@@ -251,7 +256,8 @@ function DishStep({
                         onClick={() => setOpen((o) => ({ ...o, [key]: true }))}
                         className="text-accent-strong mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold"
                       >
-                        <MessageSquarePlus className="size-4" aria-hidden /> Agregar comentario
+                        <MessageSquarePlus className="size-4" aria-hidden />{" "}
+                        {t("Agregar comentario")}
                       </button>
                     )}
                   </>
@@ -264,8 +270,8 @@ function DishStep({
       <div className="border-line bg-surface/95 pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t px-4 pt-3 backdrop-blur">
         <Button block size="lg" onClick={submit}>
           {filled > 0
-            ? `Enviar ${plural(filled, "calificación", "calificaciones")} y seguir`
-            : "Seguir al servicio"}
+            ? t("Enviar {n} y seguir", { n: plural(filled, "calificación", "calificaciones") })
+            : t("Seguir al servicio")}
           <ArrowRight aria-hidden />
         </Button>
       </div>
@@ -289,17 +295,20 @@ function ServiceStep({
     return (
       <div className="flex flex-1 flex-col px-4 pt-6">
         <h2 className="font-display text-[26px] leading-tight font-semibold">
-          El servicio ya fue calificado
+          {t("El servicio ya fue calificado")}
         </h2>
         <p className="text-ink-soft mt-2 text-[15px]">
-          {rating.dinerId === ctx.diner.id ? "Tú" : alreadyRatedBy} calificaste la atención de esta
-          visita. Se califica una sola vez por mesa.
+          {rating.dinerId === ctx.diner.id
+            ? t("Tú calificaste la atención de esta visita. Se califica una sola vez por mesa.")
+            : t("{name} calificó la atención de esta visita. Se califica una sola vez por mesa.", {
+                name: alreadyRatedBy,
+              })}
         </p>
         <div className="mt-4">
           <Stars value={rating.stars} />
         </div>
         <Button className="mt-8" size="lg" onClick={() => onDone(false)}>
-          Terminar
+          {t("Terminar")}
         </Button>
       </div>
     );
@@ -307,7 +316,7 @@ function ServiceStep({
 
   function submit() {
     const r = feedbackActions.rateService(ctx.table.id, stars);
-    if (!r.ok) return toast.error(r.error);
+    if (!r.ok) return toast.error(t(r.error));
     onDone(Boolean(r.lowAlert));
   }
 
@@ -317,17 +326,22 @@ function ServiceStep({
         {waiter?.name.charAt(0) ?? "?"}
       </span>
       <h2 className="font-display mt-4 text-[26px] leading-tight font-semibold">
-        ¿Cómo te atendió {waiter?.name ?? "el mesero"}?
+        {t("¿Cómo te atendió {name}?", { name: waiter?.name ?? t("el mesero") })}
       </h2>
       <p className="text-muted mt-1 text-[15px]">
-        Una sola calificación por visita, aparte de la comida. Nos ayuda a mejorar a tiempo.
+        {t("Una sola calificación por visita, aparte de la comida. Nos ayuda a mejorar a tiempo.")}
       </p>
       <div className="mt-6 -ml-2">
-        <StarInput value={stars} onChange={setStars} label="Calificación del servicio" size="lg" />
+        <StarInput
+          value={stars}
+          onChange={setStars}
+          label={t("Calificación del servicio")}
+          size="lg"
+        />
       </div>
       <div className="border-line bg-surface/95 pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t px-4 pt-3 backdrop-blur">
         <Button block size="lg" disabled={stars === 0} onClick={submit}>
-          Enviar calificación
+          {t("Enviar calificación")}
         </Button>
       </div>
     </div>
@@ -346,25 +360,27 @@ function Thanks({ ctx, low }: { ctx: TableContext; low: boolean }) {
         <Heart className="size-9 fill-current" aria-hidden />
       </motion.span>
       <h2 className="font-display mt-6 text-[30px] leading-tight font-semibold">
-        ¡Gracias, {ctx.diner.alias}!
+        {t("¡Gracias, {name}!", { name: ctx.diner.alias })}
       </h2>
       <p className="text-ink-soft mt-3 max-w-xs text-[16px] leading-relaxed">
         {low
-          ? "Sentimos que la atención no haya estado a la altura. Tu calificación ya le llegó al administrador para corregirlo hoy mismo."
-          : "Tu opinión nos ayuda a mejorar y a que otros elijan mejor."}
+          ? t(
+              "Sentimos que la atención no haya estado a la altura. Tu calificación ya le llegó al administrador para corregirlo hoy mismo.",
+            )
+          : t("Tu opinión nos ayuda a mejorar y a que otros elijan mejor.")}
       </p>
       <div className="mt-8 flex w-full flex-col gap-2">
         <Link
           href={`${ctx.base}/pedido`}
           className={buttonClasses({ variant: "secondary", size: "lg", block: true })}
         >
-          Volver al pedido
+          {t("Volver al pedido")}
         </Link>
         <Link
           href={`${ctx.base}/menu`}
           className={buttonClasses({ variant: "ghost", block: true })}
         >
-          Ver la carta
+          {t("Ver la carta")}
         </Link>
       </div>
     </div>
@@ -373,7 +389,7 @@ function Thanks({ ctx, low }: { ctx: TableContext; low: boolean }) {
 
 function RatingSkeleton() {
   return (
-    <div className="flex flex-col gap-3 px-4 pt-4" aria-busy aria-label="Cargando">
+    <div className="flex flex-col gap-3 px-4 pt-4" aria-busy aria-label={t("Cargando")}>
       <Skeleton className="h-7 w-56" />
       <Skeleton className="h-32 rounded-2xl" />
       <Skeleton className="h-32 rounded-2xl" />

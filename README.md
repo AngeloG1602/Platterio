@@ -37,6 +37,21 @@ npx playwright install chromium       # solo la primera vez
 npm run e2e
 ```
 
+## Usuarios de la demo
+
+Las pantallas del personal piden PIN. En la pantalla de entrada, "Usuarios de la demo" permite
+entrar sin escribirlo (solo existe en la demo).
+
+| Usuario | Rol           | PIN    |
+| ------- | ------------- | ------ |
+| Marta   | Administrador | 246810 |
+| Julián  | Encargado     | 135790 |
+| Carlos  | Mesero        | 1111   |
+| Daniela | Mesero        | 2222   |
+| Cocina  | Cocina        | 3333   |
+
+La sesión es por pestaña, así que cada pestaña puede ser una persona distinta.
+
 ## Guion de demo (5 minutos)
 
 Todo se hace en **pestañas del mismo navegador**: cada pestaña cuenta como un celular o
@@ -44,7 +59,9 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
 
 1. **Hub → Panel de demo** (o `/?demo=1`): toca _Reiniciar datos_ si vienes de un ensayo y pon
    la hora en **Almuerzo**.
-2. **Pestaña A – Mesa 3 como "Ana"**: en la hoja de alergias marca **Lácteos**. Los
+2. **Pestaña A – Mesa 3 como "Ana"**: al escanear, la mesa aún está cerrada ("Pide al mesero que
+   abra tu mesa"). En otra pestaña, **Carlos** toca la Mesa 3 → _Abrir mesa_ y obtiene el PIN
+   (o muestra su QR). Ana entra con su nombre y ese PIN. En la hoja de alergias marca **Lácteos**. Los
    recomendados cambian (sale la Clásica 27) y la ficha de la Clásica 27 muestra el aviso de
    lácteos, aunque se puede pedir igual.
 3. **Pestaña B – Mesa 3 como "Luis"**: cada uno agrega platos y ambos ven el mismo carrito en
@@ -55,41 +72,74 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
    cocina_.
    - Para mostrar la alerta: activa **Acelerar el tiempo ×10** en el panel de demo antes de
      confirmar. A los ~18 s la tarjeta se pone en alerta y a los ~36 s se avisa al administrador.
-5. **Pestaña D – Cocina**: _Empezar a preparar_ y luego _Marcar listo_. El cliente ve avanzar
+5. **Pestaña D – Cocina** (entra como _Cocina_ en "Usuarios de la demo"): _Empezar a preparar_ y luego _Marcar listo_. El cliente ve avanzar
    la línea de tiempo y el mesero recibe el aviso. En el mesero: _Marcar entregado_.
 6. **Pestaña A**: _Califica tu experiencia_ → estrellas a los platos → **2 estrellas** al
    servicio.
-7. **Pestaña E – Administrador**: aparece la alerta de servicio bajo de la Mesa 3. Recorre el
+7. **Pestaña E – Administrador** (entra como _Marta_): aparece la alerta de servicio bajo de la Mesa 3. Recorre el
    Resumen, _Ventas_ (más pedidos por franja) y _Calificaciones_ (reseñas). En _Platos → Nuevo
    plato_, crea uno con foto, franja Almuerzo y **Destacado por la casa**: en el cliente sale de
    primero en los recomendados como "Nuevo en la casa".
-8. **Cierre**: en cualquier ficha con modelo (Clásica 27, Brasa BBQ, La Diabla) está el botón
-   **Vista 3D — próximamente**: es la siguiente épica (EPIC-03).
+8. **Cierre**: en la ficha de la Clásica 27 (también Brasa BBQ, La Diabla y el Calentado) toca
+   **Ver en 3D**: gira el plato, sepáralo, quita la cebolla o pide queso extra. El precio se
+   actualiza, **Agregar** lo manda al carrito con "Sin cebolla · Extra queso", y el mesero y la
+   cocina lo ven en su comanda.
+
+9. **Pedido del mesero**: con Carlos o Daniela en una mesa (libre o abierta), _Tomar pedido_ →
+   elige platos y _Enviar a cocina_ (llega directo, sin confirmar). Luego _Editar_ la ronda →
+   _Ajustar_ un plato con motivo: cocina ve el aviso **Cambios del mesero** y toca _Visto_; el
+   registro de cambios queda en la hoja de la ronda.
+
+10. **Marca**: como Marta, en _Configuración → Identidad de marca_ elige la plantilla
+    **Moderno** (cambian colores, letra y acento al instante en todas las pestañas), sube un
+    logo y cambia las tipografías. _Cálido_ vuelve a la marca de la casa.
+
+11. **Caja y reportes**: como Julián, en `/caja` → _Caja_ abre el turno con el fondo, cobra una
+    mesa (también desde su ficha, botón _Cobrar_) y cierra contando el efectivo: si no cuadra,
+    pide la nota. Como Marta, `/admin/reportes` muestra lo cobrado por forma de pago, ventas por
+    mesero, cambios del personal, mesas sin cobro y cierres; cada tabla se descarga en CSV.
+
+12. **Domicilios**: abre `/domicilio` en el celular (pestaña nueva), arma un pedido, elige zona
+    y envía. Como Julián, en `/caja` → _Domicilios_ confirma el pedido; la cocina lo prepara,
+    caja lo _Despacha_ con un domiciliario y lo marca _Entregado_ mientras el cliente ve cada
+    paso en su seguimiento. _Cobrar_ lo registra. Zonas, tarifas y horario: Marta, en
+    _Configuración → Domicilios y recogida_.
+
+13. **Idioma y moneda**: abre `/domicilio` con el celular en inglés (o usa el selector _Español /
+    English_ de arriba): la carta, los platos y los mensajes salen en inglés. Como Marta, en
+    _Configuración → Idioma y moneda_ cambia la moneda (ver el símbolo) o apaga el inglés; en la
+    ficha de un plato puedes escribir su nombre y descripción en inglés. No hay propina ni
+    impuestos a propósito (ver DECISIONES 118).
 
 Atajos útiles: _Simular otro comensal_ (panel de demo) mete a alguien más a una mesa y le hace
 agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 
 ## Rutas
 
-| Ruta                                  | Vista                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------ |
-| `/`                                   | Hub de demo: entrar como cliente (mesas), mesero, cocina o administrador       |
-| `/?demo=1`                            | Abre el panel de demo (hora simulada, tiempo ×10, simular comensal, reiniciar) |
-| `/muestra`                            | Muestra de componentes con el estilo final                                     |
-| `/mesa/[numero]`                      | Entrada del cliente (lo que abre el QR)                                        |
-| `/mesa/[numero]/menu`                 | Recomendados por franja, categorías, buscador y filtros                        |
-| `/mesa/[numero]/plato/[id]`           | Ficha del plato                                                                |
-| `/mesa/[numero]/carrito`              | Carrito compartido de la mesa y envío                                          |
-| `/mesa/[numero]/pedido`               | Ticket de la mesa y línea de tiempo del pedido                                 |
-| `/mesa/[numero]/calificar`            | Calificar platos y servicio                                                    |
-| `/mesero`                             | Mesero (`?mesero=carlos` o `?mesero=daniela` entra directo)                    |
-| `/cocina`                             | Tablero de cocina en modo oscuro                                               |
-| `/admin`                              | Resumen del administrador                                                      |
-| `/admin/platos`, `/admin/platos/[id]` | Catálogo; `nuevo` como id crea un plato                                        |
-| `/admin/recomendaciones`              | Destacados, franjas y vista previa                                             |
-| `/admin/calificaciones`               | Calificaciones y reseñas                                                       |
-| `/admin/ventas`                       | Ventas y preferencias                                                          |
-| `/admin/configuracion`                | Color, umbrales, mesas con QR y meseros                                        |
+| Ruta                                  | Vista                                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `/`                                   | Hub de demo: entrar como cliente (mesas), mesero, cocina o administrador                   |
+| `/?demo=1`                            | Abre el panel de demo (hora simulada, tiempo ×10, simular comensal, reiniciar)             |
+| `/muestra`                            | Muestra de componentes con el estilo final                                                 |
+| `/domicilio`                          | Cliente: pide a domicilio o para recoger y sigue su pedido (`/domicilio/seguimiento/[id]`) |
+| `/mesa/[numero]`                      | Entrada del cliente (QR fijo): pide al mesero que abra la mesa; con el PIN, entra          |
+| `/mesa/[numero]/menu`                 | Recomendados por franja, categorías, buscador y filtros                                    |
+| `/mesa/[numero]/plato/[id]`           | Ficha del plato                                                                            |
+| `/mesa/[numero]/carrito`              | Carrito compartido de la mesa y envío                                                      |
+| `/mesa/[numero]/pedido`               | Ticket de la mesa y línea de tiempo del pedido                                             |
+| `/mesa/[numero]/calificar`            | Calificar platos y servicio                                                                |
+| `/entrar`                             | Entrada del personal con PIN (lleva a la pantalla de su rol)                               |
+| `/mesero`                             | Mesero: sus mesas y pedidos (pide PIN)                                                     |
+| `/caja`                               | Encargado de caja: todo el salón, mesas y meseros, equipo (pide PIN)                       |
+| `/cocina`                             | Tablero de cocina en modo oscuro (pide PIN)                                                |
+| `/admin`                              | Resumen del administrador (pide PIN)                                                       |
+| `/admin/equipo`                       | Usuarios del negocio: roles, PIN, activar y desactivar                                     |
+| `/admin/platos`, `/admin/platos/[id]` | Catálogo; `nuevo` como id crea un plato                                                    |
+| `/admin/recomendaciones`              | Destacados, franjas y vista previa                                                         |
+| `/admin/calificaciones`               | Calificaciones y reseñas                                                                   |
+| `/admin/ventas`                       | Ventas y preferencias                                                                      |
+| `/admin/reportes`                     | Reportes completos: cobros, meseros, cambios, mesas sin cobro, cierres de caja (CSV)       |
+| `/admin/configuracion`                | Color, umbrales, mesas con QR y meseros                                                    |
 
 ## Desplegar en Vercel
 

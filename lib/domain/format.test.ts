@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   formatClock,
-  formatCOP,
+  formatMoney,
+  setCurrency,
   formatDay,
   formatElapsed,
   formatPriceDelta,
@@ -12,16 +13,16 @@ import {
   plural,
 } from "./format";
 
-describe("formatCOP", () => {
+describe("formatMoney", () => {
   it("usa punto como separador de miles y sin decimales", () => {
-    expect(formatCOP(22900)).toBe("$22.900");
-    expect(formatCOP(1250000)).toBe("$1.250.000");
-    expect(formatCOP(900)).toBe("$900");
-    expect(formatCOP(0)).toBe("$0");
+    expect(formatMoney(22900)).toBe("$22.900");
+    expect(formatMoney(1250000)).toBe("$1.250.000");
+    expect(formatMoney(900)).toBe("$900");
+    expect(formatMoney(0)).toBe("$0");
   });
   it("redondea y maneja negativos", () => {
-    expect(formatCOP(22899.6)).toBe("$22.900");
-    expect(formatCOP(-7000)).toBe("-$7.000");
+    expect(formatMoney(22899.6)).toBe("$22.900");
+    expect(formatMoney(-7000)).toBe("-$7.000");
   });
   it("muestra diferencias con signo", () => {
     expect(formatPriceDelta(7000)).toBe("+$7.000");
@@ -66,5 +67,23 @@ describe("tiempo relativo", () => {
     expect(formatRelative(new Date(2026, 8, 29, 9, 30), now)).toBe("hace 4 h");
     expect(formatRelative(new Date(2026, 8, 28, 20, 40), now)).toBe("ayer 8:40 p. m.");
     expect(formatRelative(new Date(2026, 8, 26, 9, 10), now)).toBe("sábado 26 de sept. 9:10 a. m.");
+  });
+});
+
+describe("monedas", () => {
+  it("cada moneda usa su símbolo y su separador de miles", () => {
+    expect(formatMoney(1234567, "COP")).toBe("$1.234.567");
+    expect(formatMoney(1234567, "MXN")).toBe("$1,234,567");
+    expect(formatMoney(12500, "USD")).toBe("US$12,500");
+    expect(formatMoney(12500, "EUR")).toBe("12.500 €");
+    expect(formatMoney(250, "PEN")).toBe("S/ 250");
+    expect(formatMoney(-9900, "CLP")).toBe("-$9.900");
+  });
+  it("usa la moneda del negocio cuando no se indica", () => {
+    setCurrency("USD");
+    expect(formatMoney(50)).toBe("US$50");
+    setCurrency("no-existe");
+    expect(formatMoney(50)).toBe("$50");
+    setCurrency(undefined);
   });
 });

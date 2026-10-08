@@ -13,6 +13,7 @@ import type { LucideIcon } from "lucide-react";
 import { ALLERGEN_LABEL } from "@/lib/domain/allergens";
 import type { Allergen } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 export const ALLERGEN_ICON: Record<Allergen, LucideIcon> = {
   gluten: Wheat,
@@ -50,8 +51,8 @@ export function AllergenChip({
       )}
     >
       <Icon aria-hidden className={size === "sm" ? "size-3.5" : "size-4"} strokeWidth={1.8} />
-      {ALLERGEN_LABEL[allergen]}
-      {alert && <span className="sr-only"> (tienes esta restricción)</span>}
+      {t(ALLERGEN_LABEL[allergen])}
+      {alert && <span className="sr-only"> ({t("tienes esta restricción")})</span>}
     </span>
   );
 }
@@ -68,10 +69,12 @@ export function AllergenList({
   className?: string;
 }) {
   if (allergens.length === 0) {
-    return <span className={cn("text-muted text-xs", className)}>Sin alérgenos declarados</span>;
+    return (
+      <span className={cn("text-muted text-xs", className)}>{t("Sin alérgenos declarados")}</span>
+    );
   }
   return (
-    <ul className={cn("flex flex-wrap gap-1.5", className)} aria-label="Alérgenos">
+    <ul className={cn("flex flex-wrap gap-1.5", className)} aria-label={t("Alérgenos")}>
       {allergens.map((a) => (
         <li key={a}>
           <AllergenChip allergen={a} alert={restrictions.includes(a)} size={size} />

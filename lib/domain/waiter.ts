@@ -57,6 +57,13 @@ export function confirmLevel(createdAt: string, now: number, timeoutMin: number)
 /* ——— Ajustes del mesero (US-26, regla 5) ——— */
 
 export const ADJUST_REASONS = ["Agotado", "Cambio pedido por el cliente", "Otro"] as const;
+/** Motivos para tocar una ronda que ya está en cocina o entregada. */
+export const EDIT_REASONS = [
+  "Error al tomar el pedido",
+  "Cambio pedido por el cliente",
+  "Agotado",
+  "Otro",
+] as const;
 export const REJECT_REASONS = [
   "Cocina cerrada",
   "Pedido duplicado",
@@ -101,6 +108,11 @@ export function adjustOrderItem(
     if (change.qty === item.qty) return { ok: false, error: "La cantidad es la misma" };
     next = { ...item, qty: change.qty, adjustReason: why, adjustedFrom: original };
   } else {
+    if (item.custom)
+      return {
+        ok: false,
+        error: "Este plato está personalizado. Quítalo y tómalo de nuevo con la otra opción.",
+      };
     const variant = dish?.variants.find((v) => v.id === change.variantId);
     if (!variant) return { ok: false, error: "Elige una opción válida" };
     if (variant.id === item.variantId) return { ok: false, error: "Es la misma opción" };
@@ -138,5 +150,5 @@ export function releaseSession(
       error: `Hay ${open.length === 1 ? "una ronda" : `${open.length} rondas`} sin entregar`,
     };
   }
-  return { ok: true, session: { ...session, closedAt: now, cart: [] } };
+  return { ok: true, session: { ...session, closedAt: now, cart: [], closeReason: "mesero" } };
 }

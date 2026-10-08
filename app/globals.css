@@ -90,8 +90,16 @@
   --color-danger-soft: var(--danger-soft);
   --color-overlay: var(--overlay);
 
-  --font-serif: "Fraunces Variable", "Iowan Old Style", Georgia, serif;
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--brand-serif, "Fraunces Variable", "Iowan Old Style", Georgia, serif);
+  --font-sans: var(
+    --brand-sans,
+    "Inter Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif
+  );
 
   --radius-sm: 8px;
   --radius-md: 12px;

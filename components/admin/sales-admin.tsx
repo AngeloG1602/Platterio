@@ -13,7 +13,7 @@ import {
   salesSummary,
   topDishesBySlot,
 } from "@/lib/domain/analytics";
-import { formatCOP, formatShortDay, plural } from "@/lib/domain/format";
+import { formatMoney, formatShortDay, plural } from "@/lib/domain/format";
 import { BarList, ColumnChart } from "./ui/charts";
 import { PageHeader, Panel } from "./ui/page-header";
 import { describePeriod, PeriodFilter, usePeriod } from "./ui/period-filter";
@@ -24,7 +24,7 @@ const compactCOP = (v: number) =>
     ? `$${(v / 1_000_000).toFixed(1).replace(".", ",")} M`
     : v >= 1000
       ? `$${Math.round(v / 1000)} mil`
-      : formatCOP(v);
+      : formatMoney(v);
 
 /** Ventas y preferencias (US-33). Las ventas salen de los pedidos entregados (regla 12). */
 export function SalesAdmin() {
@@ -73,7 +73,7 @@ function Body({ state }: { state: ReturnType<typeof usePeriod> }) {
     <>
       <p className="text-muted -mt-2 text-sm first-letter:uppercase">{describePeriod(period)}</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Total vendido" icon={Banknote} value={formatCOP(summary.sales)} />
+        <StatTile label="Total vendido" icon={Banknote} value={formatMoney(summary.sales)} />
         <StatTile
           label="Pedidos entregados"
           icon={ReceiptText}
@@ -83,7 +83,7 @@ function Body({ state }: { state: ReturnType<typeof usePeriod> }) {
         <StatTile
           label="Ticket promedio"
           icon={Users}
-          value={summary.avgTicket === null ? "—" : formatCOP(summary.avgTicket)}
+          value={summary.avgTicket === null ? "—" : formatMoney(summary.avgTicket)}
           note={`${plural(summary.visits, "visita", "visitas")}`}
         />
         <StatTile

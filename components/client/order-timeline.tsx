@@ -6,6 +6,7 @@ import { formatTime } from "@/lib/domain/format";
 import { orderTimeline, timelineProgress } from "@/lib/domain/kitchen";
 import type { Order } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 /**
  * Línea de tiempo de la ronda (US-29): Pendiente de confirmación → Confirmado → En preparación
@@ -14,7 +15,7 @@ import { cn } from "@/lib/cn";
 export function OrderTimeline({ order }: { order: Order }) {
   const steps = orderTimeline(order);
   return (
-    <ol className="relative mt-4" aria-label="Estado del pedido">
+    <ol className="relative mt-4" aria-label={t("Estado del pedido")}>
       {steps.map((step, i) => {
         const last = i === steps.length - 1;
         const rejected = step.status === "rechazado";
@@ -66,13 +67,13 @@ export function OrderTimeline({ order }: { order: Order }) {
                   rejected && "text-danger-ink",
                 )}
               >
-                {step.label}
+                {t(step.label)}
                 <span className="sr-only">
                   {step.state === "hecho"
-                    ? " (hecho)"
+                    ? ` (${t("hecho")})`
                     : step.state === "actual"
-                      ? " (ahora)"
-                      : " (pendiente)"}
+                      ? ` (${t("ahora")})`
+                      : ` (${t("pendiente")})`}
                 </span>
               </span>
               {step.at && (
@@ -95,7 +96,7 @@ export function OrderProgress({ order }: { order: Order }) {
     <div
       className="bg-surface-2 h-1.5 w-full overflow-hidden rounded-full"
       role="progressbar"
-      aria-label="Avance de la ronda"
+      aria-label={t("Avance de la ronda")}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}

@@ -3,6 +3,7 @@
 import { Star } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 const one = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -23,17 +24,17 @@ export function RatingSummary({
   compact?: boolean;
 }) {
   if (average === null || count === 0) {
-    return <span className={cn("text-muted text-[13px]", className)}>Aún sin reseñas</span>;
+    return <span className={cn("text-muted text-[13px]", className)}>{t("Aún sin reseñas")}</span>;
   }
   return (
     <span
       className={cn("text-ink-soft inline-flex items-center gap-1 text-[13px]", className)}
-      aria-label={`Calificación ${formatRating(average)} de 5, ${count} reseñas`}
+      aria-label={t("Calificación {n} de 5, {count} reseñas", { n: formatRating(average), count })}
     >
       <Star aria-hidden className="size-4 fill-[#E9A23B] text-[#C9851F]" strokeWidth={1.5} />
       <span className="text-ink font-semibold tabular-nums">{formatRating(average)}</span>
       <span className="text-muted tabular-nums">
-        {compact ? `(${count})` : `· ${count} ${count === 1 ? "reseña" : "reseñas"}`}
+        {compact ? `(${count})` : `· ${count} ${t(count === 1 ? "reseña" : "reseñas")}`}
       </span>
     </span>
   );
@@ -45,7 +46,7 @@ export function Stars({ value, className }: { value: number; className?: string 
     <span
       className={cn("inline-flex gap-0.5", className)}
       role="img"
-      aria-label={`${value} de 5 estrellas`}
+      aria-label={t("{n} de 5 estrellas", { n: value })}
     >
       {[1, 2, 3, 4, 5].map((n) => (
         <Star
@@ -87,7 +88,7 @@ export function StarInput({
             type="button"
             role="radio"
             aria-checked={value === n}
-            aria-label={`${n} ${n === 1 ? "estrella" : "estrellas"} — ${STAR_WORDS[n]}`}
+            aria-label={`${n} ${t(n === 1 ? "estrella" : "estrellas")} — ${t(STAR_WORDS[n]!)}`}
             onClick={() => onChange(n)}
             onMouseEnter={() => setHover(n)}
             className="flex size-11 items-center justify-center rounded-full transition-transform active:scale-90"
@@ -105,7 +106,7 @@ export function StarInput({
         ))}
       </div>
       <span className="text-ink-soft min-w-20 text-sm font-medium" aria-live="polite">
-        {STAR_WORDS[shown]}
+        {t(STAR_WORDS[shown]!)}
       </span>
     </div>
   );

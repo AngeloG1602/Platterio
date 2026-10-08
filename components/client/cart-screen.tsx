@@ -17,14 +17,16 @@ import { DishCardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "@/components/ui/toaster";
 import { cartActions, useDishes, useSessionOrders } from "@/lib/data";
-import { cartCount, cartTotal, countByDiner, unitPrice } from "@/lib/domain/cart";
-import { formatCOP, plural } from "@/lib/domain/format";
+import { cartCount, cartTotal, countByDiner, itemUnitPrice, unitPrice } from "@/lib/domain/cart";
+import { formatMoney, plural } from "@/lib/domain/format";
 import type { CartItem, Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
 import { LiveDot, ScreenHeader } from "./screen-header";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
+import { describeCustomization } from "@/lib/domain/customization";
 
 export function CartScreen({ numero }: { numero: string }) {
   return (
@@ -62,24 +64,24 @@ function Cart({ ctx }: { ctx: TableContext }) {
     );
     setConfirmOpen(false);
     if (!result.ok) {
-      toast.error("No se envió el pedido", { description: result.error });
+      toast.error(t("No se envió el pedido"), { description: t(result.error) });
       return;
     }
-    toast.success("Pedido enviado", { description: "Esperando confirmación del mesero" });
+    toast.success(t("Pedido enviado"), { description: t("Esperando confirmación del mesero") });
     router.push(`${ctx.base}/pedido`);
   }
 
   return (
     <>
       <ScreenHeader
-        title="Carrito de la mesa"
-        subtitle={`Mesa ${ctx.table.number} · lo ven todos en la mesa`}
+        title={t("Carrito de la mesa")}
+        subtitle={`${t("Mesa {n}", { n: ctx.table.number })} · ${t("lo ven todos en la mesa")}`}
         backHref={`${ctx.base}/menu`}
         action={<LiveDot />}
       />
 
       <div className="flex flex-1 flex-col px-4 pb-36">
-        <ul className="flex flex-wrap gap-1.5 pt-4" aria-label="Comensales en la mesa">
+        <ul className="flex flex-wrap gap-1.5 pt-4" aria-label={t("Comensales en la mesa")}>
           {diners.map((d) => (
             <li
               key={d.id}
@@ -98,7 +100,7 @@ function Cart({ ctx }: { ctx: TableContext }) {
                 {d.alias.charAt(0).toUpperCase()}
               </span>
               {d.alias}
-              {d.id === ctx.diner.id && " (tú)"}
+              {d.id === ctx.diner.id && ` (${t("tú")})`}
             </li>
           ))}
         </ul>
@@ -112,13 +114,13 @@ function Cart({ ctx }: { ctx: TableContext }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">
                 {orders.length === 1
-                  ? "Ya enviaron la ronda 1"
-                  : `Ya enviaron ${orders.length} rondas`}
+                  ? t("Ya enviaron la ronda 1")
+                  : t("Ya enviaron {n} rondas", { n: orders.length })}
               </p>
               <p className="text-muted text-[13px]">
                 {count > 0
-                  ? `Lo de aquí irá en la ronda ${latest.round + 1}`
-                  : "Toca para ver el estado"}
+                  ? t("Lo de aquí irá en la ronda {n}", { n: latest.round + 1 })
+                  : t("Toca para ver el estado")}
               </p>
             </div>
             <StatusBadge status={latest.status} short />
@@ -128,15 +130,21 @@ function Cart({ ctx }: { ctx: TableContext }) {
         {groups.length === 0 ? (
           <EmptyState
             icon={ShoppingBag}
-            title={latest ? "No hay platos nuevos en el carrito" : "Tu mesa aún no ha pedido nada"}
+            title={
+              latest ? t("No hay platos nuevos en el carrito") : t("Tu mesa aún no ha pedido nada")
+            }
             description={
               latest
-                ? "Si quieren algo más, agréguenlo desde la carta y se enviará como una nueva ronda."
-                : "Explora la carta y agrega lo que se te antoje. Todos en la mesa verán el mismo carrito."
+                ? t(
+                    "Si quieren algo más, agréguenlo desde la carta y se enviará como una nueva ronda.",
+                  )
+                : t(
+                    "Explora la carta y agrega lo que se te antoje. Todos en la mesa verán el mismo carrito.",
+                  )
             }
             action={
               <Link href={`${ctx.base}/menu`} className={buttonClasses({ variant: "secondary" })}>
-                Ver la carta <ArrowRight aria-hidden />
+                {t("Ver la carta")} <ArrowRight aria-hidden />
               </Link>
             }
             className="my-auto"
@@ -145,10 +153,14 @@ function Cart({ ctx }: { ctx: TableContext }) {
           groups.map(({ diner, items }) => {
             const isMe = diner.id === ctx.diner.id;
             return (
-              <section key={diner.id} aria-label={`Platos de ${diner.alias}`} className="pt-6">
+              <section
+                key={diner.id}
+                aria-label={t("Platos de {name}", { name: diner.alias })}
+                className="pt-6"
+              >
                 <div className="flex items-baseline justify-between">
                   <h2 className="font-display text-[19px] font-semibold">
-                    {isMe ? `Tú · ${diner.alias}` : diner.alias}
+                    {isMe ? `${t("Tú")} · ${diner.alias}` : diner.alias}
                   </h2>
                   <Price value={cartTotal(items, dishes)} className="text-muted text-sm" />
                 </div>
@@ -174,12 +186,19 @@ function Cart({ ctx }: { ctx: TableContext }) {
                           onEdit={() => setEditing(item)}
                           onQty={(qty) => {
                             const r = cartActions.update(ctx.table.id, item.id, { qty });
-                            if (!r.ok) toast.error(r.error);
+                            if (!r.ok) toast.error(t(r.error));
                           }}
                           onRemove={() => {
                             const r = cartActions.remove(ctx.table.id, item.id);
-                            if (!r.ok) toast.error(r.error);
-                            else toast(`Quitaste ${dishById.get(item.dishId)?.name ?? "el plato"}`);
+                            if (!r.ok) toast.error(t(r.error));
+                            else {
+                              const gone = dishById.get(item.dishId);
+                              toast(
+                                t("Quitaste {dish}", {
+                                  dish: gone ? localized(gone) : t("el plato"),
+                                }),
+                              );
+                            }
                           }}
                         />
                       </motion.li>
@@ -195,12 +214,12 @@ function Cart({ ctx }: { ctx: TableContext }) {
       <div className="border-line bg-surface/95 pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t px-4 pt-3 backdrop-blur">
         <div className="mb-3 flex items-baseline justify-between">
           <span className="text-muted text-sm">
-            Total del carrito · {plural(count, "plato", "platos")}
+            {t("Total del carrito")} · {plural(count, "plato", "platos")}
           </span>
           <Price value={total} className="text-xl" />
         </div>
         <Button size="lg" block disabled={count === 0} onClick={() => setConfirmOpen(true)}>
-          <Send aria-hidden /> Enviar pedido
+          <Send aria-hidden /> {t("Enviar pedido")}
         </Button>
       </div>
 
@@ -219,7 +238,7 @@ function Cart({ ctx }: { ctx: TableContext }) {
           onClose={() => setEditing(null)}
           onSave={(patch) => {
             const r = cartActions.update(ctx.table.id, editing.id, patch);
-            if (!r.ok) toast.error(r.error);
+            if (!r.ok) toast.error(t(r.error));
             setEditing(null);
           }}
         />
@@ -244,13 +263,13 @@ function CartRow({
   onRemove: () => void;
 }) {
   const variant = dish?.variants.find((v) => v.id === item.variantId);
-  const price = unitPrice(dish, item.variantId);
+  const price = itemUnitPrice(item, dish);
   const unavailable = !dish?.active;
   return (
     <div className="flex gap-3 py-3.5">
       <DishImage
         src={dish?.photos[0]}
-        name={dish?.name ?? "?"}
+        name={dish ? localized(dish) : "?"}
         sizes="56px"
         className="size-14 shrink-0"
         initialClassName="text-2xl"
@@ -259,17 +278,24 @@ function CartRow({
         <div className="flex items-start justify-between gap-2">
           <p className="text-[15px] leading-snug font-semibold">
             {!mine && <span className="text-accent-strong tabular-nums">{item.qty}× </span>}
-            {dish?.name ?? "Plato"}
+            {dish ? localized(dish) : t("Plato")}
           </p>
           <Price value={price * item.qty} className="text-[15px]" />
         </div>
         <p className="text-muted text-[13px]">
-          {dish && dish.variants.length > 1 && variant ? `${variant.name} · ` : ""}
-          {formatCOP(price)} c/u
+          {dish && dish.variants.length > 1 && variant ? `${t(variant.name)} · ` : ""}
+          {formatMoney(price)} {t("c/u")}
         </p>
+        {item.custom && (
+          <p className="text-accent-strong mt-1 text-[13px] font-medium">
+            {describeCustomization(item.custom)}
+          </p>
+        )}
         {item.note && <p className="text-ink-soft mt-1 text-[13px] italic">“{item.note}”</p>}
         {unavailable && (
-          <p className="text-danger-ink mt-1 text-[13px] font-medium">Ya no está disponible</p>
+          <p className="text-danger-ink mt-1 text-[13px] font-medium">
+            {t("Ya no está disponible")}
+          </p>
         )}
         {mine && (
           <div className="mt-2 flex items-center gap-1">
@@ -277,15 +303,15 @@ function CartRow({
               size="sm"
               value={item.qty}
               onChange={onQty}
-              label={`Cantidad de ${dish?.name ?? "plato"}`}
+              label={t("Cantidad de {dish}", { dish: dish ? localized(dish) : t("plato") })}
             />
-            {dish && dish.variants.length > 1 && (
+            {dish && dish.variants.length > 1 && !item.custom && (
               <Button variant="ghost" size="sm" className="h-10" onClick={onEdit}>
-                <Pencil aria-hidden /> Cambiar
+                <Pencil aria-hidden /> {t("Cambiar")}
               </Button>
             )}
             <IconButton
-              label={`Quitar ${dish?.name ?? "plato"}`}
+              label={t("Quitar {dish}", { dish: dish ? localized(dish) : t("plato") })}
               className="text-muted hover:text-danger ml-auto"
               onClick={onRemove}
             >
@@ -315,25 +341,25 @@ function SendDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title="¿Enviar a la cocina?"
-      description="El mesero revisa el pedido y lo confirma antes de que pase a la cocina."
+      title={t("¿Enviar a la cocina?")}
+      description={t("El mesero revisa el pedido y lo confirma antes de que pase a la cocina.")}
       footer={
         <>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Seguir pidiendo
+            {t("Seguir pidiendo")}
           </Button>
           <Button onClick={onConfirm}>
-            <Send aria-hidden /> Sí, enviar
+            <Send aria-hidden /> {t("Sí, enviar")}
           </Button>
         </>
       }
     >
       <div className="bg-surface-2 rounded-xl p-4">
-        <p className="text-[17px] font-semibold" aria-label="Platos por comensal">
+        <p className="text-[17px] font-semibold" aria-label={t("Platos por comensal")}>
           {summary.map((s) => `${s.alias} ${s.count}`).join(" · ")}
         </p>
         <div className="border-line mt-2 flex items-baseline justify-between border-t pt-2">
-          <span className="text-muted text-sm">Total</span>
+          <span className="text-muted text-sm">{t("Total")}</span>
           <Price value={total} className="text-lg" />
         </div>
       </div>
@@ -360,27 +386,27 @@ function EditItemSheet({
     <Sheet
       open
       onOpenChange={(o) => !o && onClose()}
-      title={dish.name}
-      description="Cambia la opción o la cantidad."
+      title={localized(dish)}
+      description={t("Cambia la opción o la cantidad.")}
       footer={
         <Button block size="lg" onClick={() => onSave({ qty, variantId })}>
-          Guardar · <Price value={unitPrice(dish, variantId) * qty} />
+          {t("Guardar")} · <Price value={unitPrice(dish, variantId) * qty} />
         </Button>
       }
     >
       <div className="flex flex-col gap-5 pb-3">
         <Segmented
-          label="Opción del plato"
+          label={t("Opción del plato")}
           value={variantId}
           onChange={setVariantId}
           options={dish.variants.map((v) => ({
             value: v.id,
-            label: v.name,
-            hint: v.price === base ? formatCOP(v.price) : `+${formatCOP(v.price - base)}`,
+            label: t(v.name),
+            hint: v.price === base ? formatMoney(v.price) : `+${formatMoney(v.price - base)}`,
           }))}
         />
         <div className="flex items-center justify-between">
-          <span className="text-[15px] font-medium">Cantidad</span>
+          <span className="text-[15px] font-medium">{t("Cantidad")}</span>
           <QtyStepper value={qty} onChange={setQty} />
         </div>
       </div>
@@ -390,7 +416,7 @@ function EditItemSheet({
 
 function CartSkeleton() {
   return (
-    <div aria-busy aria-label="Cargando el carrito" className="px-4 pt-4">
+    <div aria-busy aria-label={t("Cargando el carrito")} className="px-4 pt-4">
       <Skeleton className="h-7 w-48" />
       <Skeleton className="mt-4 h-8 w-40 rounded-full" />
       <DishCardSkeleton />

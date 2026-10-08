@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Plus, TriangleAlert, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Plus, Rotate3d, TriangleAlert, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DishImage } from "@/components/dish/dish-image";
 import { Viewer3DSlot } from "@/components/dish/viewer-3d-slot";
+import dynamic from "next/dynamic";
 import { AllergenChip, AllergenList } from "@/components/ui/allergen";
 import { Button, buttonClasses, IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,15 +19,41 @@ import { Spice } from "@/components/ui/spice";
 import { RatingSummary } from "@/components/ui/stars";
 import { toast } from "@/components/ui/toaster";
 import { cartActions, useCategories, useDevice, useDish, useDishRatingStats } from "@/lib/data";
-import { ALLERGEN_LABEL, conflictingAllergens, dishAllergens } from "@/lib/domain/allergens";
-import { formatCOP, plural } from "@/lib/domain/format";
+import { customizationSpecFor } from "@/lib/data/customization-specs";
+import { ALLERGEN_LABEL, dishAllergens } from "@/lib/domain/allergens";
+import {
+  describeCustomization,
+  EMPTY_CUSTOMIZATION,
+  priceDelta,
+  resultingAllergens,
+  toCartCustomization,
+  type Customization,
+} from "@/lib/domain/customization";
+import { formatMoney, formatPriceDelta, plural } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
 
 const NOTE_MAX = 140;
+
+/** Adelanta la descarga del visor cuando el cliente "va hacia" el botón, salvo con ahorro de datos. */
+function prefetch3d() {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (connection?.saveData) return;
+  void import("@/components/dish/dish-3d-sheet");
+  void import("@/components/viewer3d/dish-scene");
+}
+
+// El visor 3D (y Three.js) solo se descarga cuando el cliente lo abre.
+const Dish3DSheet = dynamic(
+  () => import("@/components/dish/dish-3d-sheet").then((m) => m.Dish3DSheet),
+  {
+    ssr: false,
+  },
+);
 
 export function DishDetailScreen({ numero, dishId }: { numero: string; dishId: string }) {
   return (
@@ -56,11 +83,11 @@ function DishDetail({ ctx, dishId }: { ctx: TableContext; dishId: string }) {
     return (
       <EmptyState
         icon={UtensilsCrossed}
-        title="Este plato ya no está disponible"
-        description="Puede que se haya agotado o que la carta haya cambiado."
+        title={t("Este plato ya no está disponible")}
+        description={t("Puede que se haya agotado o que la carta haya cambiado.")}
         action={
           <Link href={menuHref} className={buttonClasses({ variant: "secondary" })}>
-            Volver a la carta
+            {t("Volver a la carta")}
           </Link>
         }
         className="my-auto"
@@ -77,43 +104,68 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
   const [variantId, setVariantId] = useState(dish.variants[0]!.id);
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
+  const spec = customizationSpecFor(dish.id);
+  const [custom, setCustom] = useState<Customization>(EMPTY_CUSTOMIZATION);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const variant = dish.variants.find((v) => v.id === variantId) ?? dish.variants[0]!;
   const base = Math.min(...dish.variants.map((v) => v.price));
-  const conflicts = conflictingAllergens(dish, restrictions);
+  const delta = spec ? priceDelta(spec, custom, variantId) : 0;
+  const customSummary = describeCustomization(
+    spec ? toCartCustomization(spec, custom, variantId) : undefined,
+  );
+  const allergens = spec ? resultingAllergens(spec, custom, variantId) : dishAllergens(dish);
+  const conflicts = allergens.filter((a) => restrictions.includes(a));
+
+  // Las cantidades base dependen de la opción (la Doble trae más carne): al cambiarla se parte de ahí.
+  function chooseVariant(id: string) {
+    setVariantId(id);
+    setCustom((c) => ({ ...c, counts: {} }));
+  }
   const category = categories.find((c) => c.id === dish.categoryId);
 
   function add() {
-    const result = cartActions.add(ctx.table.id, { dishId: dish.id, variantId, qty, note });
+    const result = cartActions.add(ctx.table.id, {
+      dishId: dish.id,
+      variantId,
+      qty,
+      note,
+      ...(customSummary || delta !== 0 ? { customization: custom } : {}),
+    });
     if (!result.ok) {
-      toast.error("No se pudo agregar", { description: result.error });
+      toast.error(t("No se pudo agregar"), { description: t(result.error) });
       return;
     }
-    const variantText = dish.variants.length > 1 ? ` · ${variant.name}` : "";
-    toast.success("Agregado al pedido de la mesa", {
-      description: `${qty}× ${dish.name}${variantText}. Llevas ${plural(result.count ?? qty, "plato", "platos")}.`,
+    const variantText = dish.variants.length > 1 ? ` · ${t(variant.name)}` : "";
+    toast.success(t("Agregado al pedido de la mesa"), {
+      description: t("{dish}. Llevas {count}.", {
+        dish: `${qty}× ${localized(dish)}${variantText}`,
+        count: plural(result.count ?? qty, "plato", "platos"),
+      }),
     });
     onBack();
   }
 
   return (
     <>
-      <Gallery dish={dish} onBack={onBack} />
+      <Gallery dish={dish} onBack={onBack} on3d={spec ? () => setViewerOpen(true) : undefined} />
 
       <div className="bg-bg relative -mt-6 flex-1 rounded-t-3xl px-4 pt-6 pb-32">
         {category && (
           <p className="text-accent-strong text-xs font-semibold tracking-[0.14em] uppercase">
-            {category.name}
+            {localized(category)}
           </p>
         )}
         <h1 className="font-display mt-1.5 text-[30px] leading-[1.1] font-semibold tracking-tight">
-          {dish.name}
+          {localized(dish)}
         </h1>
         <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           <RatingSummary average={stats?.average ?? null} count={stats?.count ?? 0} />
           <Spice level={dish.spiceLevel} withLabel />
         </div>
-        <p className="text-ink-soft mt-4 text-[16px] leading-relaxed">{dish.description}</p>
+        <p className="text-ink-soft mt-4 text-[16px] leading-relaxed">
+          {localized(dish, "description")}
+        </p>
 
         {conflicts.length > 0 && (
           <div
@@ -123,11 +175,14 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
             <TriangleAlert className="text-danger mt-0.5 size-5 shrink-0" aria-hidden />
             <div>
               <p className="text-danger-ink text-[15px] font-semibold">
-                Tiene {conflicts.map((a) => ALLERGEN_LABEL[a].toLowerCase()).join(" y ")}
+                {t("Tiene {list}", {
+                  list: conflicts.map((a) => t(ALLERGEN_LABEL[a]).toLowerCase()).join(t(" y ")),
+                })}
               </p>
               <p className="text-ink-soft mt-0.5 text-sm leading-relaxed">
-                Lo marcaste como restricción. Puedes pedirlo igual; si tienes dudas, pregúntale al
-                mesero.
+                {t(
+                  "Lo marcaste como restricción. Puedes pedirlo igual; si tienes dudas, pregúntale al mesero.",
+                )}
               </p>
             </div>
           </div>
@@ -136,32 +191,61 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
         {dish.variants.length > 1 && (
           <section aria-labelledby="opciones" className="mt-7">
             <h2 id="opciones" className="mb-2.5 text-[15px] font-semibold">
-              Elige una opción
+              {t("Elige una opción")}
             </h2>
             <Segmented
-              label="Opción del plato"
+              label={t("Opción del plato")}
               value={variantId}
-              onChange={setVariantId}
+              onChange={chooseVariant}
               options={dish.variants.map((v) => ({
                 value: v.id,
-                label: v.name,
-                hint: v.price === base ? formatCOP(v.price) : `+${formatCOP(v.price - base)}`,
+                label: t(v.name),
+                hint: v.price === base ? formatMoney(v.price) : `+${formatMoney(v.price - base)}`,
               }))}
             />
           </section>
         )}
 
+        {spec && (
+          <section
+            aria-labelledby="personalizar"
+            className="border-accent-line bg-accent-soft mt-7 rounded-2xl border p-4"
+          >
+            <h2 id="personalizar" className="flex items-center gap-2 text-[15px] font-semibold">
+              <Rotate3d className="text-accent-strong size-5" aria-hidden />{" "}
+              {t("Míralo en 3D y personalízalo")}
+            </h2>
+            <p className="text-ink-soft mt-1 text-sm">
+              {customSummary
+                ? t("Tu versión: {summary}", { summary: customSummary })
+                : t("Quita, agrega o cambia ingredientes y mira cómo queda antes de pedir.")}
+              {delta !== 0 && <> · {formatPriceDelta(delta)}</>}
+            </p>
+            <Button
+              className="mt-3"
+              variant="secondary"
+              block
+              onPointerEnter={prefetch3d}
+              onFocus={prefetch3d}
+              onTouchStart={prefetch3d}
+              onClick={() => setViewerOpen(true)}
+            >
+              <Rotate3d aria-hidden /> {customSummary ? t("Editar en 3D") : t("Ver en 3D")}
+            </Button>
+          </section>
+        )}
+
         <section aria-labelledby="ingredientes" className="mt-7">
           <h2 id="ingredientes" className="text-[15px] font-semibold">
-            Ingredientes
+            {t("Ingredientes")}
           </h2>
           <ul className="divide-line mt-1 divide-y">
             {dish.ingredients.map((ing) => (
               <li key={ing.name} className="flex items-start justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="text-ink text-[15px]">{ing.name}</p>
+                  <p className="text-ink text-[15px]">{t(ing.name)}</p>
                   {ing.description && (
-                    <p className="text-muted mt-0.5 text-[13px]">{ing.description}</p>
+                    <p className="text-muted mt-0.5 text-[13px]">{t(ing.description)}</p>
                   )}
                 </div>
                 {ing.allergens.length > 0 && (
@@ -183,16 +267,16 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
 
         <section aria-labelledby="alergenos" className="bg-surface-2/70 mt-6 rounded-xl p-4">
           <h2 id="alergenos" className="mb-2.5 text-[15px] font-semibold">
-            Alérgenos
+            {t("Alérgenos")}
           </h2>
-          <AllergenList allergens={dishAllergens(dish)} restrictions={restrictions} />
+          <AllergenList allergens={allergens} restrictions={restrictions} />
         </section>
 
         <section className="mt-7">
           <Field
-            label="Nota para la cocina"
+            label={t("Nota para la cocina")}
             optional
-            hint={`${note.length}/${NOTE_MAX} · Por ejemplo: sin cebolla, salsa aparte`}
+            hint={`${note.length}/${NOTE_MAX} · ${t("Por ejemplo: sin cebolla, salsa aparte")}`}
           >
             {(p) => (
               <Textarea
@@ -200,7 +284,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
                 value={note}
                 maxLength={NOTE_MAX}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="¿Algún cambio?"
+                placeholder={t("¿Algún cambio?")}
                 rows={2}
                 className="min-h-20"
               />
@@ -213,15 +297,26 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
         <div className="flex items-center gap-3">
           <QtyStepper value={qty} onChange={setQty} />
           <Button size="lg" className="flex-1" onClick={add}>
-            <Plus aria-hidden /> Agregar · <Price value={variant.price * qty} />
+            <Plus aria-hidden /> {t("Agregar")} · <Price value={(variant.price + delta) * qty} />
           </Button>
         </div>
       </div>
+      {viewerOpen && spec && (
+        <Dish3DSheet
+          dish={dish}
+          spec={spec}
+          variantId={variantId}
+          custom={custom}
+          onChange={setCustom}
+          restrictions={restrictions}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </>
   );
 }
 
-function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
+function Gallery({ dish, onBack, on3d }: { dish: Dish; onBack: () => void; on3d?: () => void }) {
   const [index, setIndex] = useState(0);
   const photos = dish.photos.length > 0 ? dish.photos : [undefined];
   return (
@@ -232,13 +327,13 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
           const el = e.currentTarget;
           setIndex(Math.round(el.scrollLeft / el.clientWidth));
         }}
-        aria-label={`Fotos de ${dish.name}`}
+        aria-label={t("Fotos de {name}", { name: localized(dish) })}
       >
         {photos.map((src, i) => (
           <DishImage
             key={src ?? i}
             src={src}
-            name={dish.name}
+            name={localized(dish)}
             sizes="(min-width: 448px) 448px, 100vw"
             priority={i === 0}
             rounded="rounded-none"
@@ -248,7 +343,7 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
         ))}
       </div>
       <IconButton
-        label="Volver a la carta"
+        label={t("Volver a la carta")}
         variant="surface"
         onClick={onBack}
         className="absolute top-3 left-3"
@@ -269,7 +364,21 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
         </div>
       )}
       <div className="absolute right-3 bottom-9">
-        <Viewer3DSlot model={dish.model3d} />
+        {on3d ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="bg-surface/90 shadow-card backdrop-blur"
+            onPointerEnter={prefetch3d}
+            onFocus={prefetch3d}
+            onTouchStart={prefetch3d}
+            onClick={on3d}
+          >
+            <Rotate3d aria-hidden /> {t("Ver en 3D")}
+          </Button>
+        ) : (
+          <Viewer3DSlot model={dish.model3d} />
+        )}
       </div>
     </div>
   );
@@ -277,7 +386,7 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
 
 function DishSkeleton() {
   return (
-    <div aria-busy aria-label="Cargando el plato">
+    <div aria-busy aria-label={t("Cargando el plato")}>
       <Skeleton className="aspect-[5/4] w-full rounded-none" />
       <div className="px-4 pt-6">
         <Skeleton className="h-3.5 w-24" />

@@ -1,6 +1,8 @@
 "use client";
 
+import { deliveryItems } from "@/lib/domain/delivery";
 import { useEffect, useMemo, useState } from "react";
+import { activeWaiters } from "@/lib/domain/access";
 import { virtualNow } from "@/lib/domain/clock";
 import { effectiveSlot, slotAt, slotMidpoint } from "@/lib/domain/timeSlots";
 import { ratingStatsByDish } from "@/lib/domain/ratings";
@@ -21,11 +23,30 @@ import { usePresenceStore } from "./sync";
 
 export const useHydrated = () => useBootStore((s) => s.hydrated);
 export const useRestaurant = () => useAppStore((s) => s.restaurant);
+export const useOrders = () => useAppStore((s) => s.orders);
 export const useCategories = () => useAppStore((s) => s.categories);
 export const useTimeSlots = () => useAppStore((s) => s.timeSlots);
 export const useDishes = () => useAppStore((s) => s.dishes);
+export const useSessions = () => useAppStore((s) => s.sessions);
 export const useTables = () => useAppStore((s) => s.tables);
 export const useWaiters = () => useAppStore((s) => s.waiters);
+export const useStaff = () => useAppStore((s) => s.staff);
+
+/** Avisos sin atender de clientes que piden que abran su mesa. */
+export const useOpenCalls = () => useAppStore((s) => s.calls);
+
+/** Meseros que pueden recibir mesas (sin los desactivados). */
+export function useActiveWaiters() {
+  const waiters = useAppStore((s) => s.waiters);
+  const staff = useAppStore((s) => s.staff);
+  return useMemo(() => activeWaiters(waiters, staff), [waiters, staff]);
+}
+
+/** Persona que entró en este dispositivo (undefined si nadie entró o está desactivada). */
+export function useCurrentStaff() {
+  const staffId = useDeviceStore((s) => s.staffId);
+  return useAppStore((s) => s.staff.find((u) => u.id === staffId && u.active));
+}
 export const useAlerts = () => useAppStore((s) => s.alerts);
 export const useDemoSettings = () => useAppStore((s) => s.demo);
 export const useDevice = () => useDeviceStore();
@@ -186,17 +207,27 @@ export function useWaiter(waiterId: string | null) {
 /** Mesas del mesero con su estado, y las rondas que requieren su atención. */
 export function useWaiterBoard(waiterId: string | null) {
   const waiter = useWaiter(waiterId);
+  return { waiter, ...useBoard(waiter?.tableIds ?? []) };
+}
+
+/** Todo el salón (para el encargado de caja y el administrador). */
+export function useSalonBoard() {
+  return useBoard(null);
+}
+
+/** Mesas con su estado y las rondas que requieren atención. `null` = todas las mesas. */
+function useBoard(tableIds: readonly string[] | null) {
   const tables = useTables();
   const sessions = useAppStore((s) => s.sessions);
   const orders = useAppStore((s) => s.orders);
+  const key = tableIds?.join("|") ?? "*";
   return useMemo(() => {
     const mine = tables
-      .filter((t) => waiter?.tableIds.includes(t.id))
+      .filter((t) => tableIds === null || tableIds.includes(t.id))
       .sort((a, b) => a.number - b.number);
     const overviews = mine.map((t) => tableOverview(t, sessions, orders));
     const byCreated = (a: Order, b: Order) => a.createdAt.localeCompare(b.createdAt);
     return {
-      waiter,
       overviews,
       pending: overviews.flatMap((o) => o.pending).sort(byCreated),
       ready: overviews
@@ -204,7 +235,9 @@ export function useWaiterBoard(waiterId: string | null) {
         .sort((a, b) => (a.readyAt ?? "").localeCompare(b.readyAt ?? "")),
       inKitchen: overviews.flatMap((o) => o.inKitchen).sort(byCreated),
     };
-  }, [waiter, tables, sessions, orders]);
+    // `key` resume el contenido de `tableIds` (el arreglo cambia de identidad en cada render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, tables, sessions, orders]);
 }
 
 /* ——— Cocina ——— */
@@ -236,6 +269,22 @@ export function useServiceFeedback(session: TableSession) {
 
 /* ——— Administrador ——— */
 
+export function useAllPayments() {
+  const history = useHistory();
+  const live = useAppStore((s) => s.payments);
+  return useMemo(() => [...history.payments, ...live], [history, live]);
+}
+
+export function useAllShifts() {
+  const history = useHistory();
+  const live = useAppStore((s) => s.shifts);
+  return useMemo(() => [...history.shifts, ...live], [history, live]);
+}
+
+/** La caja abierta ahora, si la hay. */
+export const useOpenShift = () => useAppStore((s) => s.shifts.find((x) => !x.closedAt));
+export const useLivePayments = () => useAppStore((s) => s.payments);
+
 /** Todos los datos para analítica: historial sembrado + lo creado en la demo. */
 export function useAnalyticsData() {
   const history = useHistory();
@@ -248,8 +297,26 @@ export function useAnalyticsData() {
     () => [...history.serviceRatings, ...liveService],
     [history, liveService],
   );
-  return { orders, sessions, dishRatings, serviceRatings };
+  const payments = useAllPayments();
+  return { orders, sessions, dishRatings, serviceRatings, payments };
 }
 
 /** Momento de la última siembra o reinicio de los datos. */
 export const useSeedEpoch = () => useAppStore((s) => s.seedEpoch);
+
+/* ——— Domicilios ——— */
+
+export const useDeliveryConfig = () => useAppStore((s) => s.restaurant.delivery);
+
+/** Todos los pedidos a domicilio y para recoger, con su etapa (los más viejos primero). */
+export function useDeliveryItems() {
+  const sessions = useAppStore((s) => s.sessions);
+  const orders = useAppStore((s) => s.orders);
+  return useMemo(() => deliveryItems(sessions, orders), [sessions, orders]);
+}
+
+/** Un pedido a domicilio por su id. */
+export function useDeliveryOrder(orderId: string) {
+  const items = useDeliveryItems();
+  return useMemo(() => items.find((i) => i.order.id === orderId), [items, orderId]);
+}

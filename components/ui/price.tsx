@@ -1,5 +1,6 @@
-import { formatCOP } from "@/lib/domain/format";
+import { formatMoney } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 export function Price({
   value,
@@ -13,8 +14,8 @@ export function Price({
 }) {
   return (
     <span className={cn("font-semibold tracking-tight whitespace-nowrap tabular-nums", className)}>
-      {from && <span className="text-muted mr-1 text-[0.8em] font-normal">Desde</span>}
-      {formatCOP(value)}
+      {from && <span className="text-muted mr-1 text-[0.8em] font-normal">{t("Desde")}</span>}
+      {formatMoney(value)}
     </span>
   );
 }

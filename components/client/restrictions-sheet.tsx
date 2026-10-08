@@ -10,6 +10,7 @@ import { deviceActions } from "@/lib/data";
 import { ALLERGEN_LABEL } from "@/lib/domain/allergens";
 import { ALLERGENS, type Allergen } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 /**
  * Pregunta opcional por alergias o dieta (US-16). No bloquea: la carta avisa y el recomendador
@@ -34,11 +35,13 @@ export function RestrictionsSheet({
     deviceActions.setRestrictions(next);
     onOpenChange(false);
     if (next.length > 0) {
-      toast.success("Listo, lo tendremos en cuenta", {
-        description: `Te avisamos si un plato tiene ${next.map((a) => ALLERGEN_LABEL[a].toLowerCase()).join(", ")}.`,
+      toast.success(t("Listo, lo tendremos en cuenta"), {
+        description: t("Te avisamos si un plato tiene {list}.", {
+          list: next.map((a) => t(ALLERGEN_LABEL[a]).toLowerCase()).join(", "),
+        }),
       });
     } else if (!firstTime) {
-      toast.success("Quitaste tus restricciones");
+      toast.success(t("Quitaste tus restricciones"));
     }
   }
 
@@ -49,8 +52,10 @@ export function RestrictionsSheet({
         if (!o && firstTime) deviceActions.setRestrictions(initial);
         onOpenChange(o);
       }}
-      title={firstTime ? "¿Tienes alguna alergia?" : "Tus restricciones"}
-      description="Te avisamos en la carta y no te recomendamos esos platos. Puedes cambiarlo cuando quieras."
+      title={firstTime ? t("¿Tienes alguna alergia?") : t("Tus restricciones")}
+      description={t(
+        "Te avisamos en la carta y no te recomendamos esos platos. Puedes cambiarlo cuando quieras.",
+      )}
       footer={
         <div className="flex gap-2">
           <Button
@@ -58,16 +63,18 @@ export function RestrictionsSheet({
             className="flex-1"
             onClick={() => save(firstTime ? [] : selected.length ? [] : initial)}
           >
-            {firstTime ? "Omitir" : selected.length ? "Quitar todas" : "Cancelar"}
+            {firstTime ? t("Omitir") : selected.length ? t("Quitar todas") : t("Cancelar")}
           </Button>
           <Button className="flex-[1.6]" onClick={() => save(selected)}>
-            {selected.length === 0 ? "No tengo restricciones" : `Guardar (${selected.length})`}
+            {selected.length === 0
+              ? t("No tengo restricciones")
+              : t("Guardar ({n})", { n: selected.length })}
           </Button>
         </div>
       }
     >
       <fieldset>
-        <legend className="sr-only">Alérgenos</legend>
+        <legend className="sr-only">{t("Alérgenos")}</legend>
         <div className="grid grid-cols-2 gap-2 pb-2">
           {ALLERGENS.map((a) => {
             const Icon = ALLERGEN_ICON[a];
@@ -90,7 +97,7 @@ export function RestrictionsSheet({
                   strokeWidth={1.7}
                   aria-hidden
                 />
-                <span className="flex-1">{ALLERGEN_LABEL[a]}</span>
+                <span className="flex-1">{t(ALLERGEN_LABEL[a])}</span>
                 {active && <Check className="size-4" aria-hidden />}
               </button>
             );

@@ -3,8 +3,11 @@
 import {
   ArrowRight,
   ArrowUpRight,
+  Bike,
   ChefHat,
   ConciergeBell,
+  KeyRound,
+  Landmark,
   LayoutDashboard,
   Monitor,
   Palette,
@@ -22,6 +25,7 @@ import { buttonClasses, Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/chip";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  authActions,
   useAlerts,
   useConnectedTabs,
   useCurrentSlot,
@@ -40,11 +44,11 @@ const SCRIPT = [
   "En el panel de demo, pon la hora en Almuerzo.",
   "Pestaña A: entra a la Mesa 3 como “Ana” con alergia a lácteos. Mira cómo cambian los recomendados y el aviso en la Clásica 27.",
   "Pestaña B: entra a la Mesa 3 como “Luis”. Agreguen platos y vean el carrito compartido en vivo. Luis envía el pedido.",
-  "Pestaña C (Mesero Carlos): llega el ticket. Quita un ítem por “Agotado” y confirma.",
+  "Pestaña C (Mesero Carlos): entra con su PIN o con el atajo de la demo. Llega el ticket: quita un ítem por “Agotado” y confirma.",
   "Pestaña D (Cocina): pasa el pedido a “En preparación” y luego a “Listo”. El mesero lo marca como entregado.",
   "En el cliente: califica los platos y dale 2 estrellas al servicio.",
   "Pestaña E (Admin): aparece la alerta de servicio bajo. Crea un plato, destácalo y míralo de primero en los recomendados.",
-  "Cierra con el botón “Vista 3D — próximamente”: es la siguiente épica.",
+  "Cierra con “Ver en 3D”: en la Clásica 27 quita la cebolla y pide queso extra; el precio, la cocina y el mesero lo reflejan.",
 ];
 
 export function Hub() {
@@ -64,6 +68,9 @@ export function Hub() {
             })}
           >
             <Palette aria-hidden /> Componentes
+          </Link>
+          <Link href="/entrar" className={buttonClasses({ variant: "ghost", size: "sm" })}>
+            <KeyRound aria-hidden /> Entrar con PIN
           </Link>
           <Button variant="secondary" size="sm" onClick={openDemoPanel}>
             <WandSparkles aria-hidden /> Panel de demo
@@ -92,6 +99,14 @@ export function Hub() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <ClientCard />
           <RoleCard
+            icon={Bike}
+            device={Smartphone}
+            deviceLabel="Celular del cliente"
+            title="Domicilios"
+            description="El cliente pide desde su casa a domicilio o para recoger, y sigue su pedido hasta la puerta. El encargado lo gestiona en Caja."
+            href="/domicilio"
+          />
+          <RoleCard
             icon={ConciergeBell}
             device={Tablet}
             deviceLabel="Tablet o celular"
@@ -110,13 +125,20 @@ export function Hub() {
             dark
           />
           <RoleCard
+            icon={Landmark}
+            device={Tablet}
+            deviceLabel="Tablet o escritorio"
+            title="Encargado de caja"
+            description="Opera todo el salón, asigna mesas, administra al equipo de servicio y cobra. Sin el panel completo del administrador."
+            href="/caja"
+          />
+          <RoleCard
             icon={LayoutDashboard}
             device={Monitor}
             deviceLabel="Escritorio"
             title="Administrador"
-            description="Ventas, calificaciones y alertas de servicio; catálogo, recomendaciones, mesas y QR."
+            description="Ventas, calificaciones y alertas de servicio; catálogo, recomendaciones, mesas, QR y equipo."
             href="/admin"
-            className="md:col-span-2"
           />
         </div>
 
@@ -282,7 +304,8 @@ function WaiterList() {
         return (
           <li key={w.id}>
             <Link
-              href={`/mesero?mesero=${w.id}`}
+              href="/mesero"
+              onClick={() => authActions.loginAsDemo(w.id)}
               className="bg-surface-2 text-ink-soft hover:bg-accent-soft inline-flex min-h-11 items-center gap-1 rounded-full px-3.5 text-[13px] transition-colors"
             >
               <span className="text-ink font-semibold">{w.name}</span>· Mesas{" "}
