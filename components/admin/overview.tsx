@@ -8,6 +8,7 @@ import { useAnalyticsData, useHydrated, useNow } from "@/lib/data";
 import { ordersByHour, periodRange, ratingSummary, salesSummary } from "@/lib/domain/analytics";
 import { formatMoney, formatDay, plural } from "@/lib/domain/format";
 import { AlertsPanel } from "./alerts-panel";
+import { PublicLinksPanel } from "./public-links-panel";
 import { ColumnChart } from "./ui/charts";
 import { PageHeader, Panel } from "./ui/page-header";
 import { StatTile } from "./ui/stat-tile";
@@ -41,6 +42,7 @@ function OverviewBody({ now }: { now: number }) {
 
   return (
     <>
+      <PublicLinksPanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatTile
           label="Ventas del día"

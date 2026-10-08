@@ -24,6 +24,7 @@ import { cn } from "@/lib/cn";
 import { TableAssignments } from "@/components/team/table-assignments";
 import { BrandIdentityPanel } from "./brand-panel";
 import { DeliveryPanel } from "./delivery-panel";
+import { PublicLinksPanel } from "./public-links-panel";
 import { LocalePanel } from "./locale-panel";
 import { PageHeader, Panel } from "./ui/page-header";
 import { useBusinessHref } from "@/components/providers/business-scope";
@@ -42,14 +43,19 @@ export function SettingsAdmin() {
       />
       {hydrated ? (
         <>
+          <PublicLinksPanel />
           <BrandIdentityPanel />
           <div className="grid gap-6 lg:grid-cols-2">
             <BrandPanel />
             <RulesPanel />
           </div>
           <LocalePanel />
-          <DeliveryPanel />
-          <TablesPanel />
+          <div id="domicilios" className="scroll-mt-6">
+            <DeliveryPanel />
+          </div>
+          <div id="mesas" className="scroll-mt-6">
+            <TablesPanel />
+          </div>
           <TableAssignments teamHref={href("/admin/equipo")} />
         </>
       ) : (
