@@ -70,7 +70,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
   // La marca va en una hoja de estilos propia (no en el estilo de <html>) para que el modo oscuro de
   // la cocina, que es una clase de <html>, siga mandando sobre los colores de fondo y texto.
   useEffect(() => {
-    const vars = brandVars({ accentColor: accent, brand });
+    // El estilo de la carta (fondo oscuro, esquinas, etc.) es solo para lo que ve el cliente.
+    const vars = brandVars({ accentColor: accent, brand }, { styled: customerView });
     const COLORS = [
       "--bg",
       "--surface",
@@ -80,6 +81,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       "--muted",
       "--line",
       "--line-strong",
+      "color-scheme",
     ];
     const block = (names: string[]) =>
       names.map((n) => `${n}:${vars[n as keyof typeof vars]};`).join("");
@@ -91,7 +93,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       document.head.appendChild(el);
     }
     el.textContent = `:root:not(.theme-cocina){${block(COLORS)}}:root{${block(rest)}}`;
-  }, [accent, brand]);
+  }, [accent, brand, customerView]);
 
   useEffect(() => {
     document.documentElement.lang = lang === "en" ? "en" : "es-CO";

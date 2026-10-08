@@ -92,7 +92,11 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
 
 10. **Marca**: como Marta, en _Configuración → Identidad de marca_ elige la plantilla
     **Moderno** (cambian colores, letra y acento al instante en todas las pestañas), sube un
-    logo y cambia las tipografías. _Cálido_ vuelve a la marca de la casa.
+    logo y cambia las tipografías. _Cálido_ vuelve a la marca de la casa. Más arriba, en
+    **Estilo de la carta**, elige uno de los 9 estilos (Bistró oscuro, Café minimal, Parrilla
+    rústica…): se ve primero en una vista previa con tus platos y, al darle _Usar_, la carta del
+    cliente cambia de forma completa (distribución, esquinas, fondo claro u oscuro). Tu logo,
+    nombre y color de acento se mantienen; el personal sigue viendo sus pantallas de siempre.
 
 11. **Caja y reportes**: como Julián, en `/caja` → _Caja_ abre el turno con el fondo, cobra una
     mesa (también desde su ficha, botón _Cobrar_) y cierra contando el efectivo: si no cuadra,

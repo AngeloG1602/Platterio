@@ -117,6 +117,55 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
   }
 }
 
+// Cada estilo de la carta (fondos oscuros, tarjetas, portada…) con el mismo escaneo: contraste incluido.
+{
+  const ESTILOS = [
+    "Café minimal",
+    "Fresco redondeado",
+    "Bistró oscuro",
+    "Gourmet editorial",
+    "Parrilla rústica",
+    "Urbano colorido",
+    "Mediterráneo",
+    "Neón nocturno",
+  ];
+  const scan = async (name, path) => {
+    await page.goto(BASE + path);
+    await page.waitForTimeout(700);
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    total += result.violations.length;
+    console.log(
+      `${result.violations.length ? "✘" : "✔"} ${name} (${path}) — ${result.violations.length} problemas`,
+    );
+    for (const v of result.violations) {
+      console.log(`   · [${v.impact}] ${v.id}: ${v.help}`);
+      for (const n of v.nodes.slice(0, 3))
+        console.log(
+          `       ${n.target.join(" ")} ${n.failureSummary?.split("\n")[1]?.trim() ?? ""}`,
+        );
+    }
+  };
+  for (const estilo of [...ESTILOS, "Clásico"]) {
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.goto(`${BASE}/admin/configuracion`);
+    await asegurarSesion(page, "Marta");
+    await page
+      .getByRole("radiogroup", { name: "Estilos de la carta" })
+      .getByRole("radio", { name: new RegExp(`^${estilo}`) })
+      .click();
+    await page.getByRole("button", { name: /^Usar / }).click();
+    if (estilo === "Clásico") break;
+    await scan(`Panel con el estilo ${estilo}`, "/admin/configuracion");
+    await page.setViewportSize({ width: 390, height: 900 });
+    await scan(`Carta con estilo ${estilo}`, "/mesa/3/menu");
+    await scan(`Domicilios con estilo ${estilo}`, "/domicilio");
+    await scan(`Ficha con estilo ${estilo}`, "/mesa/3/plato/clasica-27");
+    await scan(`Carrito con estilo ${estilo}`, "/mesa/3/carrito");
+  }
+}
+
 // La carta de domicilios y la entrada a la mesa, en inglés (idioma del celular).
 const english = watch(
   await (

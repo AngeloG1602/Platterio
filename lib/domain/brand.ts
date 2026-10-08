@@ -1,4 +1,5 @@
-import { contrast, parseHex, strongVariant } from "./color";
+import { accentOnDark, contrast, parseHex, strongVariantOn } from "./color";
+import { shapeVars, styleById, type MenuStyle } from "./menu-style";
 import type { Brand, Restaurant } from "./types";
 
 /** Tipografías incluidas (se sirven desde la propia app, sin pedirle nada a Google). */
@@ -155,25 +156,40 @@ export function templateById(id: string | undefined): Template {
 const asFont = (id: string | undefined, fallback: FontId): FontId =>
   id && id in FONTS ? (id as FontId) : fallback;
 
-/** Marca efectiva de un negocio: la plantilla elegida con sus cambios encima. */
+/** Marca efectiva de un negocio: estilo y plantilla elegidos, con los cambios propios encima. */
 export function resolveBrand(restaurant: Pick<Restaurant, "accentColor" | "brand">) {
   const brand: Brand | undefined = restaurant.brand;
   const template = templateById(brand?.template);
-  const headingFont = asFont(brand?.headingFont, template.headingFont);
-  const bodyFont = asFont(brand?.bodyFont, template.bodyFont);
+  const style = styleById(brand?.style);
+  const headingFont = asFont(brand?.headingFont, style.headingFont ?? template.headingFont);
+  const bodyFont = asFont(brand?.bodyFont, style.bodyFont ?? template.bodyFont);
   return {
     template,
+    style,
+    /** Fondos y textos: los del estilo si trae los suyos, y si no, los de la paleta. */
+    colors: style.colors ?? template.colors,
     accent: restaurant.accentColor,
     headingFont,
     bodyFont,
     logo: brand?.logo,
+    cover: brand?.cover,
   };
 }
 
-/** Variables CSS que se aplican a toda la app (el modo oscuro de cocina las sobrescribe). */
-export function brandVars(restaurant: Pick<Restaurant, "accentColor" | "brand">) {
-  const { template, accent, headingFont, bodyFont } = resolveBrand(restaurant);
-  const c = template.colors;
+/**
+ * Variables CSS de la marca. Con `styled: false` (pantallas del personal) solo se aplica la paleta:
+ * el estilo de la carta (fondo oscuro, esquinas, etc.) es solo para lo que ve el cliente.
+ */
+export function brandVars(
+  restaurant: Pick<Restaurant, "accentColor" | "brand">,
+  { styled = true }: { styled?: boolean } = {},
+) {
+  const resolved = resolveBrand(restaurant);
+  const { template, accent, headingFont, bodyFont } = resolved;
+  const style: MenuStyle | null = styled ? resolved.style : null;
+  const c = style ? resolved.colors : template.colors;
+  const dark = style?.dark ?? false;
+  const onDark = dark ? accentOnDark(accent, [c.bg, c.surface, c.surface2]) : null;
   return {
     "--bg": c.bg,
     "--surface": c.surface,
@@ -184,11 +200,33 @@ export function brandVars(restaurant: Pick<Restaurant, "accentColor" | "brand">)
     "--line": c.line,
     "--line-strong": c.lineStrong,
     "--accent": accent,
-    "--accent-strong": strongVariant(accent),
+    "--accent-strong": onDark?.strong ?? strongVariantOn(accent, [c.bg, c.surface2]),
+    "--accent-ink": onDark?.ink ?? "#FFFFFF",
+    "--overlay": dark ? "rgb(0 0 0 / 0.6)" : "rgb(28 25 23 / 0.45)",
     "--brand-serif": FONTS[headingFont].family,
     "--brand-sans": FONTS[bodyFont].family,
-  } as const;
+    ...(style
+      ? shapeVars(style)
+      : { "--shadow-card": SOFT_SHADOW, "--card-bw": "1px", "--card-bs": "solid" }),
+    "color-scheme": dark ? "dark" : "light",
+    ...(dark ? DARK_STATUS : {}),
+  } as Record<string, string>;
 }
+
+/** Colores de estado (éxito, aviso, error) legibles sobre fondos oscuros; son los de la cocina. */
+const DARK_STATUS = {
+  "--success": "#48BB78",
+  "--success-ink": "#68D391",
+  "--success-soft": "color-mix(in oklab, #48bb78 18%, var(--surface))",
+  "--warning": "#ECC94B",
+  "--warning-ink": "#F6E05E",
+  "--warning-soft": "color-mix(in oklab, #ecc94b 16%, var(--surface))",
+  "--danger": "#FC8181",
+  "--danger-ink": "#FEB2B2",
+  "--danger-soft": "color-mix(in oklab, #fc8181 16%, var(--surface))",
+};
+
+const SOFT_SHADOW = styleById("clasico").shadow;
 
 /** Contrastes mínimos de la plantilla: texto sobre fondo y sobre tarjeta (AA = 4,5). */
 export function templateContrastIssues(t: Template): string[] {
@@ -240,4 +278,31 @@ export function logoTargetSize(width: number, height: number): { width: number; 
     width: Math.max(1, Math.round(width * scale)),
     height: Math.max(1, Math.round(height * scale)),
   };
+}
+
+/* ——— Foto de portada ——— */
+
+export const COVER_MAX_SIDE = 1280;
+export const COVER_MAX_DATA_URL = 450_000;
+
+export function validateCoverData(dataUrl: string): string | null {
+  if (!/^data:image\/(jpeg|webp);base64,/.test(dataUrl))
+    return "La portada no es una imagen válida";
+  if (dataUrl.length > COVER_MAX_DATA_URL)
+    return "La portada sigue siendo muy pesada. Prueba con otra foto.";
+  return null;
+}
+
+/** Tamaño al que se reduce la portada (nunca se agranda). */
+export function coverTargetSize(width: number, height: number): { width: number; height: number } {
+  const scale = Math.min(1, COVER_MAX_SIDE / Math.max(width, height));
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+/** Contrastes del estilo (los que traen colores propios), con el mismo criterio que las plantillas. */
+export function styleContrastIssues(style: MenuStyle): string[] {
+  return style.colors ? templateContrastIssues({ ...TEMPLATES[0]!, colors: style.colors }) : [];
 }

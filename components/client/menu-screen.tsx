@@ -3,8 +3,15 @@
 import { Search, SearchX, ShieldCheck, SlidersHorizontal, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { MadeWithPlatterio, RestaurantMark } from "@/components/brand/logos";
+import { MadeWithPlatterio } from "@/components/brand/logos";
+import { MenuHeader } from "@/components/brand/menu-header";
 import { DishCard } from "@/components/dish/dish-card";
+import {
+  CategoryHeading,
+  dishLinkClass,
+  DishList,
+  useMenuStyle,
+} from "@/components/dish/dish-layout";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DishCardSkeleton, Skeleton } from "@/components/ui/skeleton";
@@ -76,33 +83,36 @@ function Menu({ view }: { view: TableView }) {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-3 px-4 pt-4">
-        <RestaurantMark name={restaurant.name} className="text-[14px]" />
-        <div className="flex items-center gap-1">
-          <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
-            {t("Mesa {n}", { n: view.table.number })} · {ctx ? ctx.diner.alias : t("Solo mirando")}
-          </span>
-          <button
-            type="button"
-            onClick={openRestrictions}
-            aria-label={
-              restrictions.length
-                ? t("Tus restricciones: {list}. Cambiar", {
-                    list: restrictions.map((a) => t(ALLERGEN_LABEL[a])).join(", "),
-                  })
-                : t("Agregar restricciones alimentarias")
-            }
-            className="text-ink hover:bg-surface-2 relative flex size-11 items-center justify-center rounded-full"
-          >
-            <ShieldCheck className="size-5.5" strokeWidth={1.8} aria-hidden />
-            {restrictions.length > 0 && (
-              <span className="bg-accent-strong text-accent-ink absolute top-1.5 right-1.5 flex size-4.5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums">
-                {restrictions.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </header>
+      <MenuHeader
+        name={restaurant.name}
+        actions={
+          <>
+            <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
+              {t("Mesa {n}", { n: view.table.number })} ·{" "}
+              {ctx ? ctx.diner.alias : t("Solo mirando")}
+            </span>
+            <button
+              type="button"
+              onClick={openRestrictions}
+              aria-label={
+                restrictions.length
+                  ? t("Tus restricciones: {list}. Cambiar", {
+                      list: restrictions.map((a) => t(ALLERGEN_LABEL[a])).join(", "),
+                    })
+                  : t("Agregar restricciones alimentarias")
+              }
+              className="text-ink hover:bg-surface-2 relative flex size-11 items-center justify-center rounded-full"
+            >
+              <ShieldCheck className="size-5.5" strokeWidth={1.8} aria-hidden />
+              {restrictions.length > 0 && (
+                <span className="bg-accent-strong text-accent-ink absolute top-1.5 right-1.5 flex size-4.5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums">
+                  {restrictions.length}
+                </span>
+              )}
+            </button>
+          </>
+        }
+      />
 
       <div className="px-4 pt-5">
         <p className="text-muted text-[13px] font-medium">
@@ -290,6 +300,7 @@ function DishResults({
 }) {
   const categories = useCategories();
   const filters = useMenuFilters();
+  const { layout } = useMenuStyle();
   const onlyCategory =
     filters.categoryId !== null && !filters.query.trim() && countRefinements(filters) === 0;
 
@@ -339,24 +350,15 @@ function DishResults({
       )}
       {groups.map(({ category, dishes: list }) => (
         <section key={category.id} aria-labelledby={`cat-${category.id}`} className="pt-5">
-          <h2
-            id={`cat-${category.id}`}
-            className="font-display flex items-baseline gap-2 text-[22px] font-semibold"
-          >
+          <CategoryHeading id={`cat-${category.id}`} count={list.length}>
             {localized(category)}
-            <span className="text-muted font-sans text-[13px] font-medium tabular-nums">
-              {list.length}
-            </span>
-          </h2>
-          <ul className="divide-line divide-y">
+          </CategoryHeading>
+          <DishList>
             {list.map((dish) => {
               const s = stats.get(dish.id);
               return (
                 <li key={dish.id}>
-                  <Link
-                    href={`${base}/plato/${dish.id}`}
-                    className="hover:bg-surface-2/60 -mx-2 block rounded-xl px-2 transition-colors"
-                  >
+                  <Link href={`${base}/plato/${dish.id}`} className={dishLinkClass(layout)}>
                     <DishCard
                       dish={dish}
                       restrictions={restrictions}
@@ -366,7 +368,7 @@ function DishResults({
                 </li>
               );
             })}
-          </ul>
+          </DishList>
         </section>
       ))}
     </>

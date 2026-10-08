@@ -56,3 +56,38 @@ export function strongVariant(hex: string, target = 5.3): string {
 export function isValidHex(hex: string): boolean {
   return parseHex(hex) !== null;
 }
+
+const NEAR_BLACK: Rgb = [20, 17, 15];
+
+function lighten([r, g, b]: Rgb): Rgb {
+  return [r + (255 - r) * 0.06, g + (255 - g) * 0.06, b + (255 - b) * 0.06];
+}
+
+/**
+ * Versión "fuerte" del acento que además cumple AA sobre los fondos dados (claros). Si la versión
+ * normal ya cumple, devuelve exactamente esa.
+ */
+export function strongVariantOn(hex: string, backgrounds: string[]): string {
+  const bgs = backgrounds.map(parseHex).filter((c): c is Rgb => c !== null);
+  let current = strongVariant(hex);
+  for (let i = 0; i < 40; i++) {
+    const rgb = parseHex(current)!;
+    if (bgs.every((bg) => contrast(rgb, bg) >= 4.6)) break;
+    current = toHex(rgb.map((v) => v * 0.96) as Rgb);
+  }
+  return current;
+}
+
+/**
+ * Para fondos oscuros: aclara el acento hasta que se lea como texto sobre ellos y a la vez admita
+ * texto casi negro encima (botón relleno). Devuelve el acento y el color del texto del botón.
+ */
+export function accentOnDark(hex: string, backgrounds: string[]): { strong: string; ink: string } {
+  const bgs = backgrounds.map(parseHex).filter((c): c is Rgb => c !== null);
+  let current: Rgb = parseHex(hex) ?? [228, 87, 46];
+  for (let i = 0; i < 60; i++) {
+    if (contrast(current, NEAR_BLACK) >= 6 && bgs.every((bg) => contrast(current, bg) >= 5)) break;
+    current = lighten(current);
+  }
+  return { strong: toHex(current), ink: toHex(NEAR_BLACK) };
+}

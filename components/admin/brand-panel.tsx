@@ -5,8 +5,16 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { toast } from "@/components/ui/toaster";
-import { brandActions, useRestaurant } from "@/lib/data";
+import { brandActions, restaurantActions, useDishes, useRestaurant } from "@/lib/data";
+import { MenuHeader } from "@/components/brand/menu-header";
+import { DishCard } from "@/components/dish/dish-card";
+import { DishList, MenuStyleProvider } from "@/components/dish/dish-layout";
+import { MENU_STYLES, type MenuStyle } from "@/lib/domain/menu-style";
 import {
+  brandVars,
+  COVER_MAX_DATA_URL,
+  coverTargetSize,
+  validateCoverData,
   BODY_FONTS,
   FONTS,
   HEADING_FONTS,
@@ -28,16 +36,20 @@ export function BrandIdentityPanel() {
   return (
     <Panel
       title="Identidad de marca"
-      description="Logo, plantilla y tipografías de tu negocio. El cliente lo ve en la carta, y el color de acento lo eliges abajo."
+      description="Logo, estilo de la carta, colores y tipografías de tu negocio. El cliente lo ve en la carta, y el color de acento lo eliges abajo."
     >
       <div className="flex flex-col gap-8">
         <LogoField logo={brand.logo} name={restaurant.name} />
+        <StyleSection currentId={brand.style.id} cover={brand.cover} />
         <section aria-labelledby="plantillas">
           <h3 id="plantillas" className="text-[15px] font-semibold">
-            Plantilla
+            Paleta de colores
           </h3>
           <p className="text-muted text-[13px]">
             Cambia colores, tipografías y el acento de una vez. Luego puedes ajustar lo que quieras.
+            {brand.style.colors
+              ? ` El estilo ${brand.style.name} trae sus propios fondos, así que la paleta cambia sobre todo el acento.`
+              : ""}
           </p>
           <div
             role="radiogroup"
@@ -74,10 +86,10 @@ export function BrandIdentityPanel() {
               size="sm"
               onClick={() => {
                 brandActions.resetFonts();
-                toast.success("Tipografías de la plantilla");
+                toast.success("Tipografías del estilo");
               }}
             >
-              Volver a las de la plantilla
+              Volver a las del estilo
             </Button>
           </div>
         </section>
@@ -269,4 +281,312 @@ async function shrink(file: File): Promise<string> {
   return file.type === "image/jpeg"
     ? canvas.toDataURL("image/jpeg", 0.85)
     : canvas.toDataURL("image/webp", 0.9);
+}
+
+/* ——— Estilo de la carta ——— */
+
+function StyleSection({ currentId, cover }: { currentId: string; cover?: string }) {
+  const restaurant = useRestaurant();
+  const [pickedId, setPickedId] = useState(currentId);
+  const picked = MENU_STYLES.find((s) => s.id === pickedId) ?? MENU_STYLES[0]!;
+  const changed = picked.id !== currentId;
+  return (
+    <section aria-labelledby="estilos" className="flex flex-col gap-4">
+      <div>
+        <h3 id="estilos" className="text-[15px] font-semibold">
+          Estilo de la carta
+        </h3>
+        <p className="text-muted text-[13px]">
+          Cambia la forma de toda la carta: distribución, esquinas, tipo de letra y si el fondo es
+          claro u oscuro. Tu logo, tu nombre y tu color de acento se mantienen en cualquiera.
+        </p>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[1fr_minmax(0,380px)]">
+        <div
+          role="radiogroup"
+          aria-label="Estilos de la carta"
+          className="grid content-start gap-3 sm:grid-cols-2"
+        >
+          {MENU_STYLES.map((s) => (
+            <StyleCard
+              key={s.id}
+              style={s}
+              selected={s.id === pickedId}
+              current={s.id === currentId}
+              onPick={() => setPickedId(s.id)}
+            />
+          ))}
+        </div>
+        <div className="flex flex-col gap-3">
+          <StylePreview
+            style={picked}
+            accent={restaurant.accentColor}
+            name={restaurant.name}
+            template={restaurant.brand?.template ?? "calido"}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              disabled={!changed}
+              onClick={() => {
+                const r = brandActions.applyStyle(picked.id);
+                if (!r.ok) return toast.error(r.error);
+                toast.success(`Estilo ${picked.name}`);
+              }}
+            >
+              {changed ? `Usar ${picked.name}` : "Estilo en uso"}
+            </Button>
+            {picked.suggestedAccent.toUpperCase() !== restaurant.accentColor.toUpperCase() && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  applyAccent(picked.suggestedAccent);
+                }}
+              >
+                Probar su color sugerido
+              </Button>
+            )}
+          </div>
+          <p className="text-muted text-[13px]">
+            Ideal para: {picked.suits}.
+            {picked.plan === "profesional"
+              ? " Incluido en el plan Profesional (en la demo puedes probar todos)."
+              : " Incluido en todos los planes."}
+          </p>
+        </div>
+      </div>
+      <CoverField cover={cover} />
+    </section>
+  );
+}
+
+function applyAccent(hex: string) {
+  restaurantActions.setAccentColor(hex);
+  toast.success("Color de acento actualizado");
+}
+
+function StyleCard({
+  style,
+  selected,
+  current,
+  onPick,
+}: {
+  style: MenuStyle;
+  selected: boolean;
+  current: boolean;
+  onPick: () => void;
+}) {
+  const c = style.colors;
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onPick}
+      className={cn(
+        "rounded-xl border-2 p-3 text-left transition",
+        selected ? "border-ink" : "border-line hover:border-line-strong",
+      )}
+    >
+      <span className="flex items-center gap-1.5 text-[15px] font-semibold">
+        {selected && <Check className="size-4" aria-hidden />}
+        {style.name}
+        {current && (
+          <span className="bg-accent-soft text-accent-strong rounded-full px-2 py-0.5 text-[11px] font-semibold">
+            En uso
+          </span>
+        )}
+        {style.plan === "profesional" && (
+          <span className="bg-surface-2 text-ink-soft ml-auto rounded-full px-2 py-0.5 text-[11px] font-semibold">
+            Profesional
+          </span>
+        )}
+      </span>
+      <span className="text-muted mt-0.5 block text-[13px]">{style.description}</span>
+      <span aria-hidden className="mt-2 flex items-center gap-1.5">
+        {[
+          c?.bg ?? "#FAF7F2",
+          c?.surface ?? "#FFFFFF",
+          c?.ink ?? "#1C1917",
+          style.suggestedAccent,
+        ].map((hex, i) => (
+          <span
+            key={i}
+            className="border-line-strong size-5 rounded-full border"
+            style={{ background: hex }}
+          />
+        ))}
+        <span className="text-muted ml-1 text-[12px]">
+          {style.dark ? "Oscuro" : "Claro"} · {LAYOUT_LABEL[style.layout]}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+const LAYOUT_LABEL = {
+  lista: "Lista",
+  cuadricula: "Cuadrícula",
+  carta: "Carta impresa",
+  tarjetas: "Tarjetas",
+} as const;
+
+/** Muestra el estilo con los platos y el logo reales del negocio, sin tocar lo guardado. */
+function StylePreview({
+  style,
+  accent,
+  name,
+  template,
+}: {
+  style: MenuStyle;
+  accent: string;
+  name: string;
+  template: string;
+}) {
+  const dishes = useDishes()
+    .filter((d) => d.active)
+    .slice(0, 3);
+  const vars = brandVars(
+    { accentColor: accent, brand: { template, style: style.id } },
+    { styled: true },
+  );
+  return (
+    <div
+      role="img"
+      aria-label={`Vista previa del estilo ${style.name}`}
+      className="border-line-strong relative max-h-[560px] overflow-hidden rounded-2xl border"
+    >
+      <div
+        className="bg-bg text-ink font-sans"
+        style={vars as React.CSSProperties}
+        aria-hidden
+        inert
+      >
+        <MenuStyleProvider style={style}>
+          <MenuHeader
+            name={name}
+            actions={
+              <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
+                Mesa 4
+              </span>
+            }
+          />
+          <div className="px-4 pt-4">
+            <h4 className="font-display text-[24px] leading-tight font-semibold">
+              ¿Qué se te antoja?
+            </h4>
+            <DishList>
+              {dishes.map((d) => (
+                <li key={d.id}>
+                  <DishCard dish={d} />
+                </li>
+              ))}
+            </DishList>
+          </div>
+        </MenuStyleProvider>
+      </div>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/10 to-transparent"
+      />
+    </div>
+  );
+}
+
+function CoverField({ cover }: { cover?: string }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function pick(file: File) {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type))
+      return toast.error("La portada debe ser una imagen PNG, JPG o WebP");
+    if (file.size > 8 * 1024 * 1024) return toast.error("La foto pesa más de 8 MB");
+    setBusy(true);
+    try {
+      const dataUrl = await shrinkCover(file);
+      const bad = validateCoverData(dataUrl);
+      if (bad) return toast.error(bad);
+      const r = brandActions.setCover(dataUrl);
+      if (!r.ok) return toast.error(r.error);
+      toast.success("Portada actualizada");
+    } catch {
+      toast.error("No pudimos leer esa imagen");
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = "";
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="border-line bg-surface-2 flex h-16 w-28 items-center justify-center overflow-hidden rounded-xl border">
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element -- vista previa de la portada propia
+          <img src={cover} alt="Portada actual" className="size-full object-cover" />
+        ) : (
+          <ImagePlus className="text-muted size-6" aria-hidden />
+        )}
+      </div>
+      <div className="min-w-48 flex-1">
+        <h4 className="text-[14px] font-semibold">Foto de portada</h4>
+        <p className="text-muted text-[13px]">
+          La ven los estilos con portada (Fresco redondeado y Mediterráneo). Una foto horizontal del
+          local o de tu plato estrella funciona mejor.
+        </p>
+        <div className="mt-2 flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+          >
+            <ImagePlus aria-hidden /> {cover ? "Cambiar portada" : "Subir portada"}
+          </Button>
+          {cover && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                brandActions.setCover(null);
+                toast.success("Portada quitada");
+              }}
+            >
+              <Trash2 aria-hidden /> Quitar
+            </Button>
+          )}
+        </div>
+        <input
+          ref={input}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="sr-only"
+          aria-label="Archivo de la portada"
+          tabIndex={-1}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void pick(f);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Reduce la portada y la guarda como JPG; baja la calidad hasta que quede liviana. */
+async function shrinkCover(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const { width, height } = coverTargetSize(bitmap.width, bitmap.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("sin canvas");
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  let out = canvas.toDataURL("image/jpeg", 0.82);
+  for (const q of [0.7, 0.58, 0.46]) {
+    if (out.length <= COVER_MAX_DATA_URL) break;
+    out = canvas.toDataURL("image/jpeg", q);
+  }
+  return out;
 }

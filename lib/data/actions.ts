@@ -64,9 +64,11 @@ import {
   DEFAULT_TEMPLATE,
   HEADING_FONTS,
   TEMPLATES,
+  validateCoverData,
   validateLogoData,
   type FontId,
 } from "@/lib/domain/brand";
+import { MENU_STYLES } from "@/lib/domain/menu-style";
 import type { Brand } from "@/lib/domain/types";
 import { closeShift, openShift, registerPayment } from "@/lib/domain/cash";
 import type { PaymentMethod } from "@/lib/domain/types";
@@ -136,7 +138,12 @@ export const brandActions = {
   applyTemplate(id: string): ActionResult {
     const template = TEMPLATES.find((t) => t.id === id);
     if (!template) return { ok: false, error: "Esa plantilla no existe" };
-    const r = patchBrand((b) => ({ template: template.id, logo: b.logo }));
+    const r = patchBrand((b) => ({
+      template: template.id,
+      ...(b.style ? { style: b.style } : {}),
+      ...(b.logo ? { logo: b.logo } : {}),
+      ...(b.cover ? { cover: b.cover } : {}),
+    }));
     if (!r.ok) return r;
     useAppStore.setState((s) => ({
       restaurant: { ...s.restaurant, accentColor: template.accent },
@@ -156,7 +163,34 @@ export const brandActions = {
   },
   /** Vuelve a las tipografías de la plantilla. */
   resetFonts: (): ActionResult =>
-    patchBrand((b) => ({ template: b.template, ...(b.logo ? { logo: b.logo } : {}) })),
+    patchBrand((b) => {
+      const next: Brand = { ...b };
+      delete next.headingFont;
+      delete next.bodyFont;
+      return next;
+    }),
+  /** Cambia el estilo de la carta: trae su letra; el acento, el logo y la portada se conservan. */
+  applyStyle(id: string): ActionResult {
+    if (!MENU_STYLES.some((s) => s.id === id)) return { ok: false, error: "Ese estilo no existe" };
+    return patchBrand((b) => {
+      const next: Brand = { ...b, style: id };
+      delete next.headingFont;
+      delete next.bodyFont;
+      return next;
+    });
+  },
+  setCover(dataUrl: string | null): ActionResult {
+    if (dataUrl) {
+      const error = validateCoverData(dataUrl);
+      if (error) return { ok: false, error };
+    }
+    return patchBrand((b) => {
+      const next: Brand = { ...b };
+      if (dataUrl) next.cover = dataUrl;
+      else delete next.cover;
+      return next;
+    });
+  },
   setLogo(dataUrl: string | null): ActionResult {
     if (dataUrl) {
       const error = validateLogoData(dataUrl);

@@ -15,7 +15,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { PlatterioLogo } from "@/components/brand/logos";
+import { PlatterioLogo, RestaurantMark } from "@/components/brand/logos";
 import { SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { useAlerts, useRestaurant } from "@/lib/data";
@@ -39,7 +39,7 @@ const NAV: NavItem[] = [
   { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];
 
-/** Estructura del panel del administrador: marca Platterio, navegación lateral y contenido. */
+/** Estructura del panel del administrador: identidad del negocio, navegación lateral y contenido. */
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const restaurant = useRestaurant();
@@ -55,10 +55,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </a>
       <aside className="border-line bg-surface border-b lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:border-r lg:border-b-0">
         <div className="flex items-center justify-between gap-3 px-5 py-4 lg:block">
-          <PlatterioLogo />
-          <div className="lg:mt-5">
-            <p className="text-muted text-[13px]">Administrando</p>
-            <p className="font-display text-lg leading-tight font-semibold">{restaurant.name}</p>
+          <div>
+            <p className="text-muted mb-1.5 text-[13px]">Administrando</p>
+            <RestaurantMark name={restaurant.name} className="text-[14px]" />
           </div>
         </div>
         <nav
@@ -100,6 +99,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto hidden flex-col gap-2 p-4 lg:flex">
           <SessionButton />
+          <PlatterioLogo tone="muted" className="mx-3 mt-1 scale-75 self-start" />
           <Link
             href="/"
             className="text-muted hover:bg-surface-2 hover:text-ink flex h-11 items-center gap-2 rounded-lg px-3 text-sm"

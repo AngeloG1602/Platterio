@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Category } from "@/lib/domain/types";
+import { useMenuStyle } from "@/components/dish/dish-layout";
 import { cn } from "@/lib/cn";
 import { localized, t } from "@/lib/i18n";
 
@@ -16,6 +17,7 @@ export function CategoryTabs({
   onChange: (id: string | null) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const pill = useMenuStyle().tabs === "pildora";
   const tabs = [
     { id: null, name: t("Todo") },
     ...[...categories]
@@ -29,12 +31,14 @@ export function CategoryTabs({
   }, [value]);
 
   return (
-    <div className="border-line bg-bg/92 sticky top-0 z-20 border-b backdrop-blur-md">
+    <div
+      className={cn("bg-bg/92 sticky top-0 z-20 backdrop-blur-md", !pill && "border-line border-b")}
+    >
       <div
         ref={listRef}
         role="tablist"
         aria-label={t("Categorías")}
-        className="no-scrollbar flex gap-1 overflow-x-auto px-2"
+        className={cn("no-scrollbar flex overflow-x-auto", pill ? "gap-2 px-4 py-2" : "gap-1 px-2")}
         onKeyDown={(e) => {
           if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
           const i = tabs.findIndex((x) => x.id === value);
@@ -57,13 +61,20 @@ export function CategoryTabs({
               tabIndex={active ? 0 : -1}
               onClick={() => onChange(tab.id)}
               className={cn(
-                "relative h-12 shrink-0 px-3 text-[15px] whitespace-nowrap transition-colors",
-                active ? "text-ink font-semibold" : "text-muted hover:text-ink font-medium",
+                "relative shrink-0 text-[15px] whitespace-nowrap transition-colors",
+                pill ? "h-10 rounded-full border-2 px-4 font-semibold" : "h-12 px-3",
+                pill &&
+                  (active
+                    ? "border-accent-strong bg-accent-strong text-accent-ink"
+                    : "border-line-strong bg-surface text-ink-soft hover:text-ink"),
+                !pill &&
+                  (active ? "text-ink font-semibold" : "text-muted hover:text-ink font-medium"),
               )}
             >
               {tab.name}
               <span
                 aria-hidden
+                hidden={pill}
                 className={cn(
                   "bg-accent absolute inset-x-3 bottom-0 h-[3px] rounded-full transition-transform duration-200",
                   active ? "scale-x-100" : "scale-x-0",

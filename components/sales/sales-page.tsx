@@ -441,9 +441,9 @@ function Features() {
         <FeatureRow
           eyebrow="Tu marca"
           title="Que se vea como tu restaurante"
-          text="Sube tu logo, elige una plantilla y las tipografías que quieras. La carta del cliente, el seguimiento y hasta los avisos cambian al instante."
+          text="Sube tu logo, elige entre nueve estilos de carta (claros, oscuros, con portada, tipo carta impresa…) y las tipografías que quieras. Todo cambia al instante."
           points={[
-            "Plantillas listas: cálido, clásico, moderno, fresco, rústico",
+            "Estilos completos: bistró oscuro, café minimal, gourmet, parrilla, urbano y más",
             "Color de acento propio con buen contraste garantizado",
             "Carta en español e inglés y precios en tu moneda",
           ]}

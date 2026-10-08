@@ -457,3 +457,22 @@ pueden cambiar sin rehacer pantallas.
       con `node scripts/guia-pdf.mjs` a partir de `docs/guia/guia.html` y las capturas de
       `docs/guia/img`. Para rehacerla con pantallas nuevas: `E2E_URL=... node e2e/capturas.mjs` y
       luego el script del PDF. La versión definitiva para entregar a clientes se hace al final.
+131.  **Estilos de la carta (forma) separados de la paleta (color).** Hasta ahora la "plantilla"
+      solo cambiaba colores y letra. Ahora hay **9 estilos** (`lib/domain/menu-style.ts`): Clásico,
+      Café minimal, Fresco redondeado, Bistró oscuro, Gourmet editorial, Parrilla rústica, Urbano
+      colorido, Mediterráneo y Neón nocturno. Un estilo define distribución de los platos (lista,
+      cuadrícula, carta impresa, tarjetas), encabezado (izquierda, centrado o con portada), pestañas
+      (línea o píldora), esquinas, borde, sombra, letra y, en algunos, fondos propios (los oscuros
+      entre ellos). El **acento, el logo y el nombre son del negocio** y se aplican encima de
+      cualquier estilo: en fondos oscuros el acento se aclara solo para leerse y el texto de los
+      botones pasa a casi negro, con contraste AA verificado por pruebas para varios acentos. Las
+      esquinas salen de variables (`--r-sm…--r-2xl`) y la sombra de `--shadow-card`, así que todo
+      cambia de forma uniforme sin tocar cada pantalla. **Solo lo ve el cliente** (`/mesa`,
+      `/domicilio`): mesero, cocina, caja y administración mantienen su paleta, para que un fondo
+      oscuro o un estilo atrevido no afecte el trabajo. En Configuración se elige con **vista
+      previa** (con los platos reales) antes de aplicar; aplicar un estilo trae su letra pero
+      conserva acento, logo y portada. La **foto de portada** se reduce en el navegador (JPG, tope
+      450 KB) y la usan los estilos con portada; sin foto se usa un degradado del acento.
+      **Planes:** Esencial = Clásico, Café minimal y Fresco redondeado; Profesional = los 9, portada
+      y tipografías propias. Hoy todos están disponibles en la demo; el bloqueo por plan llega con
+      las cuentas reales (fase 9). El estilo se escoge una vez por negocio, no por sección.
