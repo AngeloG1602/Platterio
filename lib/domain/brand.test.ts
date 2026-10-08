@@ -159,6 +159,22 @@ describe("estilos de la carta", () => {
     }
   });
 
+  it("en fondos oscuros los colores de estado se leen sobre sus fondos suaves", () => {
+    for (const style of MENU_STYLES.filter((s) => s.dark)) {
+      const v = brandVars({
+        accentColor: "#E4572E",
+        brand: { template: "calido", style: style.id },
+      });
+      for (const k of ["success", "warning", "danger"]) {
+        expect(v[`--${k}-ink`], `${style.id} ${k}`).toBeDefined();
+        expect(
+          contrast(parseHex(v[`--${k}-ink`]!)!, parseHex(v["--surface"]!)!),
+          `${style.id} ${k}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it("en estilos claros con fondo propio el acento como texto cumple AA sobre fondo y tarjeta", () => {
     for (const accent of ["#E4572E", "#D69A1E", "#1E8A7A", "#2D5FA3"]) {
       for (const style of MENU_STYLES.filter((s) => !s.dark)) {

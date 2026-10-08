@@ -209,8 +209,22 @@ export function brandVars(
       ? shapeVars(style)
       : { "--shadow-card": SOFT_SHADOW, "--card-bw": "1px", "--card-bs": "solid" }),
     "color-scheme": dark ? "dark" : "light",
+    ...(dark ? DARK_STATUS : {}),
   } as Record<string, string>;
 }
+
+/** Colores de estado (éxito, aviso, error) legibles sobre fondos oscuros; son los de la cocina. */
+const DARK_STATUS = {
+  "--success": "#48BB78",
+  "--success-ink": "#68D391",
+  "--success-soft": "color-mix(in oklab, #48bb78 18%, var(--surface))",
+  "--warning": "#ECC94B",
+  "--warning-ink": "#F6E05E",
+  "--warning-soft": "color-mix(in oklab, #ecc94b 16%, var(--surface))",
+  "--danger": "#FC8181",
+  "--danger-ink": "#FEB2B2",
+  "--danger-soft": "color-mix(in oklab, #fc8181 16%, var(--surface))",
+};
 
 const SOFT_SHADOW = styleById("clasico").shadow;
 
