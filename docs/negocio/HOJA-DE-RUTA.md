@@ -25,7 +25,7 @@ Resume lo decidido y el orden de trabajo. Se actualiza al terminar cada fase.
 | 1   | Usuarios y roles: entrada con PIN, permisos, equipo, caja                                                       | Hecha (pendiente de visto bueno) |
 | 2   | Mesas con QR fijo, PIN del mesero y sesiones que se cierran                                                     | Hecha (pendiente de visto bueno) |
 | 3   | Pedido del mesero y de caja, con edición y registro de cambios                                                  | Hecha (pendiente de visto bueno) |
-| 4   | Marca por negocio: logo, paleta, tipografías y plantillas                                                       | Hecha (pendiente de visto bueno) |
+| 4   | Marca por negocio: logo, paleta, tipografías y 9 estilos de carta (forma, claro/oscuro, portada)                | Hecha (pendiente de visto bueno) |
 | 5   | Reportes completos y cierre de caja                                                                             | Hecha (pendiente de visto bueno) |
 | 6   | Domicilios                                                                                                      | Hecha (pendiente de visto bueno) |
 | 7   | Idiomas (español e inglés) y monedas. Sin propina ni impuestos                                                  | Hecha (pendiente de visto bueno) |

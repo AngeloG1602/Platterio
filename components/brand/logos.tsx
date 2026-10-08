@@ -48,26 +48,56 @@ export function PlatterioLogo({
   );
 }
 
-/** Marca tipográfica del restaurante de ejemplo. */
-export function RestaurantMark({ name, className }: { name: string; className?: string }) {
+/**
+ * Marca del restaurante: logo y nombre. `stacked` los pone uno sobre otro y centrados;
+ * `onPhoto` es para ponerla sobre una foto (texto claro y logo sobre fondo blanco).
+ */
+export function RestaurantMark({
+  name,
+  className,
+  stacked = false,
+  onPhoto = false,
+}: {
+  name: string;
+  className?: string;
+  stacked?: boolean;
+  onPhoto?: boolean;
+}) {
   const logo = useAppStore((s) => s.restaurant.brand?.logo);
   const match = /^(.*?)(\s*\d+)$/.exec(name);
   const words = match ? match[1]! : name;
   const number = match ? match[2]!.trim() : null;
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-2",
+        stacked && "flex-col text-center",
+        onPhoto && "text-white",
+        className,
+      )}
+    >
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element -- logo propio del negocio, ya reducido
-        <img src={logo} alt="" className="size-[1.9em] rounded-lg object-contain" />
+        <img
+          src={logo}
+          alt=""
+          className={cn(
+            "rounded-lg object-contain",
+            stacked ? "size-[3.4em]" : "size-[1.9em]",
+            onPhoto && "bg-white/90 p-0.5",
+          )}
+        />
       )}
-      <span className="font-display text-[1.6em] leading-none font-semibold tracking-tight">
-        {words}
-      </span>
-      {number && (
-        <span className="bg-accent-strong text-accent-ink inline-flex h-[1.5em] min-w-[1.5em] items-center justify-center rounded-full px-1.5 text-[0.95em] leading-none font-bold tabular-nums">
-          {number}
+      <span className={cn("inline-flex items-center gap-2", stacked && "flex-wrap justify-center")}>
+        <span className="font-display text-[1.6em] leading-none font-semibold tracking-tight">
+          {words}
         </span>
-      )}
+        {number && (
+          <span className="bg-accent-strong text-accent-ink inline-flex h-[1.5em] min-w-[1.5em] items-center justify-center rounded-full px-1.5 text-[0.95em] leading-none font-bold tabular-nums">
+            {number}
+          </span>
+        )}
+      </span>
     </span>
   );
 }

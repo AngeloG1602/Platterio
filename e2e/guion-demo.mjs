@@ -624,6 +624,48 @@ check(
   await visible(visita.getByRole("button", { name: /^Agregar ·/ })),
 );
 
+// 18. Estilos de la carta: cambian lo que ve el cliente, no las pantallas del personal
+await admin.goto(`${BASE}/admin/configuracion`);
+const estilos = admin.getByRole("radiogroup", { name: "Estilos de la carta" });
+await estilos.getByRole("radio", { name: /^Bistró oscuro/ }).click();
+check(
+  "18. Elegir un estilo muestra la vista previa sin aplicarlo todavía",
+  await visible(admin.getByRole("img", { name: "Vista previa del estilo Bistró oscuro" })),
+);
+await admin.getByRole("button", { name: "Usar Bistró oscuro" }).click();
+const estilista = await tab("Estilo", 390, 900);
+await estilista.goto(`${BASE}/domicilio`);
+await estilista.getByRole("heading", { name: /Pide a domicilio/ }).waitFor();
+const fondo = (p) => p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+check(
+  "18. El cliente ve el fondo oscuro del estilo",
+  (await fondo(estilista)) === "rgb(21, 18, 15)",
+);
+check(
+  "18. El nombre del negocio sigue en la carta",
+  await visible(estilista.getByText("Fogón").first()),
+);
+await admin.goto(`${BASE}/admin`);
+await admin.getByRole("heading", { level: 1 }).first().waitFor();
+check(
+  "18. Las pantallas del personal conservan su paleta clara",
+  (await fondo(admin)) === "rgb(250, 247, 242)",
+);
+await admin.goto(`${BASE}/admin/configuracion`);
+await estilos.getByRole("radio", { name: /^Café minimal/ }).click();
+await admin.getByRole("button", { name: "Usar Café minimal" }).click();
+await estilista.goto(`${BASE}/domicilio`);
+check(
+  "18. Con otro estilo cambia la distribución (cuadrícula)",
+  await estilista.evaluate(() => {
+    const ul = document.querySelector("main ul");
+    return ul ? getComputedStyle(ul).display === "grid" : false;
+  }),
+);
+await estilos.getByRole("radio", { name: /^Clásico/ }).click();
+await admin.getByRole("button", { name: "Usar Clásico" }).click();
+await estilista.close();
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

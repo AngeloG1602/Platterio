@@ -4,9 +4,15 @@ import { Clock, Receipt, ShoppingBag } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { memo, useMemo, useState } from "react";
-import { RestaurantMark } from "@/components/brand/logos";
+import { MenuHeader } from "@/components/brand/menu-header";
 import { ClientShell } from "@/components/client/client-shell";
-import { DishImage } from "@/components/dish/dish-image";
+import { DishCard } from "@/components/dish/dish-card";
+import {
+  CategoryHeading,
+  dishLinkClass,
+  DishList,
+  useMenuStyle,
+} from "@/components/dish/dish-layout";
 import { buttonClasses } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,8 +82,8 @@ function Menu() {
 
   return (
     <>
-      <header className="px-4 pt-4">
-        <RestaurantMark name={restaurant.name} className="text-[14px]" />
+      <MenuHeader name={restaurant.name} />
+      <div className="px-4">
         <h1 className="font-display mt-5 text-[30px] leading-[1.1] font-semibold tracking-tight">
           {t("Pide a domicilio o para recoger")}
         </h1>
@@ -106,7 +112,7 @@ function Menu() {
             <Receipt className="size-5" aria-hidden /> {t("Seguir mi pedido")} {active.info.code}
           </Link>
         )}
-      </header>
+      </div>
 
       <nav
         aria-label={t("Categorías")}
@@ -131,14 +137,12 @@ function Menu() {
             aria-labelledby={`h-${s.category.id}`}
             className="pt-6 [contain-intrinsic-size:auto_600px] [content-visibility:auto]"
           >
-            <h2 id={`h-${s.category.id}`} className="font-display text-[22px] font-semibold">
-              {localized(s.category)}
-            </h2>
-            <ul className="divide-line divide-y">
+            <CategoryHeading id={`h-${s.category.id}`}>{localized(s.category)}</CategoryHeading>
+            <DishList>
               {s.dishes.map((d) => (
                 <DishRow key={d.id} dish={d} onPick={setPicked} />
               ))}
-            </ul>
+            </DishList>
           </section>
         ))}
       </main>
@@ -163,34 +167,15 @@ function Menu() {
 }
 
 const DishRow = memo(function DishRow({ dish, onPick }: { dish: Dish; onPick: (d: Dish) => void }) {
-  const prices = dish.variants.map((v) => v.price);
+  const { layout } = useMenuStyle();
   return (
     <li>
       <button
         type="button"
         onClick={() => onPick(dish)}
-        className="flex w-full gap-4 py-4 text-left"
+        className={dishLinkClass(layout) + " w-full text-left"}
       >
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="font-display text-[17px] leading-snug font-semibold">
-            {localized(dish)}
-          </span>
-          <span className="text-muted mt-1 line-clamp-2 text-sm leading-relaxed">
-            {localized(dish, "description")}
-          </span>
-          <Price
-            value={Math.min(...prices)}
-            from={new Set(prices).size > 1}
-            className="mt-2 text-[15px]"
-          />
-        </span>
-        <DishImage
-          src={dish.photos[0]}
-          name={localized(dish)}
-          sizes="96px"
-          className="shadow-card size-24 shrink-0"
-          rounded="rounded-xl"
-        />
+        <DishCard dish={dish} />
         <span className="sr-only">{t("Agregar {dish}", { dish: localized(dish) })}</span>
       </button>
     </li>

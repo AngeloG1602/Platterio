@@ -101,11 +101,11 @@
     sans-serif
   );
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-  --radius-2xl: 28px;
+  --radius-sm: var(--r-sm, 8px);
+  --radius-md: var(--r-md, 12px);
+  --radius-lg: var(--r-lg, 16px);
+  --radius-xl: var(--r-xl, 22px);
+  --radius-2xl: var(--r-2xl, 28px);
 
   --shadow-card: var(--shadow-card);
   --shadow-float: var(--shadow-float);

@@ -35,6 +35,10 @@ export type Stars = 1 | 2 | 3 | 4 | 5;
 /** Identidad visual del negocio: plantilla base, tipografías propias y logo. */
 export interface Brand {
   template: string;
+  /** Estilo de la carta (distribución, esquinas, fondo claro u oscuro). Sin él, "clasico". */
+  style?: string;
+  /** Foto de portada del encabezado, como data URL. */
+  cover?: string;
   headingFont?: string;
   bodyFont?: string;
   /** Logo reducido, como data URL (con la base de datos pasará a Storage). */
