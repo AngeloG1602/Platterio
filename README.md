@@ -55,9 +55,9 @@ La sesión es por pestaña, así que cada pestaña puede ser una persona distint
 ## Guion de demo (5 minutos)
 
 Todo se hace en **pestañas del mismo navegador**: cada pestaña cuenta como un celular o
-dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su propia identidad.
+dispositivo distinto. Ábrelas desde el hub de la demo (`/demo`) para que cada una tenga su propia identidad.
 
-1. **Hub → Panel de demo** (o `/?demo=1`): toca _Reiniciar datos_ si vienes de un ensayo y pon
+1. **Hub → Panel de demo** (o `/demo?demo=1`): toca _Reiniciar datos_ si vienes de un ensayo y pon
    la hora en **Almuerzo**.
 2. **Pestaña A – Mesa 3 como "Ana"**: al escanear, la mesa aún está cerrada ("Pide al mesero que
    abra tu mesa", con un enlace **Ver la carta mientras tanto**: se puede mirar la carta con precios pero no pedir). En otra pestaña, **Carlos** toca la Mesa 3 → _Abrir mesa_ y obtiene el PIN
@@ -120,31 +120,34 @@ agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 
 ## Rutas
 
-| Ruta                                  | Vista                                                                                      |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `/`                                   | Hub de demo: entrar como cliente (mesas), mesero, cocina o administrador                   |
-| `/?demo=1`                            | Abre el panel de demo (hora simulada, tiempo ×10, simular comensal, reiniciar)             |
-| `/muestra`                            | Muestra de componentes con el estilo final                                                 |
-| `/domicilio`                          | Cliente: pide a domicilio o para recoger y sigue su pedido (`/domicilio/seguimiento/[id]`) |
-| `/producto`                           | Página de ventas (preliminar): funciones, planes y preguntas                               |
-| `/mesa/[numero]`                      | Entrada del cliente (QR fijo): pide al mesero que abra la mesa; con el PIN, entra          |
-| `/mesa/[numero]/menu`                 | Recomendados por franja, categorías, buscador y filtros                                    |
-| `/mesa/[numero]/plato/[id]`           | Ficha del plato                                                                            |
-| `/mesa/[numero]/carrito`              | Carrito compartido de la mesa y envío                                                      |
-| `/mesa/[numero]/pedido`               | Ticket de la mesa y línea de tiempo del pedido                                             |
-| `/mesa/[numero]/calificar`            | Calificar platos y servicio                                                                |
-| `/entrar`                             | Entrada del personal con PIN (lleva a la pantalla de su rol)                               |
-| `/mesero`                             | Mesero: sus mesas y pedidos (pide PIN)                                                     |
-| `/caja`                               | Encargado de caja: todo el salón, mesas y meseros, equipo (pide PIN)                       |
-| `/cocina`                             | Tablero de cocina en modo oscuro (pide PIN)                                                |
-| `/admin`                              | Resumen del administrador (pide PIN)                                                       |
-| `/admin/equipo`                       | Usuarios del negocio: roles, PIN, activar y desactivar                                     |
-| `/admin/platos`, `/admin/platos/[id]` | Catálogo; `nuevo` como id crea un plato                                                    |
-| `/admin/recomendaciones`              | Destacados, franjas y vista previa                                                         |
-| `/admin/calificaciones`               | Calificaciones y reseñas                                                                   |
-| `/admin/ventas`                       | Ventas y preferencias                                                                      |
-| `/admin/reportes`                     | Reportes completos: cobros, meseros, cambios, mesas sin cobro, cierres de caja (CSV)       |
-| `/admin/configuracion`                | Color, umbrales, mesas con QR y meseros                                                    |
+| Ruta                                  | Vista                                                                                          |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `/`                                   | Página de ventas: funciones, planes y preguntas, con _Probar 7 días gratis_ e _Iniciar sesión_ |
+| `/demo`                               | Hub de demo: entrar como cliente (mesas), mesero, cocina o administrador                       |
+| `/registro`                           | Crear la cuenta del negocio (correo y contraseña) y empezar la prueba de 7 días                |
+| `/iniciar-sesion`                     | Ingreso del dueño con correo y contraseña                                                      |
+| `/?demo=1`                            | Abre el panel de demo (hora simulada, tiempo ×10, simular comensal, reiniciar)                 |
+| `/muestra`                            | Muestra de componentes con el estilo final                                                     |
+| `/domicilio`                          | Cliente: pide a domicilio o para recoger y sigue su pedido (`/domicilio/seguimiento/[id]`)     |
+| `/producto`                           | Redirige a `/` (enlace anterior de la página de ventas)                                        |
+| `/mesa/[numero]`                      | Entrada del cliente (QR fijo): pide al mesero que abra la mesa; con el PIN, entra              |
+| `/mesa/[numero]/menu`                 | Recomendados por franja, categorías, buscador y filtros                                        |
+| `/mesa/[numero]/plato/[id]`           | Ficha del plato                                                                                |
+| `/mesa/[numero]/carrito`              | Carrito compartido de la mesa y envío                                                          |
+| `/mesa/[numero]/pedido`               | Ticket de la mesa y línea de tiempo del pedido                                                 |
+| `/mesa/[numero]/calificar`            | Calificar platos y servicio                                                                    |
+| `/entrar`                             | Entrada del personal con PIN (lleva a la pantalla de su rol)                                   |
+| `/mesero`                             | Mesero: sus mesas y pedidos (pide PIN)                                                         |
+| `/caja`                               | Encargado de caja: todo el salón, mesas y meseros, equipo (pide PIN)                           |
+| `/cocina`                             | Tablero de cocina en modo oscuro (pide PIN)                                                    |
+| `/admin`                              | Resumen del administrador (pide PIN)                                                           |
+| `/admin/equipo`                       | Usuarios del negocio: roles, PIN, activar y desactivar                                         |
+| `/admin/platos`, `/admin/platos/[id]` | Catálogo; `nuevo` como id crea un plato                                                        |
+| `/admin/recomendaciones`              | Destacados, franjas y vista previa                                                             |
+| `/admin/calificaciones`               | Calificaciones y reseñas                                                                       |
+| `/admin/ventas`                       | Ventas y preferencias                                                                          |
+| `/admin/reportes`                     | Reportes completos: cobros, meseros, cambios, mesas sin cobro, cierres de caja (CSV)           |
+| `/admin/configuracion`                | Color, umbrales, mesas con QR y meseros                                                        |
 
 ## Desplegar en Vercel
 

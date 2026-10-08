@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 import { LoginScreen } from "@/components/access/login-screen";
 import { buttonClasses, Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authActions, useCurrentStaff, useHydrated } from "@/lib/data";
+import { ExpiredScreen, useAccountStatus } from "@/components/account/account-status";
+import {
+  accountActions,
+  authActions,
+  useCurrentAccount,
+  useCurrentStaff,
+  useHydrated,
+} from "@/lib/data";
 import { can, HOME, ROLE_LABEL, type Permission } from "@/lib/domain/access";
 
 /**
@@ -26,6 +33,8 @@ export function RoleGate({
 }) {
   const hydrated = useHydrated();
   const staff = useCurrentStaff();
+  const account = useCurrentAccount();
+  const status = useAccountStatus();
 
   if (!hydrated) {
     return (
@@ -38,6 +47,8 @@ export function RoleGate({
     );
   }
   if (!staff) return <LoginScreen title={`Entrar a ${label}`} />;
+  if (account && status?.state === "vencida")
+    return <ExpiredScreen email={account.email} businessName={account.businessName} />;
   if (!can(staff.role, permission)) return <NoAccess label={label} />;
   return <>{children}</>;
 }
@@ -75,7 +86,7 @@ export function SessionButton({ className }: { className?: string }) {
   if (!staff) return null;
   return (
     <div className={className}>
-      <Button variant="secondary" size="sm" onClick={authActions.logout}>
+      <Button variant="secondary" size="sm" onClick={accountActions.signOut}>
         <LogOut aria-hidden />
         <span className="hidden sm:inline">{staff.name} ·</span> Salir
         <span className="sr-only"> de la sesión de {staff.name}</span>

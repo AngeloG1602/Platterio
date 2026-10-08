@@ -19,9 +19,12 @@ import { Dialog } from "@/components/ui/dialog";
 import { Sheet } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
+import { useAccountStatus } from "@/components/account/account-status";
 import {
+  accountActions,
   demoActions,
   demoDinerActions,
+  useCurrentAccount,
   useOpenTableNumbers,
   useTables,
   useConnectedTabs,
@@ -31,6 +34,7 @@ import {
   useSyncSupported,
   useTimeSlots,
 } from "@/lib/data";
+import { statusMessage } from "@/lib/domain/accounts";
 import { formatSlotRange, formatTime, plural } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
 
@@ -187,6 +191,8 @@ export function DemoSheet({
 
           <SimulateDiner />
 
+          <SimulateAccount />
+
           <section>
             <Button variant="secondary" block onClick={() => setConfirmReset(true)}>
               <RotateCcw aria-hidden /> Reiniciar datos
@@ -337,6 +343,34 @@ function SimulateDiner() {
       >
         <UserPlus aria-hidden /> Agregar comensal a la Mesa {tableNumber}
       </Button>
+    </section>
+  );
+}
+
+/** Controles para ver los avisos de la prueba gratis sin esperar siete días. */
+function SimulateAccount() {
+  const account = useCurrentAccount();
+  const status = useAccountStatus();
+  if (!account || !status) return null;
+  return (
+    <section aria-labelledby="demo-cuenta" className="border-line rounded-xl border p-4">
+      <h3 id="demo-cuenta" className="text-[15px] font-semibold">
+        Cuenta de prueba
+      </h3>
+      <p className="text-muted mt-0.5 text-[13px]">
+        {account.businessName} · {statusMessage(status)}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm" onClick={() => accountActions.simulateDays(3)}>
+          Adelantar 3 días
+        </Button>
+        <Button variant="secondary" size="sm" onClick={accountActions.expireNow}>
+          Terminar la prueba
+        </Button>
+        <Button variant="secondary" size="sm" onClick={accountActions.simulateActivation}>
+          Simular pago
+        </Button>
+      </div>
     </section>
   );
 }

@@ -83,7 +83,7 @@ export function Lab3D() {
             · prototipo interno, no visible para los clientes
           </span>
           <Link
-            href="/"
+            href="/demo"
             className="text-bg/85 hover:text-bg ml-auto inline-flex min-h-9 items-center gap-1 rounded-md px-2"
           >
             <ArrowLeft className="size-4" aria-hidden /> Hub

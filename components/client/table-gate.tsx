@@ -45,7 +45,7 @@ export function InvalidTable() {
         "Puede que el código QR esté desactualizado. Pídele ayuda al mesero o vuelve a escanear.",
       )}
       action={
-        <Link href="/" className={buttonClasses({ variant: "secondary" })}>
+        <Link href="/demo" className={buttonClasses({ variant: "secondary" })}>
           {t("Ir al inicio de la demo")}
         </Link>
       }

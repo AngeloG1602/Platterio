@@ -89,7 +89,7 @@ export function Showcase() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
           <div className="flex items-center gap-2">
             <Link
-              href="/"
+              href="/demo"
               className={buttonClasses({ variant: "ghost", size: "sm", className: "-ml-2" })}
             >
               <ArrowLeft aria-hidden /> Hub

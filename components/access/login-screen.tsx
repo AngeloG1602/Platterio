@@ -80,7 +80,15 @@ export function LoginScreen({
         </Button>
       </form>
 
-      <details className="border-line bg-surface mt-8 rounded-2xl border p-4">
+      <p className="text-ink-soft mt-6 text-[15px]">
+        ¿Eres el dueño del negocio?{" "}
+        <Link href="/iniciar-sesion" className="text-accent-strong font-semibold underline">
+          Entra con tu correo
+        </Link>
+        .
+      </p>
+
+      <details className="border-line bg-surface mt-6 rounded-2xl border p-4">
         <summary className="cursor-pointer text-[15px] font-semibold">
           Usuarios de la demo
           <Badge tone="warning" className="ml-2 align-middle">
@@ -117,7 +125,7 @@ export function LoginScreen({
       </details>
 
       <Link
-        href="/"
+        href="/demo"
         className={buttonClasses({ variant: "ghost", className: "mt-auto self-center" })}
       >
         Volver al hub de demo

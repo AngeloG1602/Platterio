@@ -25,7 +25,7 @@ const recsOf = (p) => p.locator("section[aria-labelledby=recomendados] h3").allT
 
 // 0. Datos limpios
 const hub = await tab("Hub", 1280, 900);
-await hub.goto(`${BASE}/?demo=1`);
+await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("button", { name: /Reiniciar datos/ }).click();
 await hub.getByRole("button", { name: "Sí, reiniciar" }).click();
 
@@ -666,8 +666,89 @@ await estilos.getByRole("radio", { name: /^Clásico/ }).click();
 await admin.getByRole("button", { name: "Usar Clásico" }).click();
 await estilista.close();
 
+// 19. Cuentas: página de ventas, registro, prueba de 7 días e ingreso del dueño
+const dueno = await tab("Dueño", 1200, 900);
+await dueno.goto(`${BASE}/`);
+check(
+  "19. La página principal es la de ventas",
+  await visible(dueno.getByRole("heading", { name: /Tu carta, tu salón y tu caja/ })),
+);
+check(
+  "19. La demo quedó en /demo",
+  await visible(dueno.getByRole("link", { name: "Ver la demo" }).first()),
+);
+await dueno
+  .getByRole("link", { name: /Probar 7 días gratis/ })
+  .first()
+  .click();
+await dueno.waitForURL("**/registro");
+await dueno.getByLabel("Nombre de tu negocio").fill("Casa Verde");
+await dueno.getByLabel("Correo").fill("dueno-sin-arroba");
+await dueno.getByLabel("Contraseña", { exact: true }).fill("corta");
+await dueno.getByRole("checkbox").check();
+await dueno.getByRole("button", { name: /Crear mi cuenta/ }).click();
+check("19. Valida el correo", await visible(dueno.getByText(/Revisa el correo/)));
+check("19. Valida la contraseña", await visible(dueno.getByText(/al menos 8 caracteres/)));
+await dueno.getByLabel("Correo").fill("dueno@casaverde.co");
+await dueno.getByLabel("Contraseña", { exact: true }).fill("clave12345");
+await dueno.getByRole("button", { name: /Crear mi cuenta/ }).click();
+await dueno.waitForURL("**/admin");
+check(
+  "19. Al registrarse entra al panel con el nombre de su negocio",
+  await visible(dueno.getByText("Casa Verde").first()),
+);
+check(
+  "19. Se ve la prueba gratis de 7 días",
+  await visible(dueno.getByText("Prueba gratis: te quedan 7 días")),
+);
+await dueno.getByRole("button", { name: /Salir/ }).first().click();
+await dueno.goto(`${BASE}/iniciar-sesion`);
+await dueno.getByLabel("Correo").fill("dueno@casaverde.co");
+await dueno.getByLabel("Contraseña", { exact: true }).fill("incorrecta1");
+await dueno.getByRole("button", { name: "Entrar" }).click();
+check(
+  "19. Una contraseña incorrecta no deja entrar",
+  await visible(dueno.getByText("Correo o contraseña incorrectos")),
+);
+await dueno.getByLabel("Contraseña", { exact: true }).fill("clave12345");
+await dueno.getByRole("button", { name: "Entrar" }).click();
+await dueno.waitForURL("**/admin");
+check(
+  "19. Con la contraseña correcta vuelve a su panel",
+  await visible(dueno.getByText("Casa Verde").first()),
+);
+await dueno.getByRole("button", { name: /Salir/ }).first().click();
+await dueno.goto(`${BASE}/registro`);
+await dueno.getByLabel("Nombre de tu negocio").fill("Otra Casa");
+await dueno.getByLabel("Correo").fill("DUENO@casaverde.co");
+await dueno.getByLabel("Contraseña", { exact: true }).fill("clave12345");
+await dueno.getByRole("checkbox").check();
+await dueno.getByRole("button", { name: /Crear mi cuenta/ }).click();
+check(
+  "19. No se puede repetir el correo",
+  await visible(dueno.getByText(/Ya hay una cuenta con este correo/)),
+);
+await dueno.goto(`${BASE}/iniciar-sesion`);
+await dueno.getByLabel("Correo").fill("dueno@casaverde.co");
+await dueno.getByLabel("Contraseña", { exact: true }).fill("clave12345");
+await dueno.getByRole("button", { name: "Entrar" }).click();
+await dueno.waitForURL("**/admin");
+await dueno.goto(`${BASE}/admin?demo=1`);
+await dueno.getByRole("button", { name: "Terminar la prueba" }).click();
+check(
+  "19. Con la prueba vencida se bloquea el panel",
+  await visible(dueno.getByRole("heading", { name: "Tu cuenta venció" })),
+);
+await dueno.getByRole("button", { name: /Simular pago/ }).click();
+check(
+  "19. Al activar el plan vuelve a entrar, sin aviso de prueba",
+  (await visible(dueno.getByText("Administrando"))) &&
+    !(await visible(dueno.getByText(/Prueba gratis/), 1200)),
+);
+await dueno.close();
+
 // Limpieza: hora automática
-await hub.goto(`${BASE}/?demo=1`);
+await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();
 
 check("Sin errores de consola", errors.length === 0, errors.join(" | "));

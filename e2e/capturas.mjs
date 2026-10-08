@@ -28,7 +28,7 @@ const pause = (p, ms = 600) => p.waitForTimeout(ms);
 
 // 0. Datos limpios, hora de almuerzo
 const hub = await tab(1100, 800);
-await hub.goto(`${BASE}/?demo=1`);
+await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("button", { name: /Reiniciar datos/ }).click();
 await hub.getByRole("button", { name: "Sí, reiniciar" }).click();
 await hub.getByRole("radio", { name: /Almuerzo/ }).click();
@@ -240,6 +240,6 @@ await enPage.waitForTimeout(900);
 await enPage.screenshot({ path: `${OUT}d05-domicilio-ingles.jpg`, type: "jpeg", quality: 82 });
 console.log("✔ d05-domicilio-ingles");
 
-await hub.goto(`${BASE}/?demo=1`);
+await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();
 await browser.close();

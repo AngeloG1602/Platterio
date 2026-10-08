@@ -84,7 +84,7 @@ function Header() {
   return (
     <header className="border-line bg-bg/90 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 sm:px-8">
-        <Link href="/producto" aria-label="Platterio, inicio">
+        <Link href="/" aria-label="Platterio, inicio">
           <PlatterioLogo />
         </Link>
         <nav aria-label="Secciones" className="ml-6 hidden items-center gap-1 lg:flex">
@@ -98,9 +98,14 @@ function Header() {
             </a>
           ))}
         </nav>
-        <Link href="/" className={buttonClasses({ size: "sm", className: "ml-auto" })}>
-          Probar la demo <ArrowRight aria-hidden />
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <Link href="/iniciar-sesion" className={buttonClasses({ size: "sm", variant: "ghost" })}>
+            Iniciar sesión
+          </Link>
+          <Link href="/registro" className={buttonClasses({ size: "sm" })}>
+            Probar {TRIAL_DAYS} días gratis <ArrowRight aria-hidden />
+          </Link>
+        </div>
       </div>
     </header>
   );
@@ -148,12 +153,12 @@ function Hero() {
             claros.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/" className={buttonClasses({ size: "lg" })}>
-              Probar la demo <ArrowRight aria-hidden />
+            <Link href="/registro" className={buttonClasses({ size: "lg" })}>
+              Probar {TRIAL_DAYS} días gratis <ArrowRight aria-hidden />
             </Link>
-            <a href="#planes" className={buttonClasses({ size: "lg", variant: "secondary" })}>
-              Ver planes
-            </a>
+            <Link href="/demo" className={buttonClasses({ size: "lg", variant: "secondary" })}>
+              Ver la demo
+            </Link>
           </div>
           <ul className="text-ink-soft mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[14px] font-medium">
             <li className="flex items-center gap-2">
@@ -665,12 +670,20 @@ function FinalCta() {
           La demo tiene un restaurante de ejemplo con todo: cliente, mesero, cocina, caja,
           domicilios y reportes. No necesitas registrarte.
         </p>
-        <Link
-          href="/"
-          className="text-accent-strong mt-7 inline-flex h-14 items-center gap-2 rounded-xl bg-white px-7 text-[17px] font-semibold"
-        >
-          Probar la demo <ArrowRight aria-hidden className="size-5" />
-        </Link>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/demo"
+            className="text-accent-strong inline-flex h-14 items-center gap-2 rounded-xl bg-white px-7 text-[17px] font-semibold"
+          >
+            Probar la demo <ArrowRight aria-hidden className="size-5" />
+          </Link>
+          <Link
+            href="/registro"
+            className="inline-flex h-14 items-center gap-2 rounded-xl border-2 border-white px-7 text-[17px] font-semibold text-white"
+          >
+            Crear mi cuenta
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -690,8 +703,11 @@ function Footer() {
               {label}
             </a>
           ))}
-          <Link href="/" className="hover:text-ink">
+          <Link href="/demo" className="hover:text-ink">
             Demo
+          </Link>
+          <Link href="/iniciar-sesion" className="hover:text-ink">
+            Iniciar sesión
           </Link>
         </nav>
         <p className="text-muted text-[13px]">Versión preliminar de la página de ventas.</p>

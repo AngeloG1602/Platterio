@@ -487,3 +487,16 @@ pueden cambiar sin rehacer pantallas.
       contraste y accesibilidad y con versión para que las actualizaciones no lo rompan) y un
       permiso por cuenta para estilos o distribuciones exclusivas. Nunca copiar el proyecto por
       cliente ni poner condiciones "si el cliente es X" en el código.
+133.  **Recorrido de cuentas en local (antes de la fase 9).** La página de ventas pasa a ser la
+      principal (`/`), la demo se mueve a `/demo` y `/producto` redirige a `/`. Nuevas pantallas:
+      `/registro` (nombre del negocio, correo, contraseña de 8 caracteres o más y aceptar
+      términos; empieza la prueba de 7 días sin tarjeta) e `/iniciar-sesion` (correo y contraseña,
+      **sin Google**, con el mismo mensaje de error si falla el correo o la clave). El dueño es el
+      administrador del negocio; el personal sigue entrando con **PIN** y no necesita correo. La
+      cuenta guarda su "vigente hasta" (prueba o suscripción) y la lógica es pura y con pruebas
+      (`lib/domain/accounts.ts`). Con la prueba vencida el software muestra una pantalla de cuenta
+      vencida (los datos se conservan); el panel de demo permite adelantar días, terminarla o
+      simular el pago. **Limitación declarada:** las cuentas viven en el navegador y la clave se
+      guarda con huella SHA-256 solo para no verla en claro; no es seguridad real, que llega con la
+      base de datos. Faltan: direcciones por negocio (`/negocio/...`), alta de usuarios con PIN
+      con código del negocio, y los cobros con Hotmart (fase 10).

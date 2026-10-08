@@ -75,7 +75,7 @@ export function Pricing() {
                   : `O ${formatMoney(plan.yearly, "COP")} al año (2 meses gratis)`}
               </p>
               <Link
-                href="/"
+                href={`/registro?plan=${plan.id}`}
                 className={buttonClasses({
                   size: "lg",
                   block: true,
