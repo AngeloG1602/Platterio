@@ -433,3 +433,11 @@ pueden cambiar sin rehacer pantallas.
       configuración la hacemos nosotros (hoy vive en código; con la base de datos, Fase 9, pasa a
       datos del plato) y el cobro por plato se aplica en la Fase 10. Pendiente: personalizar
       también desde `/domicilio` y desde "Tomar pedido" del mesero (hoy esos usan la nota).
+127.  **Mirar la carta sin poder pedir.** Quien escanea el QR de una mesa cerrada, o una abierta sin
+      haber puesto el PIN, puede ver la carta y la ficha de cada plato (con fotos, ingredientes,
+      alérgenos, recomendados, filtros, **precios** y el visor 3D para mirar). Lo que no puede es
+      agregar al carrito ni enviar: en vez de eso hay una barra fija ("Para pedir, tu mesero abre la
+      mesa y te da un PIN") con **Avisar al mesero**; cuando el mesero abre la mesa, la barra
+      cambia a **Poner PIN** y, al entrar, vuelve a la misma pantalla donde estaba. El carrito, el
+      pedido y la calificación siguen pidiendo haber entrado. La carta es pública: mirarla no da
+      acceso a nada, y el control de que solo pida quien está sentado no cambia.

@@ -29,21 +29,28 @@ import { Recommendations, RecommendationsSkeleton } from "./recommendations";
 import { RestrictionsSheet } from "./restrictions-sheet";
 import { useTableActivity } from "./table-activity";
 import { TableBar } from "./table-bar";
-import { TableGate, type TableContext } from "./table-gate";
+import { TableViewGate, type TableContext, type TableView } from "./table-gate";
+import { BrowseBar } from "./browse-bar";
 import { localized, t } from "@/lib/i18n";
 
 export function MenuScreen({ numero }: { numero: string }) {
   return (
     <ClientShell>
-      <TableGate numero={numero} fallback={<MenuSkeleton />}>
-        {(ctx) => <Menu ctx={ctx} />}
-      </TableGate>
+      <TableViewGate numero={numero} fallback={<MenuSkeleton />}>
+        {(view) => <Menu view={view} />}
+      </TableViewGate>
     </ClientShell>
   );
 }
 
-function Menu({ ctx }: { ctx: TableContext }) {
+/** Avisos en vivo de la mesa; solo para quien ya entró. */
+function MemberActivity({ ctx }: { ctx: TableContext }) {
   useTableActivity(ctx);
+  return null;
+}
+
+function Menu({ view }: { view: TableView }) {
+  const ctx = view.member;
   const restaurant = useRestaurant();
   const categories = useCategories();
   const dishes = useDishes();
@@ -73,7 +80,7 @@ function Menu({ ctx }: { ctx: TableContext }) {
         <RestaurantMark name={restaurant.name} className="text-[14px]" />
         <div className="flex items-center gap-1">
           <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
-            {t("Mesa {n}", { n: ctx.table.number })} · {ctx.diner.alias}
+            {t("Mesa {n}", { n: view.table.number })} · {ctx ? ctx.diner.alias : t("Solo mirando")}
           </span>
           <button
             type="button"
@@ -99,7 +106,7 @@ function Menu({ ctx }: { ctx: TableContext }) {
 
       <div className="px-4 pt-5">
         <p className="text-muted text-[13px] font-medium">
-          {t("Hola, {name}", { name: ctx.diner.alias })}
+          {ctx ? t("Hola, {name}", { name: ctx.diner.alias }) : t("Mira la carta con calma")}
           {current.slot && !current.upcoming ? ` · ${localized(current.slot)}` : ""}
         </p>
         <h1 className="font-display mt-0.5 text-[30px] leading-[1.1] font-semibold tracking-tight">
@@ -124,7 +131,7 @@ function Menu({ ctx }: { ctx: TableContext }) {
         )}
       </div>
 
-      {showRecommendations && <Recommendations base={ctx.base} restrictions={restrictions} />}
+      {showRecommendations && <Recommendations base={view.base} restrictions={restrictions} />}
 
       <div className="mt-5">
         <CategoryTabs
@@ -138,7 +145,7 @@ function Menu({ ctx }: { ctx: TableContext }) {
             dishes={dishes}
             results={results}
             filtering={filtering}
-            base={ctx.base}
+            base={view.base}
             restrictions={restrictions}
             stats={stats}
           />
@@ -146,7 +153,8 @@ function Menu({ ctx }: { ctx: TableContext }) {
       </div>
 
       <MadeWithPlatterio className="mt-auto pb-28" />
-      <TableBar ctx={ctx} />
+      {ctx ? <TableBar ctx={ctx} /> : <BrowseBar view={view} />}
+      {ctx && <MemberActivity ctx={ctx} />}
 
       <FilterSheet
         open={filtersOpen}

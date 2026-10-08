@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, BellRing, ScanQrCode } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MadeWithPlatterio, RestaurantMark } from "@/components/brand/logos";
@@ -15,6 +16,17 @@ import { ClientShell } from "./client-shell";
 import { InvalidTable, useTableAccess } from "./table-gate";
 import { localized, t } from "@/lib/i18n";
 
+/** A dónde volver tras poner el PIN: la pantalla de la carta donde estaba, o la carta. */
+function nextPath(numero: string): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next?.startsWith(`/mesa/${numero}/`) && !next.includes("//")
+    ? next
+    : `/mesa/${numero}/menu`;
+}
+
+const BROWSE_LINK =
+  "text-accent-strong mt-3 inline-flex min-h-11 items-center justify-center self-center text-[15px] font-semibold underline underline-offset-4";
+
 const COLLAGE = ["clasica-27", "salchipapa-27", "limonada-de-coco"];
 
 /**
@@ -27,7 +39,7 @@ export function TableEntry({ numero }: { numero: string }) {
   const ready = access.status === "ready";
 
   useEffect(() => {
-    if (ready) router.replace(`/mesa/${numero}/menu`);
+    if (ready) router.replace(nextPath(numero));
   }, [ready, numero, router]);
 
   return (
@@ -66,7 +78,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
       setError(t(result.error));
       return;
     }
-    router.replace(`/mesa/${tableNumber}/menu`);
+    router.replace(nextPath(String(tableNumber)));
   }
 
   return (
@@ -163,6 +175,9 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
           {t("Ver la carta")} <ArrowRight aria-hidden />
         </Button>
       </form>
+      <Link href={`/mesa/${tableNumber}/menu`} className={BROWSE_LINK}>
+        {t("Ver la carta mientras tanto")}
+      </Link>
 
       <MadeWithPlatterio className="mt-auto pt-10" />
     </div>
@@ -201,6 +216,9 @@ function ClosedTable({ table }: { table: Table }) {
       >
         <BellRing aria-hidden /> {asked ? t("Ya avisamos al mesero") : t("Avisar al mesero")}
       </Button>
+      <Link href={`/mesa/${table.number}/menu`} className={BROWSE_LINK}>
+        {t("Ver la carta mientras tanto")}
+      </Link>
       {asked && (
         <p role="status" className="text-ink-soft mt-3 text-sm">
           {t("Ya le avisamos al equipo. Cuando abran tu mesa, esta pantalla te pedirá el PIN.")}
