@@ -441,3 +441,19 @@ pueden cambiar sin rehacer pantallas.
       cambia a **Poner PIN** y, al entrar, vuelve a la misma pantalla donde estaba. El carrito, el
       pedido y la calificación siguen pidiendo haber entrado. La carta es pública: mirarla no da
       acceso a nada, y el control de que solo pida quien está sentado no cambia.
+128.  **La cocina vuelve a verse oscura (corrección).** Con la marca por negocio (decisión 103), los
+      colores se ponían en el estilo de `<html>` y pisaban el modo oscuro de la cocina, que es una
+      clase de `<html>`. Ahora la marca va en una hoja de estilos propia con
+      `:root:not(.theme-cocina)` para los colores de fondo y texto (el acento y las tipografías
+      siguen valiendo en la cocina), y el guion verifica que la cocina conserve su modo oscuro.
+129.  **Página de ventas preliminar en `/producto`.** Presenta el producto con capturas reales de la
+      app (las genera `e2e/capturas.mjs`), los planes Esencial y Profesional con cambio mensual /
+      anual, el 3D como servicio aparte por plato, preguntas frecuentes y una sección honesta de lo
+      que Platterio no hace (pagos, impuestos, propina). Los **precios son de ejemplo** y viven en un
+      solo archivo (`lib/data/plans.ts`). Cuando esté listo para vender pasará a ser la página
+      principal (`/`) y la demo, a `/demo`. Falta de las funciones anunciadas en el plan Profesional:
+      dominio propio, importar menú y soporte prioritario.
+130.  **Guía de usuario preliminar en PDF** (`docs/guia/Guia-de-usuario-preliminar.pdf`): se genera
+      con `node scripts/guia-pdf.mjs` a partir de `docs/guia/guia.html` y las capturas de
+      `docs/guia/img`. Para rehacerla con pantallas nuevas: `E2E_URL=... node e2e/capturas.mjs` y
+      luego el script del PDF. La versión definitiva para entregar a clientes se hace al final.

@@ -126,6 +126,12 @@ await carlos.getByRole("button", { name: /Confirmar y enviar a cocina/ }).click(
 const cocina = await tab("Cocina", 1280, 800);
 await cocina.goto(`${BASE}/cocina`);
 await entrarComo(cocina, "Cocina");
+check(
+  "5. La cocina conserva su modo oscuro",
+  (await cocina.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--bg").trim().toLowerCase(),
+  )) === "#0e0d0c",
+);
 await cocina.getByRole("button", { name: "Empezar a preparar" }).click();
 await ana.waitForTimeout(300);
 check(

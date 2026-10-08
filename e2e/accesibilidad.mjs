@@ -27,6 +27,8 @@ await page.getByRole("button", { name: /^Agregar ·/ }).click();
 const pages = [
   ["Hub", "/", 1280],
   ["Muestra", "/muestra", 1280],
+  ["Página de ventas", "/producto", 1280],
+  ["Página de ventas (celular)", "/producto", 390],
   ["Menú", "/mesa/3/menu", 390],
   ["Ficha", "/mesa/3/plato/clasica-27", 390],
   ["Carrito", "/mesa/3/carrito", 390],

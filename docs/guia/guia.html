@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <title>Platterio · Guía de usuario (preliminar)</title>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")
+          format("woff2");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "Fraunces";
+        src: url("../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2")
+          format("woff2");
+        font-weight: 100 900;
+      }
+      @page {
+        size: A4;
+        margin: 20mm 17mm 20mm 17mm;
+      }
+      @page :first {
+        margin: 0;
+      }
+      :root {
+        --ink: #1c1917;
+        --soft: #44403c;
+        --muted: #716a64;
+        --line: #e7e2da;
+        --bg: #faf7f2;
+        --accent: #b24424;
+        --accent-soft: #fbe9e2;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+        font-size: 10.5pt;
+        line-height: 1.5;
+        margin: 0;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "Fraunces", serif;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      h1 {
+        font-size: 25pt;
+        line-height: 1.1;
+        margin: 0 0 6mm;
+        page-break-before: always;
+      }
+      h2 {
+        font-size: 15pt;
+        margin: 8mm 0 2mm;
+        page-break-after: avoid;
+      }
+      h3 {
+        font-size: 12pt;
+        margin: 5mm 0 1.5mm;
+        page-break-after: avoid;
+      }
+      p {
+        margin: 0 0 3mm;
+      }
+      ul,
+      ol {
+        margin: 0 0 3mm;
+        padding-left: 5mm;
+      }
+      li {
+        margin-bottom: 1mm;
+      }
+      .lead {
+        font-size: 12pt;
+        color: var(--soft);
+      }
+      .cover {
+        height: 297mm;
+        padding: 28mm 22mm;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        page-break-after: always;
+      }
+      .cover .mark {
+        font-family: "Fraunces", serif;
+        font-weight: 600;
+        font-size: 20pt;
+      }
+      .cover h1 {
+        page-break-before: avoid;
+        font-size: 40pt;
+        margin-top: 30mm;
+      }
+      .cover .tag {
+        display: inline-block;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 9pt;
+        padding: 1.5mm 4mm;
+        border-radius: 99px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .cover p {
+        max-width: 130mm;
+        font-size: 13pt;
+        color: var(--soft);
+      }
+      .cover small {
+        color: var(--muted);
+      }
+      .toc {
+        columns: 1;
+      }
+      .toc li {
+        list-style: none;
+        border-bottom: 1px dotted var(--line);
+        padding: 1.5mm 0;
+        font-size: 11pt;
+      }
+      .toc ol {
+        padding: 0;
+      }
+      figure {
+        margin: 3mm 0 4mm;
+        page-break-inside: avoid;
+      }
+      figure img {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 2mm;
+        display: block;
+      }
+      figcaption {
+        color: var(--muted);
+        font-size: 8.5pt;
+        margin-top: 1.5mm;
+      }
+      .phones {
+        display: flex;
+        gap: 5mm;
+        justify-content: center;
+        align-items: flex-start;
+        page-break-inside: avoid;
+        margin: 3mm 0 4mm;
+      }
+      .phones figure {
+        width: 52mm;
+        margin: 0;
+      }
+      .phones.three figure {
+        width: 46mm;
+      }
+      .side {
+        display: flex;
+        gap: 7mm;
+        align-items: flex-start;
+        page-break-inside: avoid;
+      }
+      .side > div:first-child {
+        flex: 1;
+      }
+      .side figure {
+        width: 56mm;
+        margin: 0;
+        flex-shrink: 0;
+      }
+      .side.wide figure {
+        width: 92mm;
+      }
+      .side.wide > div:first-child {
+        flex: 1;
+        min-width: 0;
+      }
+      .tip,
+      .warn,
+      .note {
+        border-left: 1.2mm solid var(--accent);
+        background: var(--accent-soft);
+        padding: 3mm 4mm;
+        margin: 3mm 0 4mm;
+        border-radius: 0 2mm 2mm 0;
+        page-break-inside: avoid;
+      }
+      .warn {
+        border-color: #b7791f;
+        background: #fbf1da;
+      }
+      .note {
+        border-color: #2d5fa3;
+        background: #e8eff8;
+      }
+      .tip b:first-child,
+      .warn b:first-child,
+      .note b:first-child {
+        text-transform: uppercase;
+        font-size: 8.5pt;
+        letter-spacing: 0.08em;
+        display: block;
+        margin-bottom: 1mm;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 3mm 0 4mm;
+        font-size: 9.5pt;
+        page-break-inside: avoid;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 2mm 2.5mm;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: #f3eee6;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--soft);
+      }
+      td.c,
+      th.c {
+        text-align: center;
+      }
+      .steps {
+        counter-reset: paso;
+        padding: 0;
+      }
+      .steps li {
+        list-style: none;
+        counter-increment: paso;
+        position: relative;
+        padding-left: 9mm;
+        margin-bottom: 2.5mm;
+      }
+      .steps li::before {
+        content: counter(paso);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 6mm;
+        height: 6mm;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        font-size: 8.5pt;
+        text-align: center;
+        line-height: 6mm;
+      }
+      .kbd {
+        font-family: "Inter", sans-serif;
+        background: #f3eee6;
+        border: 1px solid var(--line);
+        border-radius: 1.2mm;
+        padding: 0 1.6mm;
+        font-weight: 600;
+        font-size: 9pt;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+        margin: 4mm 0;
+        page-break-inside: avoid;
+      }
+      .flow div {
+        border: 1px solid var(--line);
+        border-radius: 2mm;
+        padding: 3mm;
+        font-size: 9.5pt;
+        background: #fff;
+      }
+      .flow div b {
+        display: block;
+        color: var(--accent);
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 1mm;
+      }
+      .flow span {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="cover">
+      <div class="mark">platterio</div>
+      <div>
+        <span class="tag">Versión preliminar</span>
+        <h1>Guía de usuario</h1>
+        <p>
+          Cómo funciona todo el sistema, paso a paso: para el cliente, el mesero, la cocina, caja y
+          el administrador del restaurante.
+        </p>
+      </div>
+      <small
+        >Los ejemplos usan el restaurante de demostración “Fogón 27”. Esta guía describe la versión
+        de demostración; algunos detalles cambiarán cuando el producto salga a la venta.</small
+      >
+    </section>
+
+    <h1 style="page-break-before: auto">Contenido</h1>
+    <ol class="toc">
+      <li>1. Qué es Platterio y cómo funciona</li>
+      <li>2. Quién usa qué: roles y accesos</li>
+      <li>3. Puesta en marcha (administrador)</li>
+      <li>4. El cliente: pedir desde la mesa</li>
+      <li>5. Vista 3D y personalización del plato</li>
+      <li>6. El mesero</li>
+      <li>7. La cocina</li>
+      <li>8. Caja: cobro, turnos y cierre</li>
+      <li>9. Domicilios y pedidos para recoger</li>
+      <li>10. Administrador: reportes, calificaciones y alertas</li>
+      <li>11. Tu marca, idioma y moneda</li>
+      <li>12. Un día de trabajo, de principio a fin</li>
+      <li>13. Preguntas frecuentes y problemas comunes</li>
+      <li>14. Lo que Platterio no hace · Estado de esta versión</li>
+    </ol>
+
+    <h1>1. Qué es Platterio y cómo funciona</h1>
+    <p class="lead">
+      Platterio es la carta digital de tu restaurante, pero también el sistema que lleva el pedido
+      desde la mesa hasta la caja. Funciona en el navegador de cualquier celular o tablet; no hay
+      que instalar nada.
+    </p>
+
+    <div class="flow">
+      <div><b>1 · Cliente</b>Escanea el QR de su mesa y mira la carta.</div>
+      <span>›</span>
+      <div><b>2 · Mesero</b>Abre la mesa y le da un PIN.</div>
+      <span>›</span>
+      <div><b>3 · Cliente</b>Arma el pedido en el carrito de la mesa y lo envía.</div>
+      <span>›</span>
+      <div><b>4 · Mesero</b>Revisa y confirma.</div>
+      <span>›</span>
+      <div><b>5 · Cocina</b>Prepara y marca listo.</div>
+      <span>›</span>
+      <div><b>6 · Caja</b>Cobra y cierra.</div>
+    </div>
+
+    <h2>Ideas clave</h2>
+    <ul>
+      <li>
+        <b>QR fijo + PIN.</b> El QR de cada mesa se imprime una vez y no cambia. Por sí solo no deja
+        pedir: el mesero abre la mesa y entrega un PIN de 4 dígitos. Así solo pide quien está
+        sentado.
+      </li>
+      <li>
+        <b>Se puede mirar sin pedir.</b> Aunque la mesa esté cerrada, el cliente ve la carta con
+        fotos, ingredientes, alérgenos y precios.
+      </li>
+      <li>
+        <b>Carrito compartido.</b> Todos los de la mesa ven el mismo carrito en vivo y el pedido
+        sale a nombre de cada quien.
+      </li>
+      <li>
+        <b>El mesero manda.</b> Ningún pedido llega a cocina sin que el mesero lo confirme. Y el
+        mesero (o caja) puede editar un pedido en cualquier momento: queda registrado quién cambió
+        qué y por qué.
+      </li>
+      <li>
+        <b>Todo en vivo.</b> Lo que pasa en una pantalla aparece al instante en las demás: avisos de
+        nuevo pedido, cambios, estado del pedido para el cliente.
+      </li>
+    </ul>
+
+    <figure>
+      <img
+        src="img/00-inicio.jpg"
+        alt=""
+        style="max-height: 120mm; object-fit: cover; object-position: top"
+      />
+      <figcaption>El inicio de la demostración: una entrada para cada rol.</figcaption>
+    </figure>
+
+    <h1>2. Quién usa qué: roles y accesos</h1>
+    <p>
+      Cada persona del equipo entra con su propio <b>PIN</b> (el PIN identifica a la persona). El
+      administrador crea los usuarios y su rol; cada rol ve solo lo que le toca.
+    </p>
+    <table>
+      <tr>
+        <th>Capacidad</th>
+        <th class="c">Administrador</th>
+        <th class="c">Encargado de caja</th>
+        <th class="c">Mesero</th>
+        <th class="c">Cocina</th>
+      </tr>
+      <tr>
+        <td>Panel completo: menú, marca, reportes, configuración</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Crear usuarios de cualquier rol</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Crear y desactivar meseros y cocina</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Asignar mesas a meseros</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Ver y operar todo el salón</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Ver y operar solo sus mesas</td>
+        <td class="c"></td>
+        <td class="c"></td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Abrir mesa, tomar, editar y confirmar pedidos</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c">✔ (sus mesas)</td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Cancelar una mesa</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Cobrar, abrir y cerrar caja</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Domicilios (gestionar)</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c"></td>
+      </tr>
+      <tr>
+        <td>Tablero de cocina</td>
+        <td class="c">✔</td>
+        <td class="c">✔</td>
+        <td class="c"></td>
+        <td class="c">✔</td>
+      </tr>
+    </table>
+
+    <div class="side">
+      <div>
+        <h3>Cómo se entra</h3>
+        <ol class="steps">
+          <li>Abre la dirección del sistema en el celular, la tablet o el computador.</li>
+          <li>
+            Elige tu pantalla (<span class="kbd">/mesero</span>, <span class="kbd">/cocina</span>,
+            <span class="kbd">/caja</span> o <span class="kbd">/admin</span>).
+          </li>
+          <li>Escribe tu PIN. Si es correcto, entras directo a lo tuyo.</li>
+          <li>Al terminar, toca <span class="kbd">Salir</span> arriba a la derecha.</li>
+        </ol>
+        <div class="note">
+          <b>PIN</b>Los del equipo van de 4 a 6 dígitos (mesero y cocina) o de 6 a 8 (administrador
+          y encargado). En la demostración, la pantalla de entrada tiene una lista de usuarios con
+          su PIN para probar cada rol; en un negocio real los PIN no se muestran nunca.
+        </div>
+      </div>
+      <figure>
+        <img src="img/s01-entrar-con-pin.jpg" alt="" />
+        <figcaption>Pantalla de entrada con PIN.</figcaption>
+      </figure>
+    </div>
+
+    <h1>3. Puesta en marcha (administrador)</h1>
+    <p>
+      Antes del primer día, el administrador deja listo el negocio. Lo único que no puede faltar son
+      el menú, las mesas y el equipo.
+    </p>
+
+    <h2>3.1 El equipo</h2>
+    <p>
+      En <b>Equipo</b> se agregan las personas: nombre, rol y PIN. Un mesero nuevo queda sin mesas;
+      luego se le asignan en <b>Configuración → Meseros y mesas</b> (cada mesa tiene un solo
+      mesero). Para sacar a alguien se <b>desactiva</b>: no se borra, así el historial se conserva y
+      sus mesas quedan sin mesero hasta reasignarlas.
+    </p>
+    <figure>
+      <img src="img/a04-equipo.jpg" alt="" />
+      <figcaption>Equipo: usuarios por rol, con su estado.</figcaption>
+    </figure>
+
+    <h2>3.2 Las mesas y sus QR</h2>
+    <p>
+      En <b>Configuración → Mesas y códigos QR</b> se agregan o quitan mesas. Cada mesa tiene su QR
+      fijo: descarga la tarjeta imprimible (con el nombre del restaurante y el número de mesa) y
+      pégala en la mesa. Ese QR no vence ni cambia.
+    </p>
+    <div class="tip">
+      <b>Consejo</b>Imprime el QR en un material resistente a líquidos. Si una mesa se quita y luego
+      vuelve a existir, su QR anterior no sirve.
+    </div>
+
+    <h2>3.3 El menú</h2>
+    <p>En <b>Platos</b> se crean y editan los platos. Cada plato tiene:</p>
+    <ul>
+      <li><b>Nombre, descripción y categoría</b> (Desayunos, Hamburguesas, Bebidas…).</li>
+      <li><b>Opciones con precio propio</b>: Sencilla / Doble, tamaños, sabores.</li>
+      <li>
+        <b>Ingredientes con alérgenos</b>. Los alérgenos del plato se calculan solos a partir de los
+        de cada ingrediente.
+      </li>
+      <li>
+        <b>Nivel de picante</b>, <b>fotos</b> y las <b>franjas</b> en que se ofrece (desayuno,
+        almuerzo, tarde, noche).
+      </li>
+      <li>
+        <b>Destacado por la casa</b>: aparece primero entre los recomendados como “Nuevo en la
+        casa”.
+      </li>
+      <li>
+        <b>Activo en la carta</b>: si lo apagas, el plato desaparece de la carta al instante (por
+        ejemplo, cuando se agota).
+      </li>
+      <li><b>Nombre y descripción en inglés</b> (opcionales) para la carta en inglés.</li>
+    </ul>
+    <figure>
+      <img
+        src="img/a05-editar-plato.jpg"
+        alt=""
+        style="max-height: 150mm; object-fit: cover; object-position: top"
+      />
+      <figcaption>Ficha de un plato en el panel del administrador.</figcaption>
+    </figure>
+
+    <h2>3.4 Recomendados</h2>
+    <p>
+      La carta recomienda platos según la hora (franja), lo más pedido, lo mejor calificado y las
+      alergias del cliente. En <b>Recomendaciones</b> el administrador ve por qué se sugiere cada
+      plato.
+    </p>
+
+    <h2>3.5 Reglas y tiempos</h2>
+    <p>En <b>Configuración</b>:</p>
+    <ul>
+      <li>
+        <b>Umbral de alerta de servicio</b>: si una mesa califica el servicio por debajo de ese
+        número de estrellas, se crea una alerta para el administrador.
+      </li>
+      <li>
+        <b>Tiempo límite de confirmación</b>: si el mesero tarda en confirmar un pedido, su tarjeta
+        se pone en alerta; al doble de ese tiempo se avisa al administrador.
+      </li>
+      <li>
+        <b>Cierre automático de mesas</b>: una mesa sin pedidos por entregar y sin actividad se
+        cierra sola (por defecto, a los 30 minutos; el mesero puede cambiarlo para una mesa en
+        particular).
+      </li>
+    </ul>
+
+    <h1>4. El cliente: pedir desde la mesa</h1>
+    <div class="side">
+      <div>
+        <h2 style="margin-top: 0">4.1 Escanear y mirar</h2>
+        <p>
+          El cliente escanea el QR de su mesa con la cámara del celular. Si el mesero
+          <b>todavía no abrió la mesa</b>, ve un mensaje claro y dos opciones:
+          <b>Avisar al mesero</b> (le llega un aviso al salón) o <b>Ver la carta mientras tanto</b>.
+        </p>
+        <p>
+          Mirando la carta puede ver fotos, ingredientes, alérgenos, filtros, recomendados, el visor
+          3D y los <b>precios</b>. Lo único que no puede es pedir: una barra abajo le recuerda que
+          su mesero abre la mesa y le da un PIN.
+        </p>
+      </div>
+      <figure>
+        <img src="img/c01-mesa-cerrada.jpg" alt="" />
+        <figcaption>Mesa sin abrir.</figcaption>
+      </figure>
+    </div>
+
+    <div class="side">
+      <div>
+        <h2 style="margin-top: 0">4.2 Entrar con el PIN</h2>
+        <ol class="steps">
+          <li>El mesero abre la mesa y le dice el PIN (o le muestra el QR que ya lo trae).</li>
+          <li>El cliente escribe cómo quiere que lo llamen (“Ana”) y el PIN de 4 dígitos.</li>
+          <li>
+            Toca <span class="kbd">Ver la carta</span>. Si estaba mirando la carta, vuelve a la
+            misma pantalla.
+          </li>
+        </ol>
+        <p>
+          La primera vez se le pregunta por <b>alergias o dieta</b> (opcional). Con eso la carta le
+          avisa de los platos con su alérgeno y no se los recomienda; se guarda en su celular.
+        </p>
+      </div>
+      <figure>
+        <img src="img/c04-entrada-con-pin.jpg" alt="" />
+        <figcaption>Entrada con nombre y PIN.</figcaption>
+      </figure>
+    </div>
+
+    <h2>4.3 La carta y la ficha del plato</h2>
+    <div class="phones">
+      <figure>
+        <img src="img/c05-carta.jpg" alt="" />
+        <figcaption>La carta: recomendados de la hora, categorías y buscador.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/c06-ficha-plato.jpg" alt="" />
+        <figcaption>
+          Ficha del plato: opciones, ingredientes, alérgenos y nota para cocina.
+        </figcaption>
+      </figure>
+    </div>
+    <ul>
+      <li>
+        Arriba hay un <b>buscador</b> por plato o ingrediente y <b>filtros</b> (sin ciertos
+        alérgenos, nivel de picante, categoría).
+      </li>
+      <li>
+        En la ficha se elige la <b>opción</b> (Sencilla o Doble), la <b>cantidad</b> y, si se
+        quiere, una <b>nota para la cocina</b> (“sin cebolla”).
+      </li>
+      <li>
+        Si el plato contiene un alérgeno del cliente, aparece un aviso rojo. Puede pedirlo igual; si
+        tiene dudas, le pregunta al mesero.
+      </li>
+    </ul>
+
+    <h2>4.4 El carrito de la mesa y el envío</h2>
+    <div class="phones">
+      <figure>
+        <img src="img/c11-carrito.jpg" alt="" />
+        <figcaption>Carrito compartido: cada quien ve sus platos y los de los demás.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/c12-enviar-pedido.jpg" alt="" />
+        <figcaption>Confirmación antes de enviar.</figcaption>
+      </figure>
+    </div>
+    <ul>
+      <li>
+        Cada persona solo puede cambiar o quitar <b>lo que agregó ella</b>. Cuando otro agrega algo,
+        aparece un aviso.
+      </li>
+      <li>
+        Al tocar <span class="kbd">Enviar pedido</span> se muestra un resumen (“Ana 2 · Luis 2”) y
+        se envía <b>al mesero</b>, no a la cocina.
+      </li>
+      <li>Cada envío es una <b>ronda</b>. Lo que se agregue después irá en la ronda siguiente.</li>
+    </ul>
+
+    <h2>4.5 Seguir el pedido y calificar</h2>
+    <div class="phones">
+      <figure>
+        <img src="img/c13-pedido-estado.jpg" alt="" />
+        <figcaption>Pedido enviado: espera la confirmación del mesero.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/c14-pedido-listo.jpg" alt="" />
+        <figcaption>La línea de tiempo avanza sola con cada cambio.</figcaption>
+      </figure>
+    </div>
+    <p>
+      El estado de cada ronda pasa por:
+      <b>Pendiente de confirmación → Confirmado → En preparación → Listo → Entregado</b>. Si el
+      mesero ajusta algo (por ejemplo, quita un plato agotado), el cliente ve el cambio con el
+      motivo. Cuando algo se entrega, aparece la invitación a <b>calificar</b> cada plato (1 a 5
+      estrellas, con comentario opcional) y el servicio del mesero (una sola vez por mesa). Una
+      calificación baja del servicio genera una alerta para el administrador.
+    </p>
+
+    <h1>5. Vista 3D y personalización del plato</h1>
+    <p>
+      Los platos que tienen 3D muestran un botón <b>Ver en 3D</b> en su ficha. El cliente puede
+      girar el plato, separarlo por capas y cambiarlo a su gusto antes de pedir.
+    </p>
+    <div class="phones three">
+      <figure>
+        <img src="img/c07-visor-3d.jpg" alt="" />
+        <figcaption>El plato en 3D: se gira con el dedo.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/c08-visor-separado.jpg" alt="" />
+        <figcaption>“Separar ingredientes” abre el plato por capas.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/c09-visor-ingredientes.jpg" alt="" />
+        <figcaption>La lista para quitar, agregar o cambiar.</figcaption>
+      </figure>
+    </div>
+    <ul>
+      <li>
+        <b>Quitar</b> un ingrediente, pedir <b>extra</b>, <b>reemplazar</b> (pan sin gluten, pollo
+        en vez de carne) o cambiar el <b>acompañante</b>.
+      </li>
+      <li>
+        El <b>precio</b> se actualiza solo (quitar un ingrediente no descuenta; los extras y
+        reemplazos suman).
+      </li>
+      <li>
+        Si el cliente tiene alergias, el botón <b>Adaptar a mis alergias</b> propone los cambios
+        necesarios.
+      </li>
+      <li>
+        Al cerrar el visor, la ficha muestra “Tu versión: Sin cebolla · Extra queso” y el botón
+        <span class="kbd">Agregar</span> ya lleva el precio nuevo.
+      </li>
+    </ul>
+    <div class="side">
+      <div>
+        <h3>Cómo le llega al equipo</h3>
+        <p>
+          El pedido personalizado viaja completo: el carrito y el pedido del cliente muestran su
+          versión, el mesero ve las líneas <b>SIN / EXTRA / AGREGAR</b> y la cocina las ve
+          <b>resaltadas</b> (rojo para “sin”, verde para “extra”).
+        </p>
+        <div class="note">
+          <b>Servicio aparte</b>El 3D se activa plato por plato: cada plato necesita su modelo y su
+          configuración de ingredientes. Los platos sin 3D funcionan igual, con fotos. En el panel
+          del administrador cada plato indica si tiene el “Visor 3D activo”.
+        </div>
+      </div>
+      <figure>
+        <img src="img/c10-ficha-personalizada.jpg" alt="" />
+        <figcaption>La ficha con la versión personalizada.</figcaption>
+      </figure>
+    </div>
+
+    <h1>6. El mesero</h1>
+    <p>
+      El mesero entra a <span class="kbd">/mesero</span> y ve <b>sus mesas</b>. Cada mesa muestra su
+      estado: libre, con clientes, pedido por confirmar, en cocina o listo para entregar. Lo más
+      urgente sube primero.
+    </p>
+    <figure>
+      <img src="img/s05-pedido-por-confirmar.jpg" alt="" />
+      <figcaption>
+        Un pedido por confirmar: ítems agrupados por comensal, con notas y personalizaciones.
+      </figcaption>
+    </figure>
+
+    <h2>6.1 Abrir una mesa</h2>
+    <div class="side wide">
+      <div>
+        <ol class="steps">
+          <li>Toca la mesa libre y luego <span class="kbd">Abrir mesa</span>.</li>
+          <li>Aparece el <b>PIN de 4 dígitos</b> y un <b>QR</b> que lo trae incluido.</li>
+          <li>Díselo al cliente o muéstrale el QR. Solo vale mientras la mesa esté abierta.</li>
+        </ol>
+        <p>
+          Si un cliente tocó “Avisar al mesero”, verás un aviso en el salón (“La Mesa 5 pide que la
+          abras”) y se atiende al abrir la mesa.
+        </p>
+        <p>Desde la misma hoja puedes cambiar <b>en cuánto tiempo se cierra sola</b> esa mesa.</p>
+      </div>
+      <figure>
+        <img src="img/s04-mesa-abierta-pin.jpg" alt="" />
+        <figcaption>Mesa abierta: PIN, QR y tiempo de cierre automático.</figcaption>
+      </figure>
+    </div>
+
+    <h2>6.2 Confirmar y ajustar un pedido</h2>
+    <ul>
+      <li><span class="kbd">Confirmar y enviar a cocina</span>: el pedido pasa a la cocina.</li>
+      <li>
+        <span class="kbd">Rechazar</span>: pide un motivo (“Cocina cerrada”, “Pedido duplicado”…) y
+        el cliente lo ve.
+      </li>
+      <li>
+        <span class="kbd">Ajustar</span> un ítem antes de confirmar: quitar (por ejemplo “Agotado”),
+        cambiar cantidad u opción. Siempre con motivo, y el cliente ve el cambio.
+      </li>
+    </ul>
+
+    <h2>6.3 Tomar un pedido tú mismo</h2>
+    <div class="side wide">
+      <div>
+        <p>
+          Si el cliente prefiere pedirte a ti, toca la mesa y <span class="kbd">Tomar pedido</span>:
+          eliges platos, cantidades, opciones y notas, y <span class="kbd">Enviar a cocina</span>.
+          Va directo a cocina (quien lo toma es quien lo confirma). Si la mesa estaba libre, se abre
+          sola con su PIN. En el ticket esos platos aparecen a nombre de “Mesero”.
+        </p>
+      </div>
+      <figure>
+        <img src="img/s07-tomar-pedido.jpg" alt="" />
+        <figcaption>Tomar pedido en la mesa.</figcaption>
+      </figure>
+    </div>
+
+    <h2>6.4 Editar un pedido ya enviado</h2>
+    <div class="side wide">
+      <div>
+        <p>
+          El mesero (y caja) puede tocar una ronda en cualquier momento, incluso ya en cocina o
+          entregada: <span class="kbd">Editar</span> en la ficha de la mesa. Se puede <b>quitar</b>,
+          <b>cambiar cantidad u opción</b>, <b>agregar platos</b> o <b>anular</b> la ronda.
+        </p>
+        <div class="warn">
+          <b>Siempre con rastro</b>Todo cambio (menos agregar) pide un motivo y queda guardado:
+          quién, cuándo, qué cambió y por qué. La cocina recibe un aviso
+          <b>“Cambios del mesero”</b> hasta que toca <span class="kbd">Visto</span>, y el
+          administrador lo ve en el reporte “Cambios y anulaciones”.
+        </div>
+      </div>
+      <figure>
+        <img src="img/s08-editar-ronda.jpg" alt="" />
+        <figcaption>Editar una ronda, con su registro de cambios.</figcaption>
+      </figure>
+    </div>
+
+    <h2>6.5 Entregar, liberar y cancelar</h2>
+    <ul>
+      <li>
+        <span class="kbd">Marcar entregado</span> cuando llevas los platos que la cocina marcó
+        listos (te llega un aviso).
+      </li>
+      <li>
+        <span class="kbd">Liberar mesa</span> cuando los clientes se van: se cierra la sesión y el
+        próximo QR abre una visita nueva. Solo se puede si no quedan rondas por entregar.
+      </li>
+      <li>
+        <span class="kbd">Cancelar mesa</span> (solo encargado y administrador): cierra la mesa
+        aunque haya rondas sin entregar, que quedan rechazadas con el motivo “Mesa cancelada”.
+      </li>
+      <li>
+        Si nadie hace nada por un rato, la mesa se <b>cierra sola</b> por inactividad (nunca con
+        pedidos pendientes).
+      </li>
+    </ul>
+
+    <h1>7. La cocina</h1>
+    <p>
+      La cocina entra a <span class="kbd">/cocina</span>. Es un tablero oscuro de letra grande,
+      pensado para leerse a distancia, con tres columnas en orden de llegada: <b>Confirmados</b>,
+      <b>En preparación</b> y <b>Listos</b>. Solo aparece lo que el mesero confirmó.
+    </p>
+    <figure>
+      <img src="img/s09-cocina.jpg" alt="" />
+      <figcaption>
+        Tablero de cocina con un pedido personalizado (“EXTRA queso”, “SIN cebolla”).
+      </figcaption>
+    </figure>
+    <ol class="steps">
+      <li>Llega un pedido nuevo a <b>Confirmados</b> con un aviso en pantalla.</li>
+      <li>Toca <span class="kbd">Empezar a preparar</span> y pasa a <b>En preparación</b>.</li>
+      <li>
+        Cuando está listo, toca <span class="kbd">Marcar listo</span>. Le llega el aviso al mesero y
+        el cliente lo ve avanzar.
+      </li>
+    </ol>
+    <ul>
+      <li>
+        La tarjeta cambia de color si el pedido lleva mucho tiempo (más de 10 min, amarillo; más de
+        20, rojo).
+      </li>
+      <li>Las notas del cliente salen resaltadas, igual que las personalizaciones.</li>
+      <li>
+        Si el mesero cambia algo de un pedido que ya está en cocina, aparece el recuadro
+        <b>“Cambios del mesero”</b> con lo nuevo; toca <span class="kbd">Visto</span> para confirmar
+        que lo leíste.
+      </li>
+      <li>
+        Los domicilios llegan con su código (por ejemplo “Domicilio D-4K7Q”) y se preparan igual.
+      </li>
+    </ul>
+
+    <h1>8. Caja: cobro, turnos y cierre</h1>
+    <p>
+      El encargado (y el administrador) entra a <span class="kbd">/caja</span>. Tiene cinco
+      pestañas: <b>Salón</b> (todo el salón, igual que el mesero pero con todas las mesas),
+      <b>Domicilios</b>, <b>Caja</b>, <b>Mesas y meseros</b> y <b>Equipo</b>.
+    </p>
+    <figure>
+      <img src="img/s10-caja-salon.jpg" alt="" />
+      <figcaption>Caja: todo el salón y las pestañas de trabajo.</figcaption>
+    </figure>
+
+    <h2>8.1 Abrir la caja</h2>
+    <div class="side wide">
+      <div>
+        <p>
+          Antes de cobrar hay que abrir un turno: en la pestaña <b>Caja</b>, escribe el
+          <b>fondo inicial</b> en efectivo (lo que hay en el cajón) y toca
+          <span class="kbd">Abrir caja</span>. Sin caja abierta no se registran pagos. Solo puede
+          haber un turno abierto a la vez.
+        </p>
+      </div>
+      <figure>
+        <img src="img/s13-caja-turno.jpg" alt="" />
+        <figcaption>
+          Turno abierto: lo cobrado, el efectivo esperado y las mesas por cobrar.
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2>8.2 Cobrar una mesa</h2>
+    <div class="side wide">
+      <div>
+        <p>
+          Desde <b>Mesas por cobrar</b> o desde la ficha de la mesa toca
+          <span class="kbd">Cobrar</span>. Elige la forma de pago (<b
+            >efectivo, tarjeta, transferencia u otro</b
+          >) y el valor. La cuenta puede pagarse <b>en partes y con varias formas</b>; no deja
+          registrar más de lo que falta.
+        </p>
+        <div class="note">
+          <b>Importante</b>Platterio <b>no procesa pagos</b>: tú cobras como siempre (datáfono,
+          efectivo, transferencia) y aquí lo registras. Por eso no hay comisión por venta.
+        </div>
+      </div>
+      <figure>
+        <img src="img/s14-cobrar.jpg" alt="" />
+        <figcaption>Cobrar una mesa: cuenta, pagado y falta.</figcaption>
+      </figure>
+    </div>
+    <p>
+      Si liberas o cierras una mesa con saldo, el sistema <b>no te lo impide</b> (el servicio no
+      puede quedar atascado), pero te avisa, y esa cuenta aparece luego en el reporte
+      <b>“Mesas cerradas sin cobro registrado”</b>.
+    </p>
+
+    <h2>8.3 Cerrar la caja</h2>
+    <ol class="steps">
+      <li>Toca <span class="kbd">Cerrar caja</span> y cuenta el efectivo del cajón.</li>
+      <li>
+        Escribe cuánto contaste. El sistema compara con lo esperado:
+        <i>fondo inicial + pagos en efectivo del turno</i>.
+      </li>
+      <li>
+        Si cuadra, se cierra. Si hay <b>diferencia</b> (faltante o sobrante), debes explicar por qué
+        en una nota.
+      </li>
+      <li>
+        El resumen del turno queda guardado y se ve en <b>Cierres anteriores</b> y en el reporte de
+        cierres.
+      </li>
+    </ol>
+    <p>Si quedan mesas por cobrar, puedes cerrar igual, pero esos pagos quedarán sin registrar.</p>
+
+    <h2>8.4 Mesas y meseros, y equipo</h2>
+    <p>
+      En <b>Mesas y meseros</b> el encargado asigna qué mesas atiende cada mesero (toca una mesa
+      para asignarla o quitarla). En <b>Equipo</b> crea y desactiva meseros y personal de cocina. No
+      puede tocar al administrador.
+    </p>
+    <figure>
+      <img src="img/s15-mesas-meseros.jpg" alt="" />
+      <figcaption>Asignación de mesas a meseros.</figcaption>
+    </figure>
+
+    <h1>9. Domicilios y pedidos para recoger</h1>
+    <p>
+      Los clientes pueden pedir desde su casa en <span class="kbd">/domicilio</span>, a domicilio o
+      para recoger en el local. El administrador define las zonas y el horario; caja gestiona los
+      pedidos.
+    </p>
+
+    <h2>9.1 Lo que hace el cliente</h2>
+    <div class="phones three">
+      <figure>
+        <img src="img/d01-domicilio-carta.jpg" alt="" />
+        <figcaption>La carta para pedir a domicilio.</figcaption>
+      </figure>
+      <figure>
+        <img
+          src="img/d03-domicilio-pedido.jpg"
+          alt=""
+          style="max-height: 120mm; object-fit: cover; object-position: top"
+        />
+        <figcaption>Datos, zona, forma de pago y resumen.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/d04-domicilio-seguimiento.jpg" alt="" />
+        <figcaption>Seguimiento del pedido.</figcaption>
+      </figure>
+    </div>
+    <ol class="steps">
+      <li>
+        Arma el pedido (opción, cantidad y nota por plato) y toca
+        <span class="kbd">Ver mi pedido</span>.
+      </li>
+      <li>
+        Elige <b>A domicilio</b> o <b>Recoger</b>, escribe nombre, celular y (si es domicilio)
+        <b>zona y dirección</b>.
+      </li>
+      <li>
+        Elige cómo pagará: efectivo (y con cuánto, para llevar el cambio), tarjeta por datáfono o
+        transferencia. <b>Siempre se paga al recibir.</b>
+      </li>
+      <li>
+        Toca <span class="kbd">Hacer el pedido</span> y sigue el estado:
+        <b>Recibido → Confirmado → En preparación → En camino (o Listo para recoger) → Entregado</b
+        >.
+      </li>
+    </ol>
+    <p>
+      Cada zona tiene su <b>tarifa de envío, pedido mínimo y tiempo estimado</b>. Si el local está
+      cerrado, el cliente puede armar el pedido pero no enviarlo. Puede <b>cancelar</b> solo
+      mientras nadie lo haya confirmado.
+    </p>
+
+    <h2>9.2 Lo que hace caja</h2>
+    <div class="side wide">
+      <div>
+        <p>
+          En <b>Caja → Domicilios</b> los pedidos aparecen en grupos: <b>Nuevos</b>,
+          <b>En cocina</b>, <b>Listos</b>, <b>En camino</b> y <b>Finalizados hoy</b>. Llega un aviso
+          cuando entra uno nuevo.
+        </p>
+        <ol class="steps">
+          <li>
+            <span class="kbd">Confirmar</span> (o <span class="kbd">Rechazar</span> con motivo).
+            Pasa a cocina.
+          </li>
+          <li>
+            Cuando la cocina lo marca listo: <span class="kbd">Despachar</span> eligiendo el
+            domiciliario, o <span class="kbd">Entregado al cliente</span> si es para recoger.
+          </li>
+          <li>Cuando llega: <span class="kbd">Entregado</span>.</li>
+          <li>
+            <span class="kbd">Cobrar</span> registra el pago como cualquier otro (también después de
+            entregado).
+          </li>
+        </ol>
+        <p>
+          Un pedido ya en cocina se puede <b>cancelar</b> con motivo; queda en el registro de
+          cambios.
+        </p>
+      </div>
+      <figure>
+        <img src="img/s11-caja-domicilios.jpg" alt="" />
+        <figcaption>Bandeja de domicilios de caja.</figcaption>
+      </figure>
+    </div>
+    <p>
+      El administrador configura en <b>Configuración → Domicilios y recogida</b>: si se reciben
+      domicilios y recogidas, el <b>horario</b> (puede cruzar la medianoche), los minutos de
+      <b>preparación</b>, las <b>zonas</b> y los <b>domiciliarios</b>.
+    </p>
+
+    <h1>10. Administrador: reportes, calificaciones y alertas</h1>
+    <figure>
+      <img src="img/a01-resumen.jpg" alt="" />
+      <figcaption>Resumen del administrador: lo de hoy y las alertas.</figcaption>
+    </figure>
+
+    <h2>10.1 Reportes</h2>
+    <p>En <b>Reportes</b> eliges el periodo (hoy, 7 días, 14 días o fechas propias) y ves:</p>
+    <ul>
+      <li><b>Vendido</b> (rondas entregadas) frente a <b>cobrado en caja</b>.</li>
+      <li><b>Cobrado por forma de pago</b> y <b>ventas por mesero</b>.</li>
+      <li>
+        <b>Domicilios y recogida</b>: pedidos, cancelados, tiempo promedio, porcentaje entregado a
+        tiempo, envíos cobrados y ventas por zona.
+      </li>
+      <li>
+        <b>Cambios y anulaciones del personal</b>: quién tocó una ronda, qué cambió y por qué.
+      </li>
+      <li><b>Mesas cerradas sin cobro registrado</b>: dinero sin soporte, para revisar.</li>
+      <li><b>Cierres de caja</b> con su diferencia y nota.</li>
+    </ul>
+    <p>
+      Cada tabla tiene un botón <span class="kbd">CSV</span> para descargarla y abrirla en Excel.
+    </p>
+    <figure>
+      <img
+        src="img/a03-reportes.jpg"
+        alt=""
+        style="max-height: 160mm; object-fit: cover; object-position: top"
+      />
+      <figcaption>Reportes completos.</figcaption>
+    </figure>
+
+    <h2>10.2 Ventas y preferencias, calificaciones y alertas</h2>
+    <ul>
+      <li>
+        <b>Ventas</b>: ventas por día, los platos más pedidos por franja y las restricciones
+        alimentarias más registradas (sin datos personales).
+      </li>
+      <li>
+        <b>Calificaciones</b>: ranking de platos y reseñas, y la calificación del servicio por
+        mesero.
+      </li>
+      <li>
+        <b>Alertas</b> (en el Resumen): servicio calificado por debajo del umbral, o pedidos que
+        llevan demasiado sin confirmar. Se resuelven marcándolas.
+      </li>
+    </ul>
+
+    <h1>11. Tu marca, idioma y moneda</h1>
+    <div class="side">
+      <div>
+        <h2 style="margin-top: 0">11.1 Marca</h2>
+        <p>En <b>Configuración → Identidad de marca</b> eliges:</p>
+        <ul>
+          <li>Tu <b>logo</b> (PNG, JPG o WebP; se reduce solo).</li>
+          <li>
+            Una <b>plantilla</b>: Cálido, Clásico, Moderno, Fresco o Rústico (colores, letra y
+            acento de una vez).
+          </li>
+          <li>Las <b>tipografías</b> de títulos y de texto.</li>
+          <li>
+            El <b>color de acento</b> (el sistema calcula una versión con buen contraste para
+            botones y textos).
+          </li>
+        </ul>
+        <p>
+          Todo cambia al instante en la carta del cliente, el seguimiento y las demás pantallas. La
+          cocina conserva su modo oscuro.
+        </p>
+      </div>
+      <figure>
+        <img
+          src="img/a02-configuracion.jpg"
+          alt=""
+          style="max-height: 150mm; object-fit: cover; object-position: top"
+        />
+        <figcaption>Configuración del negocio.</figcaption>
+      </figure>
+    </div>
+    <h2>11.2 Idioma y moneda</h2>
+    <ul>
+      <li>
+        <b>Idioma</b>: la carta del cliente puede ofrecerse en español e inglés. El cliente ve el
+        idioma de su celular (si el negocio lo ofrece) y puede cambiarlo con el selector de arriba.
+        El panel del personal siempre está en español.
+      </li>
+      <li>
+        <b>Moneda</b>: pesos colombianos, mexicanos, chilenos, dólares, euros o soles. Cambia el
+        símbolo y el formato, pero <b>no convierte</b> los precios que ya escribiste: revisa tu
+        carta. Los precios van en unidades enteras (sin centavos).
+      </li>
+    </ul>
+    <div class="phones">
+      <figure>
+        <img src="img/d05-domicilio-ingles.jpg" alt="" />
+        <figcaption>La carta en inglés.</figcaption>
+      </figure>
+    </div>
+
+    <h1>12. Un día de trabajo, de principio a fin</h1>
+    <h2>Al abrir</h2>
+    <ol class="steps">
+      <li><b>Caja</b> abre el turno con el fondo en efectivo.</li>
+      <li><b>Cocina</b> entra a su tablero y lo deja visible.</li>
+      <li><b>Cada mesero</b> entra con su PIN y revisa sus mesas asignadas.</li>
+      <li>
+        El <b>administrador</b> revisa que los platos agotados estén desactivados y que los
+        domicilios estén activos con su horario.
+      </li>
+    </ol>
+    <h2>Durante el servicio</h2>
+    <ol class="steps">
+      <li>Llegan clientes: el mesero <b>abre la mesa</b> y entrega el PIN.</li>
+      <li>El cliente pide (o el mesero toma el pedido). El mesero <b>confirma</b>.</li>
+      <li>La cocina <b>prepara y marca listo</b>; el mesero <b>entrega</b>.</li>
+      <li>
+        Se pide la cuenta: caja <b>cobra</b> (en partes si hace falta) y el mesero
+        <b>libera la mesa</b>.
+      </li>
+      <li>
+        Los domicilios entran a caja: <b>confirmar → cocina → despachar → entregado → cobrar</b>.
+      </li>
+    </ol>
+    <h2>Al cerrar</h2>
+    <ol class="steps">
+      <li>Revisa que no queden mesas abiertas con saldo (Caja → Mesas por cobrar).</li>
+      <li><b>Caja cierra el turno</b> contando el efectivo y explica cualquier diferencia.</li>
+      <li>El administrador mira los <b>reportes del día</b> y las alertas.</li>
+    </ol>
+
+    <h1>13. Preguntas frecuentes y problemas comunes</h1>
+    <h3>Un cliente escaneó el QR y no puede pedir.</h3>
+    <p>
+      La mesa no está abierta o le falta el PIN. Abre la mesa desde el salón y dale el PIN (o
+      muéstrale el QR de la hoja de la mesa). Mientras tanto puede ver la carta.
+    </p>
+    <h3>El cliente puso un PIN y dice que no es el de la mesa.</h3>
+    <p>
+      Revisa el PIN en la hoja de la mesa: es de 4 dígitos y solo vale mientras esa mesa esté
+      abierta. Si la mesa se cerró y se volvió a abrir, el PIN cambió.
+    </p>
+    <h3>Un pedido no llega a la cocina.</h3>
+    <p>
+      Los pedidos del cliente llegan primero al mesero: falta confirmarlo. Si pasa mucho tiempo sin
+      confirmar, la tarjeta se pone en alerta y se avisa al administrador.
+    </p>
+    <h3>Me equivoqué al confirmar o hay que cambiar un pedido que ya está en cocina.</h3>
+    <p>
+      Usa <span class="kbd">Editar</span> en la ficha de la mesa: puedes quitar, cambiar o agregar.
+      Cocina recibe el aviso de cambios. Todo queda en el registro.
+    </p>
+    <h3>Se cerró una mesa sola.</h3>
+    <p>
+      Una mesa sin actividad y sin pedidos por entregar se cierra pasado el tiempo configurado (30
+      minutos por defecto). Se puede ampliar para una mesa o para todo el negocio en Configuración.
+    </p>
+    <h3>Olvidé mi PIN.</h3>
+    <p>
+      Pídele al administrador (o al encargado, si eres mesero o cocina) que te asigne uno nuevo en
+      Equipo. Los PIN no se muestran.
+    </p>
+    <h3>La caja no cuadra.</h3>
+    <p>
+      Al cerrar, escribe en la nota qué pasó (cambio mal dado, propina en efectivo sin separar…).
+      Queda en el reporte de cierres para revisarlo.
+    </p>
+    <h3>Quiero cobrar con tarjeta desde el sistema.</h3>
+    <p>
+      Platterio no procesa pagos. Cobra con tu datáfono y registra el pago en Caja como “Tarjeta”.
+    </p>
+
+    <h1>14. Lo que Platterio no hace · Estado de esta versión</h1>
+    <h2>Lo que no hace, a propósito</h2>
+    <ul>
+      <li><b>No procesa pagos.</b> Solo registra lo que tú cobras.</li>
+      <li>
+        <b>No calcula impuestos ni emite facturas.</b> El precio de la carta es el precio final; la
+        facturación electrónica y los impuestos los manejas con tu contador.
+      </li>
+      <li><b>No suma propina.</b> Cada negocio la maneja a su manera.</li>
+    </ul>
+    <h2>Estado de esta versión (preliminar)</h2>
+    <div class="warn">
+      <b>Versión de demostración</b>Hoy todo funciona en el navegador con datos de ejemplo: los
+      datos se guardan en el propio dispositivo y se comparten entre pestañas del mismo navegador.
+      Todavía no hay base de datos, cuentas reales ni cobro de la suscripción; eso viene en las
+      fases siguientes. Por eso:
+      <ul>
+        <li>
+          Los datos de la demostración se pueden reiniciar con
+          <b>Panel de demo → Reiniciar datos</b>.
+        </li>
+        <li>
+          La seguridad (PIN, permisos) es de interfaz; con las cuentas reales se aplicará en el
+          servidor.
+        </li>
+        <li>
+          Algunas funciones de los planes (dominio propio, importar menú, soporte prioritario) aún
+          no están construidas.
+        </li>
+      </ul>
+    </div>
+    <p style="color: var(--muted); font-size: 9pt; margin-top: 8mm">
+      Esta guía es preliminar. La versión definitiva, pensada para entregar a los clientes, se hará
+      al final con las pantallas finales.
+    </p>
+  </body>
+</html>
