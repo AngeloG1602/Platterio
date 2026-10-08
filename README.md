@@ -122,6 +122,7 @@ agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 | `/?demo=1`                            | Abre el panel de demo (hora simulada, tiempo ×10, simular comensal, reiniciar)             |
 | `/muestra`                            | Muestra de componentes con el estilo final                                                 |
 | `/domicilio`                          | Cliente: pide a domicilio o para recoger y sigue su pedido (`/domicilio/seguimiento/[id]`) |
+| `/producto`                           | Página de ventas (preliminar): funciones, planes y preguntas                               |
 | `/mesa/[numero]`                      | Entrada del cliente (QR fijo): pide al mesero que abra la mesa; con el PIN, entra          |
 | `/mesa/[numero]/menu`                 | Recomendados por franja, categorías, buscador y filtros                                    |
 | `/mesa/[numero]/plato/[id]`           | Ficha del plato                                                                            |
@@ -211,3 +212,9 @@ calidad automática y un medidor de rendimiento. La propuesta completa está en
 - [x] Fase 5 — Calificaciones
 - [x] Fase 6 — Administrador
 - [x] Fase 7 — Pulido
+
+## Guía de usuario y capturas
+
+- `docs/guia/Guia-de-usuario-preliminar.pdf`: guía preliminar de todo el sistema.
+- Para rehacerla con pantallas nuevas (con la app corriendo):
+  `E2E_URL=http://localhost:3100 node e2e/capturas.mjs` y luego `node scripts/guia-pdf.mjs`.

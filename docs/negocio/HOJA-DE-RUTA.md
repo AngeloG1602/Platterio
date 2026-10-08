@@ -20,18 +20,18 @@ Resume lo decidido y el orden de trabajo. Se actualiza al terminar cada fase.
 
 ## Fases
 
-| #   | Fase                                                           | Estado                           |
-| --- | -------------------------------------------------------------- | -------------------------------- |
-| 1   | Usuarios y roles: entrada con PIN, permisos, equipo, caja      | Hecha (pendiente de visto bueno) |
-| 2   | Mesas con QR fijo, PIN del mesero y sesiones que se cierran    | Hecha (pendiente de visto bueno) |
-| 3   | Pedido del mesero y de caja, con edición y registro de cambios | Hecha (pendiente de visto bueno) |
-| 4   | Marca por negocio: logo, paleta, tipografías y plantillas      | Hecha (pendiente de visto bueno) |
-| 5   | Reportes completos y cierre de caja                            | Hecha (pendiente de visto bueno) |
-| 6   | Domicilios                                                     | Hecha (pendiente de visto bueno) |
-| 7   | Idiomas (español e inglés) y monedas. Sin propina ni impuestos | Hecha (pendiente de visto bueno) |
-| 8   | Vista 3D integrada a la ficha del plato                        | Hecha (pendiente de visto bueno) |
-| 9   | Base de datos y cuentas reales                                 | Pendiente                        |
-| 10  | Página de ventas, guías y cobros                               | Pendiente                        |
+| #   | Fase                                                                                                            | Estado                           |
+| --- | --------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1   | Usuarios y roles: entrada con PIN, permisos, equipo, caja                                                       | Hecha (pendiente de visto bueno) |
+| 2   | Mesas con QR fijo, PIN del mesero y sesiones que se cierran                                                     | Hecha (pendiente de visto bueno) |
+| 3   | Pedido del mesero y de caja, con edición y registro de cambios                                                  | Hecha (pendiente de visto bueno) |
+| 4   | Marca por negocio: logo, paleta, tipografías y plantillas                                                       | Hecha (pendiente de visto bueno) |
+| 5   | Reportes completos y cierre de caja                                                                             | Hecha (pendiente de visto bueno) |
+| 6   | Domicilios                                                                                                      | Hecha (pendiente de visto bueno) |
+| 7   | Idiomas (español e inglés) y monedas. Sin propina ni impuestos                                                  | Hecha (pendiente de visto bueno) |
+| 8   | Vista 3D integrada a la ficha del plato                                                                         | Hecha (pendiente de visto bueno) |
+| 9   | Base de datos y cuentas reales                                                                                  | Pendiente                        |
+| 10  | Página de ventas, guías y cobros (maqueta de la página y guía preliminar hechas; faltan cobros y versión final) | En curso                         |
 
 ## Rol por rol (fase 1)
 

@@ -67,10 +67,30 @@ export function AppProviders({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // La marca va en una hoja de estilos propia (no en el estilo de <html>) para que el modo oscuro de
+  // la cocina, que es una clase de <html>, siga mandando sobre los colores de fondo y texto.
   useEffect(() => {
-    const root = document.documentElement;
-    for (const [name, value] of Object.entries(brandVars({ accentColor: accent, brand })))
-      root.style.setProperty(name, value);
+    const vars = brandVars({ accentColor: accent, brand });
+    const COLORS = [
+      "--bg",
+      "--surface",
+      "--surface-2",
+      "--ink",
+      "--ink-soft",
+      "--muted",
+      "--line",
+      "--line-strong",
+    ];
+    const block = (names: string[]) =>
+      names.map((n) => `${n}:${vars[n as keyof typeof vars]};`).join("");
+    const rest = Object.keys(vars).filter((n) => !COLORS.includes(n));
+    let el = document.getElementById("marca-del-negocio");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "marca-del-negocio";
+      document.head.appendChild(el);
+    }
+    el.textContent = `:root:not(.theme-cocina){${block(COLORS)}}:root{${block(rest)}}`;
   }, [accent, brand]);
 
   useEffect(() => {

@@ -13,6 +13,7 @@ import {
   Palette,
   ScanQrCode,
   Smartphone,
+  Store,
   Tablet,
   WandSparkles,
 } from "lucide-react";
@@ -59,6 +60,16 @@ export function Hub() {
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
         <PlatterioLogo />
         <div className="flex items-center gap-2">
+          <Link
+            href="/producto"
+            className={buttonClasses({
+              variant: "ghost",
+              size: "sm",
+              className: "hidden sm:inline-flex",
+            })}
+          >
+            <Store aria-hidden /> Página de ventas
+          </Link>
           <Link
             href="/muestra"
             className={buttonClasses({
