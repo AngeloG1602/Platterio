@@ -625,9 +625,9 @@ export const EN: Record<string, string> = {
   "La Diabla": "La Diabla",
   Mesero: "Server",
   Idioma: "Language",
-  "Desde": "From",
+  Desde: "From",
   "Quitar uno": "Remove one",
   "Agregar uno": "Add one",
-  "Cerrar": "Close",
+  Cerrar: "Close",
   "Hecho con": "Made with",
 };
