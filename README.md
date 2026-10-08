@@ -103,6 +103,12 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
     paso en su seguimiento. _Cobrar_ lo registra. Zonas, tarifas y horario: Marta, en
     _Configuración → Domicilios y recogida_.
 
+13. **Idioma y moneda**: abre `/domicilio` con el celular en inglés (o usa el selector _Español /
+    English_ de arriba): la carta, los platos y los mensajes salen en inglés. Como Marta, en
+    _Configuración → Idioma y moneda_ cambia la moneda (ver el símbolo) o apaga el inglés; en la
+    ficha de un plato puedes escribir su nombre y descripción en inglés. No hay propina ni
+    impuestos a propósito (ver DECISIONES 118).
+
 Atajos útiles: _Simular otro comensal_ (panel de demo) mete a alguien más a una mesa y le hace
 agregar un plato; en _Configuración_ se descarga el QR imprimible de cada mesa.
 

@@ -82,6 +82,8 @@ import {
 } from "@/lib/domain/delivery";
 import type { DeliveryConfig } from "@/lib/domain/types";
 import { useDeliveryClient, type DeliveryClientState } from "./delivery-store";
+import { isCurrency } from "@/lib/domain/format";
+import { enabledLangs } from "@/lib/i18n";
 import { newId } from "./ids";
 import { useDeviceStore } from "./device";
 import { createSeedState } from "./seed";
@@ -159,6 +161,24 @@ export const brandActions = {
       else delete next.logo;
       return next;
     });
+  },
+};
+
+export const localeActions = {
+  setCurrency(code: string): ActionResult {
+    const allowed = requirePermission("panel.admin");
+    if (!allowed.ok) return allowed;
+    if (!isCurrency(code)) return { ok: false, error: "Esa moneda no está disponible" };
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, currency: code } }));
+    return { ok: true };
+  },
+  /** Idiomas que ve el cliente; el español siempre está. */
+  setLanguages(languages: string[]): ActionResult {
+    const allowed = requirePermission("panel.admin");
+    if (!allowed.ok) return allowed;
+    const valid = enabledLangs(languages);
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, languages: valid } }));
+    return { ok: true };
   },
 };
 

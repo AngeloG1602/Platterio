@@ -19,7 +19,7 @@ import {
   useTables,
 } from "@/lib/data";
 import { openTablesWithBalance, shiftTotals } from "@/lib/domain/cash";
-import { formatCOP, formatDay, formatTime } from "@/lib/domain/format";
+import { formatMoney, formatDay, formatTime } from "@/lib/domain/format";
 import { PaymentSheet } from "./payment-sheet";
 
 const toNumber = (text: string) => Number(text.replace(/\D/g, ""));
@@ -92,16 +92,16 @@ function OpenShift() {
         <StatTile
           label="Cobrado en el turno"
           icon={Banknote}
-          value={formatCOP(totals.total)}
+          value={formatMoney(totals.total)}
           note={`${totals.payments} pagos`}
         />
         <StatTile
           label="Efectivo esperado"
-          value={formatCOP(totals.expectedCash)}
-          note={`Fondo ${formatCOP(shift.openingFloat)}`}
+          value={formatMoney(totals.expectedCash)}
+          note={`Fondo ${formatMoney(shift.openingFloat)}`}
         />
-        <StatTile label="Tarjeta" value={formatCOP(totals.byMethod.tarjeta)} />
-        <StatTile label="Transferencia" value={formatCOP(totals.byMethod.transferencia)} />
+        <StatTile label="Tarjeta" value={formatMoney(totals.byMethod.tarjeta)} />
+        <StatTile label="Transferencia" value={formatMoney(totals.byMethod.transferencia)} />
       </div>
 
       <Panel
@@ -172,7 +172,7 @@ function CloseDialog({
       open
       onOpenChange={(o) => !o && onClose()}
       title="Cerrar la caja"
-      description={`Cuenta el efectivo del cajón. Debería haber ${formatCOP(expected)}.`}
+      description={`Cuenta el efectivo del cajón. Debería haber ${formatMoney(expected)}.`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -224,8 +224,8 @@ function CloseDialog({
             {diff === 0
               ? "La caja cuadra."
               : diff < 0
-                ? `Faltan ${formatCOP(-diff)}.`
-                : `Sobran ${formatCOP(diff)}.`}
+                ? `Faltan ${formatMoney(-diff)}.`
+                : `Sobran ${formatMoney(diff)}.`}
           </p>
         )}
         <Field label="Nota" optional={diff === 0 || diff === null} error={error}>
@@ -282,7 +282,7 @@ function History() {
                   <td className="py-2.5 pr-4">{formatDay(new Date(s.closedAt!))}</td>
                   <td className="py-2.5 pr-4">{s.closedBy}</td>
                   <td className="py-2.5 pr-4 text-right tabular-nums">
-                    {formatCOP(s.summary?.total ?? 0)}
+                    {formatMoney(s.summary?.total ?? 0)}
                   </td>
                   <td
                     className={
@@ -292,7 +292,7 @@ function History() {
                   >
                     {(s.summary?.difference ?? 0) === 0
                       ? "Cuadra"
-                      : formatCOP(s.summary!.difference)}
+                      : formatMoney(s.summary!.difference)}
                     {s.note && <span className="text-muted block text-xs">{s.note}</span>}
                   </td>
                 </tr>

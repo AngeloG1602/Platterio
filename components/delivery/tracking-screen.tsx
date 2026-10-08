@@ -23,8 +23,9 @@ import {
   PAY_WITH_LABEL,
   stageMessage,
 } from "@/lib/domain/delivery";
-import { formatTime } from "@/lib/domain/format";
+import { formatMoney, formatTime } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
+import { localized, t } from "@/lib/i18n";
 
 export function TrackingScreen({ id }: { id: string }) {
   return (
@@ -43,7 +44,7 @@ function Tracking({ id }: { id: string }) {
 
   if (!hydrated)
     return (
-      <div className="px-4 pt-6" aria-busy aria-label="Cargando">
+      <div className="px-4 pt-6" aria-busy aria-label={t("Cargando")}>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="mt-6 h-40 rounded-xl" />
       </div>
@@ -51,9 +52,9 @@ function Tracking({ id }: { id: string }) {
   if (!item) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="font-display text-[26px] font-semibold">No encontramos ese pedido</h1>
+        <h1 className="font-display text-[26px] font-semibold">{t("No encontramos ese pedido")}</h1>
         <Link href="/domicilio" className="text-accent-strong font-semibold underline">
-          Ir a la carta
+          {t("Ir a la carta")}
         </Link>
       </main>
     );
@@ -70,16 +71,16 @@ function Tracking({ id }: { id: string }) {
       <header className="flex items-center gap-2 px-2 pt-3">
         <Link
           href="/domicilio"
-          aria-label="Volver a la carta"
+          aria-label={t("Volver a la carta")}
           className="hover:bg-surface-2 flex size-11 items-center justify-center rounded-full"
         >
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
         <div>
           <h1 className="font-display text-[22px] leading-tight font-semibold">
-            Pedido {info.code}
+            {t("Pedido")} {info.code}
           </h1>
-          <p className="text-muted text-[13px]">{pickup ? "Para recoger" : "A domicilio"}</p>
+          <p className="text-muted text-[13px]">{pickup ? t("Para recoger") : t("A domicilio")}</p>
         </div>
       </header>
 
@@ -93,18 +94,22 @@ function Tracking({ id }: { id: string }) {
         >
           {stageMessage(stage, info)}
           {cancelled && order.rejectReason && (
-            <span className="mt-1 block text-sm font-normal">Motivo: {order.rejectReason}</span>
+            <span className="mt-1 block text-sm font-normal">
+              {t("Motivo: {reason}", { reason: t(order.rejectReason) })}
+            </span>
           )}
           {!cancelled && stage !== "entregado" && (
             <span className="mt-1 block text-sm font-normal">
-              Tiempo estimado: unos {info.etaMin} min desde las{" "}
-              {formatTime(new Date(order.createdAt))}.
+              {t("Tiempo estimado: unos {n} min desde las {time}.", {
+                n: info.etaMin,
+                time: formatTime(new Date(order.createdAt)),
+              })}
             </span>
           )}
         </section>
 
         {!cancelled && (
-          <ol aria-label="Estado del pedido" className="flex flex-col">
+          <ol aria-label={t("Estado del pedido")} className="flex flex-col">
             {steps.map((step, i) => (
               <li
                 key={step.key}
@@ -141,12 +146,12 @@ function Tracking({ id }: { id: string }) {
                     step.state === "pendiente" ? "text-muted" : "font-semibold",
                   )}
                 >
-                  {step.label}
+                  {t(step.label)}
                   <span className="sr-only">
                     {step.state === "hecho"
-                      ? " (listo)"
+                      ? ` (${t("listo")})`
                       : step.state === "actual"
-                        ? " (ahora)"
+                        ? ` (${t("ahora")})`
                         : ""}
                   </span>
                 </span>
@@ -155,7 +160,7 @@ function Tracking({ id }: { id: string }) {
           </ol>
         )}
 
-        <section aria-label="Detalle" className="border-line rounded-xl border">
+        <section aria-label={t("Detalle")} className="border-line rounded-xl border">
           <ul className="divide-line divide-y px-4">
             {lines.map((l) => {
               const dish = dishes.find((d) => d.id === l.dishId);
@@ -163,9 +168,13 @@ function Tracking({ id }: { id: string }) {
               return (
                 <li key={l.id} className="flex justify-between gap-3 py-2.5 text-[15px]">
                   <span>
-                    {l.qty}× {dish?.name ?? "Plato"}
-                    {dish && dish.variants.length > 1 && variant ? ` · ${variant.name}` : ""}
-                    {l.note && <span className="text-muted block text-sm">Nota: {l.note}</span>}
+                    {l.qty}× {dish ? localized(dish) : t("Plato")}
+                    {dish && dish.variants.length > 1 && variant ? ` · ${t(variant.name)}` : ""}
+                    {l.note && (
+                      <span className="text-muted block text-sm">
+                        {t("Nota: {note}", { note: l.note })}
+                      </span>
+                    )}
                   </span>
                   <Price value={l.unitPrice * l.qty} className="text-sm" />
                 </li>
@@ -175,29 +184,34 @@ function Tracking({ id }: { id: string }) {
           <dl className="border-line bg-surface-2 flex flex-col gap-1 rounded-b-xl border-t px-4 py-3 text-[15px]">
             {info.fee > 0 && (
               <div className="flex justify-between">
-                <dt className="text-ink-soft">Envío</dt>
+                <dt className="text-ink-soft">{t("Envío")}</dt>
                 <dd>
                   <Price value={info.fee} />
                 </dd>
               </div>
             )}
             <div className="flex justify-between font-semibold">
-              <dt>Total</dt>
+              <dt>{t("Total")}</dt>
               <dd>
                 <Price value={total} />
               </dd>
             </div>
             <div className="text-muted text-[13px]">
-              Pago: {PAY_WITH_LABEL[info.payWith]}
-              {info.cashFor ? ` · pagas con $${info.cashFor.toLocaleString("es-CO")}` : ""}
+              {t("Pago")}: {t(PAY_WITH_LABEL[info.payWith])}
+              {info.cashFor
+                ? ` · ${t("pagas con {amount}", { amount: formatMoney(info.cashFor) })}`
+                : ""}
             </div>
           </dl>
         </section>
 
-        <section aria-label="Entrega" className="text-ink-soft flex flex-col gap-1.5 text-[15px]">
+        <section
+          aria-label={t("Entrega")}
+          className="text-ink-soft flex flex-col gap-1.5 text-[15px]"
+        >
           {pickup ? (
             <p className="flex items-center gap-2">
-              <Store className="size-4 shrink-0" aria-hidden /> Lo recoges en el local
+              <Store className="size-4 shrink-0" aria-hidden /> {t("Lo recoges en el local")}
             </p>
           ) : (
             <p className="flex items-start gap-2">
@@ -218,7 +232,7 @@ function Tracking({ id }: { id: string }) {
 
         {mine && customerCanCancel(order) && (
           <Button variant="secondary" block onClick={() => setConfirming(true)}>
-            Cancelar pedido
+            {t("Cancelar pedido")}
           </Button>
         )}
       </main>
@@ -226,23 +240,24 @@ function Tracking({ id }: { id: string }) {
       <Dialog
         open={confirming}
         onOpenChange={setConfirming}
-        title="¿Cancelar tu pedido?"
-        description="Solo se puede cancelar mientras no lo hayamos confirmado."
+        title={t("¿Cancelar tu pedido?")}
+        description={t("Solo se puede cancelar mientras no lo hayamos confirmado.")}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirming(false)}>
-              Volver
+              {t("Volver")}
             </Button>
             <Button
               variant="danger"
               onClick={() => {
                 const r = deliveryClientActions.cancel(order.id);
                 setConfirming(false);
-                if (!r.ok) return toast.error("No se pudo cancelar", { description: r.error });
-                toast.success("Pedido cancelado");
+                if (!r.ok)
+                  return toast.error(t("No se pudo cancelar"), { description: t(r.error) });
+                toast.success(t("Pedido cancelado"));
               }}
             >
-              Sí, cancelar
+              {t("Sí, cancelar")}
             </Button>
           </>
         }

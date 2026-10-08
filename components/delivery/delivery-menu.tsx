@@ -22,6 +22,7 @@ import {
 } from "@/lib/data";
 import { deliveryCount, deliverySubtotal, isDeliveryOpen } from "@/lib/domain/delivery";
 import type { Dish } from "@/lib/domain/types";
+import { localized, t } from "@/lib/i18n";
 
 // La hoja de "agregar" solo se descarga cuando alguien toca un plato.
 const AddDishSheet = dynamic(() => import("./add-dish-sheet").then((m) => m.AddDishSheet), {
@@ -78,7 +79,7 @@ function Menu() {
       <header className="px-4 pt-4">
         <RestaurantMark name={restaurant.name} className="text-[14px]" />
         <h1 className="font-display mt-5 text-[30px] leading-[1.1] font-semibold tracking-tight">
-          Pide a domicilio o para recoger
+          {t("Pide a domicilio o para recoger")}
         </h1>
         {config?.enabled ? (
           <p
@@ -89,12 +90,12 @@ function Menu() {
           >
             <Clock className="size-3.5" aria-hidden />
             {open
-              ? `Abierto hasta las ${config.closesAt}`
-              : `Cerrado ahora · abrimos a las ${config.opensAt}`}
+              ? t("Abierto hasta las {time}", { time: config.closesAt })
+              : t("Cerrado ahora · abrimos a las {time}", { time: config.opensAt })}
           </p>
         ) : (
           <p className="bg-warning-soft text-warning-ink mt-2 rounded-lg px-3 py-2 text-sm font-medium">
-            Por ahora no recibimos pedidos a domicilio.
+            {t("Por ahora no recibimos pedidos a domicilio.")}
           </p>
         )}
         {active && (
@@ -102,13 +103,13 @@ function Menu() {
             href={`/domicilio/seguimiento/${active.order.id}`}
             className="bg-accent-soft text-accent-strong mt-4 flex items-center gap-2 rounded-xl px-4 py-3 text-[15px] font-semibold"
           >
-            <Receipt className="size-5" aria-hidden /> Seguir mi pedido {active.info.code}
+            <Receipt className="size-5" aria-hidden /> {t("Seguir mi pedido")} {active.info.code}
           </Link>
         )}
       </header>
 
       <nav
-        aria-label="Categorías"
+        aria-label={t("Categorías")}
         className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-4 pb-1"
       >
         {sections.map((s) => (
@@ -117,7 +118,7 @@ function Menu() {
             href={`#cat-${s.category.id}`}
             className="bg-surface-2 text-ink-soft shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold"
           >
-            {s.category.name}
+            {localized(s.category)}
           </a>
         ))}
       </nav>
@@ -131,7 +132,7 @@ function Menu() {
             className="pt-6 [contain-intrinsic-size:auto_600px] [content-visibility:auto]"
           >
             <h2 id={`h-${s.category.id}`} className="font-display text-[22px] font-semibold">
-              {s.category.name}
+              {localized(s.category)}
             </h2>
             <ul className="divide-line divide-y">
               {s.dishes.map((d) => (
@@ -152,7 +153,7 @@ function Menu() {
               className: "shadow-float pointer-events-auto",
             })}
           >
-            <ShoppingBag aria-hidden /> Ver mi pedido · {count} · <Price value={subtotal} />
+            <ShoppingBag aria-hidden /> {t("Ver mi pedido")} · {count} · <Price value={subtotal} />
           </Link>
         </div>
       )}
@@ -171,9 +172,11 @@ const DishRow = memo(function DishRow({ dish, onPick }: { dish: Dish; onPick: (d
         className="flex w-full gap-4 py-4 text-left"
       >
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="font-display text-[17px] leading-snug font-semibold">{dish.name}</span>
+          <span className="font-display text-[17px] leading-snug font-semibold">
+            {localized(dish)}
+          </span>
           <span className="text-muted mt-1 line-clamp-2 text-sm leading-relaxed">
-            {dish.description}
+            {localized(dish, "description")}
           </span>
           <Price
             value={Math.min(...prices)}
@@ -183,12 +186,12 @@ const DishRow = memo(function DishRow({ dish, onPick }: { dish: Dish; onPick: (d
         </span>
         <DishImage
           src={dish.photos[0]}
-          name={dish.name}
+          name={localized(dish)}
           sizes="96px"
           className="shadow-card size-24 shrink-0"
           rounded="rounded-xl"
         />
-        <span className="sr-only">Agregar {dish.name}</span>
+        <span className="sr-only">{t("Agregar {dish}", { dish: localized(dish) })}</span>
       </button>
     </li>
   );
@@ -196,7 +199,7 @@ const DishRow = memo(function DishRow({ dish, onPick }: { dish: Dish; onPick: (d
 
 function MenuSkeleton() {
   return (
-    <div className="px-4 pt-4" aria-busy aria-label="Cargando la carta">
+    <div className="px-4 pt-4" aria-busy aria-label={t("Cargando la carta")}>
       <Skeleton className="h-6 w-40" />
       <Skeleton className="mt-6 h-16 w-72" />
       <Skeleton className="mt-8 h-28 rounded-xl" />

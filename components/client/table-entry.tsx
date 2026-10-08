@@ -13,6 +13,7 @@ import { ALIAS_MAX } from "@/lib/domain/session";
 import type { Table } from "@/lib/domain/types";
 import { ClientShell } from "./client-shell";
 import { InvalidTable, useTableAccess } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
 
 const COLLAGE = ["clasica-27", "salchipapa-27", "limonada-de-coco"];
 
@@ -62,7 +63,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
     e.preventDefault();
     const result = tableActions.join(tableNumber, alias, pin);
     if (!result.ok) {
-      setError(result.error);
+      setError(t(result.error));
       return;
     }
     router.replace(`/mesa/${tableNumber}/menu`);
@@ -74,7 +75,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
         <RestaurantMark name={restaurant.name} className="text-[15px]" />
         <span className="border-line-strong bg-surface inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold">
           <ScanQrCode className="text-accent-strong size-4" aria-hidden />
-          Mesa {tableNumber}
+          {t("Mesa {n}", { n: tableNumber })}
         </span>
       </div>
 
@@ -83,7 +84,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
           <DishImage
             key={dish.id}
             src={dish.photos[0]}
-            name={dish.name}
+            name={localized(dish)}
             sizes="160px"
             priority
             rounded="rounded-2xl"
@@ -100,24 +101,26 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
       </div>
 
       <h1 className="font-display text-[34px] leading-[1.08] font-semibold tracking-tight">
-        Pide desde tu mesa, sin afán.
+        {t("Pide desde tu mesa, sin afán.")}
       </h1>
       <p className="text-ink-soft mt-3 text-[16px] leading-relaxed">
-        Mira la carta con fotos, ingredientes y alérgenos. El mesero confirma tu pedido antes de que
-        pase a la cocina.
+        {t(
+          "Mira la carta con fotos, ingredientes y alérgenos. El mesero confirma tu pedido antes de que pase a la cocina.",
+        )}
       </p>
 
       {diners > 0 && (
         <p className="bg-surface-2 text-ink-soft mt-5 rounded-xl px-3.5 py-3 text-sm">
-          Tu mesa ya está abierta y {diners === 1 ? "hay 1 persona" : `hay ${diners} personas`}{" "}
-          dentro. Entra con el PIN que te dio el mesero.
+          {t("Tu mesa ya está abierta y {people} dentro. Entra con el PIN que te dio el mesero.", {
+            people: diners === 1 ? t("hay 1 persona") : t("hay {n} personas", { n: diners }),
+          })}
         </p>
       )}
 
       <form onSubmit={submit} className="mt-6 flex flex-col gap-4" noValidate>
         <Field
-          label="¿Cómo te llamamos?"
-          hint="Así sabrán qué pidió cada quien en el pedido de la mesa."
+          label={t("¿Cómo te llamamos?")}
+          hint={t("Así sabrán qué pidió cada quien en el pedido de la mesa.")}
           error={error}
         >
           {(p) => (
@@ -128,7 +131,7 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
                 setAlias(e.target.value);
                 if (error) setError(undefined);
               }}
-              placeholder="Tu nombre o un apodo"
+              placeholder={t("Tu nombre o un apodo")}
               autoComplete="given-name"
               enterKeyHint="go"
               maxLength={ALIAS_MAX + 4}
@@ -136,7 +139,10 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
             />
           )}
         </Field>
-        <Field label="PIN de la mesa" hint="Te lo da el mesero o viene en el QR que te muestra.">
+        <Field
+          label={t("PIN de la mesa")}
+          hint={t("Te lo da el mesero o viene en el QR que te muestra.")}
+        >
           {(p) => (
             <Input
               {...p}
@@ -148,13 +154,13 @@ function EntryForm({ tableNumber, diners }: { tableNumber: number; diners: numbe
               inputMode="numeric"
               autoComplete="off"
               maxLength={4}
-              placeholder="4 dígitos"
+              placeholder={t("4 dígitos")}
               className="h-12 text-base tabular-nums"
             />
           )}
         </Field>
         <Button type="submit" size="lg" block>
-          Ver la carta <ArrowRight aria-hidden />
+          {t("Ver la carta")} <ArrowRight aria-hidden />
         </Button>
       </form>
 
@@ -172,18 +178,19 @@ function ClosedTable({ table }: { table: Table }) {
         <RestaurantMark name={restaurant.name} className="text-[15px]" />
         <span className="border-line-strong bg-surface inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold">
           <ScanQrCode className="text-accent-strong size-4" aria-hidden />
-          Mesa {table.number}
+          {t("Mesa {n}", { n: table.number })}
         </span>
       </div>
       <span className="bg-accent-soft text-accent-strong mt-16 flex size-14 items-center justify-center rounded-2xl">
         <BellRing className="size-6" aria-hidden />
       </span>
       <h1 className="font-display mt-5 text-[34px] leading-[1.08] font-semibold tracking-tight">
-        Pide al mesero que abra tu mesa.
+        {t("Pide al mesero que abra tu mesa.")}
       </h1>
       <p className="text-ink-soft mt-3 text-[16px] leading-relaxed">
-        El mesero abre la mesa cuando llegas y te da un PIN para entrar a la carta. Así solo pide
-        quien está sentado.
+        {t(
+          "El mesero abre la mesa cuando llegas y te da un PIN para entrar a la carta. Así solo pide quien está sentado.",
+        )}
       </p>
       <Button
         size="lg"
@@ -192,11 +199,11 @@ function ClosedTable({ table }: { table: Table }) {
         disabled={asked}
         onClick={() => tableActions.requestOpen(table.number)}
       >
-        <BellRing aria-hidden /> {asked ? "Ya avisamos al mesero" : "Avisar al mesero"}
+        <BellRing aria-hidden /> {asked ? t("Ya avisamos al mesero") : t("Avisar al mesero")}
       </Button>
       {asked && (
         <p role="status" className="text-ink-soft mt-3 text-sm">
-          Ya le avisamos al equipo. Cuando abran tu mesa, esta pantalla te pedirá el PIN.
+          {t("Ya le avisamos al equipo. Cuando abran tu mesa, esta pantalla te pedirá el PIN.")}
         </p>
       )}
       <MadeWithPlatterio className="mt-auto pt-10" />
@@ -206,7 +213,7 @@ function ClosedTable({ table }: { table: Table }) {
 
 function EntrySkeleton() {
   return (
-    <div className="flex flex-col gap-4 px-5 pt-6" aria-busy aria-label="Cargando">
+    <div className="flex flex-col gap-4 px-5 pt-6" aria-busy aria-label={t("Cargando")}>
       <div className="flex justify-between">
         <Skeleton className="h-7 w-28" />
         <Skeleton className="h-8 w-20 rounded-full" />

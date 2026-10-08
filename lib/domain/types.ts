@@ -97,6 +97,10 @@ export interface Restaurant {
   logoUrl?: string;
   brand?: Brand;
   delivery?: DeliveryConfig;
+  /** Moneda en que están los precios (no se convierten al cambiarla). Por defecto, pesos colombianos. */
+  currency?: string;
+  /** Idiomas que ve el cliente. El español siempre está. */
+  languages?: string[];
   serviceAlertThreshold: number;
   confirmTimeoutMin: number;
   /** Minutos sin actividad (y sin pedidos por entregar) para que una mesa se cierre sola. */
@@ -107,12 +111,15 @@ export interface Category {
   id: string;
   name: string;
   order: number;
+  /** Nombre en inglés, si el negocio lo escribió. */
+  en?: { name?: string };
 }
 
 /** Horas en formato "HH:MM" de 24 h. */
 export interface TimeSlot {
   id: string;
   name: string;
+  en?: { name?: string };
   start: string;
   end: string;
 }
@@ -143,6 +150,8 @@ export interface Dish {
   featured: boolean;
   model3d?: { fileName: string; sizeBytes: number };
   createdAt: string;
+  /** Nombre y descripción en inglés, si el negocio los escribió. */
+  en?: { name?: string; description?: string };
 }
 
 export interface Waiter {

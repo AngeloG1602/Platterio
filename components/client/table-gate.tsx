@@ -9,6 +9,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useHydrated, useMyDiner, useSeedEpoch, useTableByNumber } from "@/lib/data";
 import type { Diner, Table, TableSession } from "@/lib/domain/types";
+import { t } from "@/lib/i18n";
 
 export interface TableContext {
   table: Table;
@@ -39,11 +40,13 @@ export function InvalidTable() {
   return (
     <EmptyState
       icon={QrCode}
-      title="No encontramos esta mesa"
-      description="Puede que el código QR esté desactualizado. Pídele ayuda al mesero o vuelve a escanear."
+      title={t("No encontramos esta mesa")}
+      description={t(
+        "Puede que el código QR esté desactualizado. Pídele ayuda al mesero o vuelve a escanear.",
+      )}
       action={
         <Link href="/" className={buttonClasses({ variant: "secondary" })}>
-          Ir al inicio de la demo
+          {t("Ir al inicio de la demo")}
         </Link>
       }
       className="my-auto"
@@ -73,14 +76,14 @@ export function TableGate({
     // Si estaba dentro y la sesión desapareció: o se reiniciaron los datos, o el mesero liberó la mesa.
     if (readyAt.current !== null) {
       if (readyAt.current !== seedEpoch) {
-        toast("Se reiniciaron los datos de la demo", {
+        toast(t("Se reiniciaron los datos de la demo"), {
           id: "demo-reiniciada",
-          description: "Vuelve a entrar a la mesa para empezar de nuevo.",
+          description: t("Vuelve a entrar a la mesa para empezar de nuevo."),
         });
       } else {
-        toast.success("La mesa se liberó. ¡Gracias por venir!", {
+        toast.success(t("La mesa se liberó. ¡Gracias por venir!"), {
           id: "mesa-liberada",
-          description: "Si vuelves a escanear el QR se abre una visita nueva.",
+          description: t("Si vuelves a escanear el QR se abre una visita nueva."),
         });
       }
       readyAt.current = null;

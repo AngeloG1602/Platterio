@@ -56,7 +56,7 @@ import {
   type IngredientSlot,
 } from "@/lib/domain/customization";
 import { formatBytes, validateModelFile } from "@/lib/domain/dishForm";
-import { formatCOP, formatPriceDelta } from "@/lib/domain/format";
+import { formatMoney, formatPriceDelta } from "@/lib/domain/format";
 import { ALLERGENS, type Allergen } from "@/lib/domain/types";
 import { coverage, layoutFor, rulesFromNodeNames } from "@/lib/viewer3d/layouts";
 import { realModelFor, type RealModel, type RealPartRule } from "@/lib/viewer3d/real-models";
@@ -229,7 +229,7 @@ function DishLab({
             options={(dish?.variants ?? []).map((v) => ({
               value: v.id,
               label: v.name,
-              hint: formatCOP(v.price),
+              hint: formatMoney(v.price),
             }))}
           />
         </div>

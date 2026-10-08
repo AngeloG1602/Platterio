@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LanguageBar } from "./language-bar";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { cn } from "@/lib/cn";
 
@@ -15,6 +16,7 @@ export function ClientShell({ children, className }: { children: ReactNode; clas
           className,
         )}
       >
+        <LanguageBar />
         {children}
       </div>
       <DemoPanel />

@@ -12,6 +12,7 @@ import { ALLERGEN_LABEL } from "@/lib/domain/allergens";
 import { priceRange } from "@/lib/domain/menu";
 import { reasonLabel, slotHeadline, type RecommendationReason } from "@/lib/domain/recommender";
 import type { Allergen } from "@/lib/domain/types";
+import { localized, t } from "@/lib/i18n";
 
 const REASON_ICON: Record<RecommendationReason, LucideIcon> = {
   nuevo: Sparkles,
@@ -34,17 +35,21 @@ export function Recommendations({
   if (recommendations.length === 0) return null;
 
   const subtitle = current.upcoming
-    ? `Fuera de horario: lo mejor del ${current.slot?.name.toLowerCase() ?? "día"}`
+    ? t("Fuera de horario: lo mejor del {slot}", {
+        slot: current.slot ? localized(current.slot).toLowerCase() : t("día"),
+      })
     : restrictions.length > 0
-      ? `Sin ${restrictions.map((a) => ALLERGEN_LABEL[a].toLowerCase()).join(", ")}`
-      : "Elegidos para esta hora";
+      ? t("Sin {list}", {
+          list: restrictions.map((a) => t(ALLERGEN_LABEL[a]).toLowerCase()).join(", "),
+        })
+      : t("Elegidos para esta hora");
 
   return (
     <section aria-labelledby="recomendados" className="pt-6">
       <div className="flex items-end justify-between px-4">
         <div>
           <h2 id="recomendados" className="font-display text-[22px] leading-tight font-semibold">
-            {slotHeadline(current.slot)}
+            {t(slotHeadline(current.slot))}
           </h2>
           <p className="text-muted mt-0.5 text-[13px]">{subtitle}</p>
         </div>
@@ -62,7 +67,7 @@ export function Recommendations({
                 <div className="relative">
                   <DishImage
                     src={dish.photos[0]}
-                    name={dish.name}
+                    name={localized(dish)}
                     sizes="240px"
                     priority={i < 2}
                     className="shadow-card aspect-[4/3] w-full"
@@ -71,12 +76,12 @@ export function Recommendations({
                   />
                   <span className="bg-surface/92 text-ink shadow-card absolute top-2.5 left-2.5 inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-semibold backdrop-blur">
                     <Icon className="text-accent-strong size-3.5" aria-hidden />
-                    {reasonLabel(reason, current.slot, current.upcoming)}
+                    {t(reasonLabel(reason, current.slot, current.upcoming))}
                   </span>
                 </div>
                 <div className="mt-2.5 px-0.5">
                   <h3 className="font-display truncate text-[17px] leading-snug font-semibold group-hover:underline">
-                    {dish.name}
+                    {localized(dish)}
                   </h3>
                   <div className="mt-0.5 flex items-center gap-2.5">
                     <Price value={min} from={min !== max} className="text-[15px]" />

@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { addDish, asegurarSesion, BASE, joinTable, launch, watch } from "./helpers.mjs";
 
 const browser = await launch();
-const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-CO" });
 const errors = [];
 const page = watch(await ctx.newPage(), "a11y", errors);
 
@@ -61,7 +61,9 @@ const WHO = [
 ];
 
 const guest = watch(
-  await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage(),
+  await (
+    await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-CO" })
+  ).newPage(),
   "invitado",
   errors,
 );
@@ -89,6 +91,29 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
     for (const n of v.nodes.slice(0, 3))
       console.log(`       ${n.target.join(" ")} ${n.failureSummary?.split("\n")[1]?.trim() ?? ""}`);
   }
+}
+// La carta de domicilios y la entrada a la mesa, en inglés (idioma del celular).
+const english = watch(
+  await (
+    await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "en-US" })
+  ).newPage(),
+  "english",
+  errors,
+);
+for (const [name, path] of [
+  ["Delivery menu (EN)", "/domicilio"],
+  ["Closed table (EN)", "/mesa/6"],
+]) {
+  await english.goto(BASE + path);
+  await english.waitForTimeout(900);
+  const result = await new AxeBuilder({ page: english })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  total += result.violations.length;
+  console.log(
+    `${result.violations.length ? "✘" : "✔"} ${name} (${path}) — ${result.violations.length} problemas`,
+  );
+  for (const v of result.violations) console.log(`   · [${v.impact}] ${v.id}: ${v.help}`);
 }
 console.log(errors.length ? `Errores de consola:\n${errors.join("\n")}` : "Sin errores de consola");
 console.log(total ? `Total: ${total} problemas` : "Sin problemas de accesibilidad detectados");

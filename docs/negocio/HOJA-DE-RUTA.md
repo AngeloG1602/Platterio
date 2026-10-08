@@ -28,7 +28,7 @@ Resume lo decidido y el orden de trabajo. Se actualiza al terminar cada fase.
 | 4   | Marca por negocio: logo, paleta, tipografías y plantillas      | Hecha (pendiente de visto bueno) |
 | 5   | Reportes completos y cierre de caja                            | Hecha (pendiente de visto bueno) |
 | 6   | Domicilios                                                     | Hecha (pendiente de visto bueno) |
-| 7   | Idiomas, monedas, impuestos y propina                          | Pendiente                        |
+| 7   | Idiomas (español e inglés) y monedas. Sin propina ni impuestos | Hecha (pendiente de visto bueno) |
 | 8   | Vista 3D integrada a la ficha del plato                        | Pendiente                        |
 | 9   | Base de datos y cuentas reales                                 | Pendiente                        |
 | 10  | Página de ventas, guías y cobros                               | Pendiente                        |

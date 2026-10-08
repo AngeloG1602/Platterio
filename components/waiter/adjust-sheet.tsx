@@ -7,7 +7,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
 import { waiterActions } from "@/lib/data";
-import { formatCOP } from "@/lib/domain/format";
+import { formatMoney } from "@/lib/domain/format";
 import { ADJUST_REASONS, EDIT_REASONS, type ItemAdjustment } from "@/lib/domain/waiter";
 import type { Dish, OrderItem } from "@/lib/domain/types";
 import { ReasonPicker, resolveReason } from "./reason-picker";
@@ -106,7 +106,7 @@ export function AdjustSheet({
             options={dish.variants.map((v) => ({
               value: v.id,
               label: v.name,
-              hint: formatCOP(v.price),
+              hint: formatMoney(v.price),
             }))}
           />
         )}

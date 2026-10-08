@@ -19,12 +19,13 @@ import { RatingSummary } from "@/components/ui/stars";
 import { toast } from "@/components/ui/toaster";
 import { cartActions, useCategories, useDevice, useDish, useDishRatingStats } from "@/lib/data";
 import { ALLERGEN_LABEL, conflictingAllergens, dishAllergens } from "@/lib/domain/allergens";
-import { formatCOP, plural } from "@/lib/domain/format";
+import { formatMoney, plural } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
 
 const NOTE_MAX = 140;
 
@@ -56,11 +57,11 @@ function DishDetail({ ctx, dishId }: { ctx: TableContext; dishId: string }) {
     return (
       <EmptyState
         icon={UtensilsCrossed}
-        title="Este plato ya no está disponible"
-        description="Puede que se haya agotado o que la carta haya cambiado."
+        title={t("Este plato ya no está disponible")}
+        description={t("Puede que se haya agotado o que la carta haya cambiado.")}
         action={
           <Link href={menuHref} className={buttonClasses({ variant: "secondary" })}>
-            Volver a la carta
+            {t("Volver a la carta")}
           </Link>
         }
         className="my-auto"
@@ -86,12 +87,15 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
   function add() {
     const result = cartActions.add(ctx.table.id, { dishId: dish.id, variantId, qty, note });
     if (!result.ok) {
-      toast.error("No se pudo agregar", { description: result.error });
+      toast.error(t("No se pudo agregar"), { description: t(result.error) });
       return;
     }
-    const variantText = dish.variants.length > 1 ? ` · ${variant.name}` : "";
-    toast.success("Agregado al pedido de la mesa", {
-      description: `${qty}× ${dish.name}${variantText}. Llevas ${plural(result.count ?? qty, "plato", "platos")}.`,
+    const variantText = dish.variants.length > 1 ? ` · ${t(variant.name)}` : "";
+    toast.success(t("Agregado al pedido de la mesa"), {
+      description: t("{dish}. Llevas {count}.", {
+        dish: `${qty}× ${localized(dish)}${variantText}`,
+        count: plural(result.count ?? qty, "plato", "platos"),
+      }),
     });
     onBack();
   }
@@ -103,17 +107,19 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
       <div className="bg-bg relative -mt-6 flex-1 rounded-t-3xl px-4 pt-6 pb-32">
         {category && (
           <p className="text-accent-strong text-xs font-semibold tracking-[0.14em] uppercase">
-            {category.name}
+            {localized(category)}
           </p>
         )}
         <h1 className="font-display mt-1.5 text-[30px] leading-[1.1] font-semibold tracking-tight">
-          {dish.name}
+          {localized(dish)}
         </h1>
         <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           <RatingSummary average={stats?.average ?? null} count={stats?.count ?? 0} />
           <Spice level={dish.spiceLevel} withLabel />
         </div>
-        <p className="text-ink-soft mt-4 text-[16px] leading-relaxed">{dish.description}</p>
+        <p className="text-ink-soft mt-4 text-[16px] leading-relaxed">
+          {localized(dish, "description")}
+        </p>
 
         {conflicts.length > 0 && (
           <div
@@ -123,11 +129,14 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
             <TriangleAlert className="text-danger mt-0.5 size-5 shrink-0" aria-hidden />
             <div>
               <p className="text-danger-ink text-[15px] font-semibold">
-                Tiene {conflicts.map((a) => ALLERGEN_LABEL[a].toLowerCase()).join(" y ")}
+                {t("Tiene {list}", {
+                  list: conflicts.map((a) => t(ALLERGEN_LABEL[a]).toLowerCase()).join(t(" y ")),
+                })}
               </p>
               <p className="text-ink-soft mt-0.5 text-sm leading-relaxed">
-                Lo marcaste como restricción. Puedes pedirlo igual; si tienes dudas, pregúntale al
-                mesero.
+                {t(
+                  "Lo marcaste como restricción. Puedes pedirlo igual; si tienes dudas, pregúntale al mesero.",
+                )}
               </p>
             </div>
           </div>
@@ -136,16 +145,16 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
         {dish.variants.length > 1 && (
           <section aria-labelledby="opciones" className="mt-7">
             <h2 id="opciones" className="mb-2.5 text-[15px] font-semibold">
-              Elige una opción
+              {t("Elige una opción")}
             </h2>
             <Segmented
-              label="Opción del plato"
+              label={t("Opción del plato")}
               value={variantId}
               onChange={setVariantId}
               options={dish.variants.map((v) => ({
                 value: v.id,
-                label: v.name,
-                hint: v.price === base ? formatCOP(v.price) : `+${formatCOP(v.price - base)}`,
+                label: t(v.name),
+                hint: v.price === base ? formatMoney(v.price) : `+${formatMoney(v.price - base)}`,
               }))}
             />
           </section>
@@ -153,15 +162,15 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
 
         <section aria-labelledby="ingredientes" className="mt-7">
           <h2 id="ingredientes" className="text-[15px] font-semibold">
-            Ingredientes
+            {t("Ingredientes")}
           </h2>
           <ul className="divide-line mt-1 divide-y">
             {dish.ingredients.map((ing) => (
               <li key={ing.name} className="flex items-start justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="text-ink text-[15px]">{ing.name}</p>
+                  <p className="text-ink text-[15px]">{t(ing.name)}</p>
                   {ing.description && (
-                    <p className="text-muted mt-0.5 text-[13px]">{ing.description}</p>
+                    <p className="text-muted mt-0.5 text-[13px]">{t(ing.description)}</p>
                   )}
                 </div>
                 {ing.allergens.length > 0 && (
@@ -183,16 +192,16 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
 
         <section aria-labelledby="alergenos" className="bg-surface-2/70 mt-6 rounded-xl p-4">
           <h2 id="alergenos" className="mb-2.5 text-[15px] font-semibold">
-            Alérgenos
+            {t("Alérgenos")}
           </h2>
           <AllergenList allergens={dishAllergens(dish)} restrictions={restrictions} />
         </section>
 
         <section className="mt-7">
           <Field
-            label="Nota para la cocina"
+            label={t("Nota para la cocina")}
             optional
-            hint={`${note.length}/${NOTE_MAX} · Por ejemplo: sin cebolla, salsa aparte`}
+            hint={`${note.length}/${NOTE_MAX} · ${t("Por ejemplo: sin cebolla, salsa aparte")}`}
           >
             {(p) => (
               <Textarea
@@ -200,7 +209,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
                 value={note}
                 maxLength={NOTE_MAX}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="¿Algún cambio?"
+                placeholder={t("¿Algún cambio?")}
                 rows={2}
                 className="min-h-20"
               />
@@ -213,7 +222,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
         <div className="flex items-center gap-3">
           <QtyStepper value={qty} onChange={setQty} />
           <Button size="lg" className="flex-1" onClick={add}>
-            <Plus aria-hidden /> Agregar · <Price value={variant.price * qty} />
+            <Plus aria-hidden /> {t("Agregar")} · <Price value={variant.price * qty} />
           </Button>
         </div>
       </div>
@@ -232,13 +241,13 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
           const el = e.currentTarget;
           setIndex(Math.round(el.scrollLeft / el.clientWidth));
         }}
-        aria-label={`Fotos de ${dish.name}`}
+        aria-label={t("Fotos de {name}", { name: localized(dish) })}
       >
         {photos.map((src, i) => (
           <DishImage
             key={src ?? i}
             src={src}
-            name={dish.name}
+            name={localized(dish)}
             sizes="(min-width: 448px) 448px, 100vw"
             priority={i === 0}
             rounded="rounded-none"
@@ -248,7 +257,7 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
         ))}
       </div>
       <IconButton
-        label="Volver a la carta"
+        label={t("Volver a la carta")}
         variant="surface"
         onClick={onBack}
         className="absolute top-3 left-3"
@@ -277,7 +286,7 @@ function Gallery({ dish, onBack }: { dish: Dish; onBack: () => void }) {
 
 function DishSkeleton() {
   return (
-    <div aria-busy aria-label="Cargando el plato">
+    <div aria-busy aria-label={t("Cargando el plato")}>
       <Skeleton className="aspect-[5/4] w-full rounded-none" />
       <div className="px-4 pt-6">
         <Skeleton className="h-3.5 w-24" />

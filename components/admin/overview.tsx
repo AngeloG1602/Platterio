@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatRating } from "@/components/ui/stars";
 import { useAnalyticsData, useHydrated, useNow } from "@/lib/data";
 import { ordersByHour, periodRange, ratingSummary, salesSummary } from "@/lib/domain/analytics";
-import { formatCOP, formatDay, plural } from "@/lib/domain/format";
+import { formatMoney, formatDay, plural } from "@/lib/domain/format";
 import { AlertsPanel } from "./alerts-panel";
 import { ColumnChart } from "./ui/charts";
 import { PageHeader, Panel } from "./ui/page-header";
@@ -45,7 +45,7 @@ function OverviewBody({ now }: { now: number }) {
         <StatTile
           label="Ventas del día"
           icon={Banknote}
-          value={formatCOP(today.sales)}
+          value={formatMoney(today.sales)}
           note={`${plural(today.delivered, "ronda entregada", "rondas entregadas")}`}
         />
         <StatTile
@@ -57,7 +57,7 @@ function OverviewBody({ now }: { now: number }) {
         <StatTile
           label="Ticket promedio"
           icon={Users}
-          value={today.avgTicket === null ? "—" : formatCOP(today.avgTicket)}
+          value={today.avgTicket === null ? "—" : formatMoney(today.avgTicket)}
           note={`${plural(today.visits, "visita", "visitas")} con entrega`}
         />
         <StatTile

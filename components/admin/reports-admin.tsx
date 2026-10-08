@@ -16,7 +16,7 @@ import {
   unpaidSessions,
 } from "@/lib/domain/cash";
 import { deliveryStats } from "@/lib/domain/delivery";
-import { formatCOP, formatDay, formatTime, plural } from "@/lib/domain/format";
+import { formatMoney, formatDay, formatTime, plural } from "@/lib/domain/format";
 import { BarList } from "./ui/charts";
 import { PageHeader, Panel } from "./ui/page-header";
 import { describePeriod, PeriodFilter, usePeriod } from "./ui/period-filter";
@@ -100,20 +100,20 @@ function Body({ period }: { period: Period }) {
         <StatTile
           label="Vendido"
           icon={ReceiptText}
-          value={formatCOP(summary.sales)}
+          value={formatMoney(summary.sales)}
           note={plural(summary.delivered, "ronda entregada", "rondas entregadas")}
         />
         <StatTile
           label="Cobrado en caja"
           icon={Banknote}
-          value={formatCOP(paid.total)}
+          value={formatMoney(paid.total)}
           note={plural(paid.count, "pago", "pagos")}
         />
         <StatTile
           label="Sin cobro registrado"
           icon={TriangleAlert}
           tone={unpaidTotal > 0 ? "danger" : "neutral"}
-          value={formatCOP(unpaidTotal)}
+          value={formatMoney(unpaidTotal)}
           note={plural(unpaid.length, "mesa cerrada", "mesas cerradas")}
         />
         <StatTile
@@ -144,7 +144,7 @@ function Body({ period }: { period: Period }) {
               key: m,
               label: METHOD_LABEL[m],
               value: paid.byMethod[m],
-              display: formatCOP(paid.byMethod[m]),
+              display: formatMoney(paid.byMethod[m]),
             }))}
             empty={<p className="text-muted text-[15px]">No hay cobros en este periodo.</p>}
           />
@@ -189,7 +189,7 @@ function Body({ period }: { period: Period }) {
                   <th scope="row" className="py-2.5 pr-3 font-semibold">
                     {w.name}
                   </th>
-                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatCOP(w.sales)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatMoney(w.sales)}</td>
                   <td className="py-2.5 pr-3 text-right tabular-nums">{w.visits}</td>
                   <td className="py-2.5 text-right tabular-nums">{w.edits}</td>
                 </tr>
@@ -251,7 +251,7 @@ function Body({ period }: { period: Period }) {
               </div>
               <div className="col-span-2">
                 <dt className="text-muted text-sm">Envíos cobrados</dt>
-                <dd className="text-xl font-semibold">{formatCOP(delivery.fees)}</dd>
+                <dd className="text-xl font-semibold">{formatMoney(delivery.fees)}</dd>
               </div>
             </dl>
             <BarList
@@ -259,7 +259,7 @@ function Body({ period }: { period: Period }) {
                 key: z.name,
                 label: z.name,
                 value: z.sales,
-                display: `${formatCOP(z.sales)} · ${z.orders}`,
+                display: `${formatMoney(z.sales)} · ${z.orders}`,
               }))}
               empty={<p className="text-muted text-[15px]">Aún no hay entregas.</p>}
             />
@@ -388,7 +388,7 @@ function Body({ period }: { period: Period }) {
                       : (x.table?.number ?? "—")}
                   </td>
                   <td className="text-danger-ink py-2.5 text-right tabular-nums">
-                    {formatCOP(x.pending)}
+                    {formatMoney(x.pending)}
                   </td>
                 </tr>
               ))}
@@ -468,7 +468,7 @@ function Body({ period }: { period: Period }) {
                       <td className="py-2.5 pr-4 whitespace-nowrap">{stamp(s.closedAt!)}</td>
                       <td className="py-2.5 pr-4">{s.closedBy}</td>
                       <td className="py-2.5 pr-4 text-right tabular-nums">
-                        {formatCOP(s.summary?.total ?? 0)}
+                        {formatMoney(s.summary?.total ?? 0)}
                       </td>
                       <td
                         className={
@@ -476,7 +476,7 @@ function Body({ period }: { period: Period }) {
                           (diff === 0 ? "text-success-ink" : "text-danger-ink")
                         }
                       >
-                        {diff === 0 ? "Cuadra" : formatCOP(diff)}
+                        {diff === 0 ? "Cuadra" : formatMoney(diff)}
                         {s.note && <span className="text-muted block text-xs">{s.note}</span>}
                       </td>
                     </tr>

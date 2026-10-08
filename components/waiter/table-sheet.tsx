@@ -21,7 +21,7 @@ import {
 } from "@/lib/data";
 import { can } from "@/lib/domain/access";
 import { cartCount } from "@/lib/domain/cart";
-import { formatCOP, formatTime, plural } from "@/lib/domain/format";
+import { formatMoney, formatTime, plural } from "@/lib/domain/format";
 import { consolidateTicket } from "@/lib/domain/ticket";
 import type { Dish } from "@/lib/domain/types";
 import type { TableOverview } from "@/lib/domain/waiter";
@@ -245,7 +245,7 @@ export function TableSheet({
         title={`¿Liberar la Mesa ${table.number}?`}
         description={
           canCharge && balance && balance.pending > 0
-            ? `Ojo: todavía falta cobrar ${formatCOP(balance.pending)}. Se cierra la sesión de la mesa igual y queda marcada como sin cobro.`
+            ? `Ojo: todavía falta cobrar ${formatMoney(balance.pending)}. Se cierra la sesión de la mesa igual y queda marcada como sin cobro.`
             : "Se cierra la sesión de la mesa. El próximo escaneo del QR abre una sesión nueva."
         }
         footer={

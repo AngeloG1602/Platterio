@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { Fragment, useEffect, type ReactNode } from "react";
 import { toast, Toaster } from "@/components/ui/toaster";
 import { brandVars } from "@/lib/domain/brand";
 import { useDeliveryClient } from "@/lib/data/delivery-store";
+import { useLangStore } from "@/lib/data/lang-store";
+import { isCurrency, setCurrency } from "@/lib/domain/format";
+import { enabledLangs, pickLang, setLang } from "@/lib/i18n";
 import { useDeviceStore } from "@/lib/data/device";
 import { useAppStore, useBootStore } from "@/lib/data/store";
 import { startSync } from "@/lib/data/sync";
@@ -13,6 +17,26 @@ import { startAlertWatcher } from "@/lib/data/alert-watcher";
 export function AppProviders({ children }: { children: ReactNode }) {
   const accent = useAppStore((s) => s.restaurant.accentColor);
   const brand = useAppStore((s) => s.restaurant.brand);
+  const currencySetting = useAppStore((s) => s.restaurant.currency);
+  const languages = useAppStore((s) => s.restaurant.languages);
+  const savedLang = useLangStore((s) => s.lang);
+  const hydrated = useBootStore((s) => s.hydrated);
+  const pathname = usePathname();
+
+  // El idioma solo cambia lo que ve el cliente; el personal siempre trabaja en español.
+  const customerView = pathname.startsWith("/mesa") || pathname.startsWith("/domicilio");
+  const lang =
+    hydrated && customerView
+      ? pickLang({
+          saved: savedLang,
+          browser: typeof navigator === "undefined" ? null : navigator.language,
+          enabled: enabledLangs(languages),
+        })
+      : "es";
+  const currency = isCurrency(currencySetting) ? currencySetting : "COP";
+  // Se fijan antes de pintar a los hijos, que leen el idioma y la moneda al formatear textos.
+  setLang(lang);
+  setCurrency(currency);
 
   useEffect(() => {
     let stop: (() => void) | undefined;
@@ -22,6 +46,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       useAppStore.persist.rehydrate(),
       useDeviceStore.persist.rehydrate(),
       useDeliveryClient.persist.rehydrate(),
+      useLangStore.persist.rehydrate(),
     ]).then(() => {
       if (cancelled) return;
       useBootStore.setState({ hydrated: true });
@@ -48,9 +73,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
       root.style.setProperty(name, value);
   }, [accent, brand]);
 
+  useEffect(() => {
+    document.documentElement.lang = lang === "en" ? "en" : "es-CO";
+  }, [lang]);
+
   return (
     <>
-      {children}
+      {/* Al cambiar de idioma o de moneda se vuelve a pintar todo con los textos nuevos. */}
+      <Fragment key={`${lang}-${currency}`}>{children}</Fragment>
       <Toaster />
     </>
   );

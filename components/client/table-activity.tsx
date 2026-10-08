@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toaster";
 import { useDishes, useSessionOrders } from "@/lib/data";
 import type { CartItem, Order } from "@/lib/domain/types";
 import type { TableContext } from "./table-gate";
+import { localized, t } from "@/lib/i18n";
 
 /**
  * Avisos en vivo de lo que hacen los demás comensales de la mesa: platos agregados al carrito
@@ -29,13 +30,20 @@ export function useTableActivity({ session, diner }: TableContext) {
       if (item.dinerId === diner.id) continue;
       const added = item.qty - (before.get(item.id)?.qty ?? 0);
       if (added <= 0) continue;
-      const who = session.diners.find((d) => d.id === item.dinerId)?.alias ?? "Alguien";
+      const who = session.diners.find((d) => d.id === item.dinerId)?.alias ?? t("Alguien");
       const dish = dishes.find((d) => d.id === item.dishId);
-      toast(`${who} agregó ${added}× ${dish?.name ?? "un plato"}`, {
-        id: `agrego-${item.id}-${item.qty}`,
-        icon: <ShoppingBag className="text-accent-strong size-5" aria-hidden />,
-        description: "Al carrito compartido de la mesa",
-      });
+      toast(
+        t("{who} agregó {n}× {dish}", {
+          who,
+          n: added,
+          dish: dish ? localized(dish) : t("un plato"),
+        }),
+        {
+          id: `agrego-${item.id}-${item.qty}`,
+          icon: <ShoppingBag className="text-accent-strong size-5" aria-hidden />,
+          description: t("Al carrito compartido de la mesa"),
+        },
+      );
     }
   }, [session.cart, session.diners, diner.id, dishes]);
 
@@ -47,11 +55,11 @@ export function useTableActivity({ session, diner }: TableContext) {
     for (const order of orders) {
       if (before.has(order.id) || order.sentByDinerId === diner.id) continue;
       const who =
-        session.diners.find((d) => d.id === order.sentByDinerId)?.alias ?? "Alguien de la mesa";
-      toast.success(`${who} envió el pedido`, {
+        session.diners.find((d) => d.id === order.sentByDinerId)?.alias ?? t("Alguien de la mesa");
+      toast.success(t("{who} envió el pedido", { who }), {
         id: `envio-${order.id}`,
         icon: <Send className="text-success size-5" aria-hidden />,
-        description: `Ronda ${order.round} · esperando confirmación del mesero`,
+        description: t("Ronda {n} · esperando confirmación del mesero", { n: order.round }),
       });
     }
   }, [orders, session.diners, diner.id]);
@@ -77,24 +85,28 @@ export function useTableActivity({ session, diner }: TableContext) {
           continue;
         const dish = dishes.find((d) => d.id === item.dishId);
         toast.warning(
-          describeAdjustment({
-            item,
-            dish,
-            variant: dish?.variants.find((v) => v.id === item.variantId),
-          }),
+          t(
+            describeAdjustment({
+              item,
+              dish,
+              variant: dish?.variants.find((v) => v.id === item.variantId),
+            }),
+          ),
           {
             id: `ajuste-${item.id}-${item.qty}-${item.variantId}-${item.removed}`,
-            description: `Motivo: ${item.adjustReason}`,
+            description: t("Motivo: {reason}", { reason: t(item.adjustReason) }),
           },
         );
       }
       if (prev.status === order.status) continue;
-      const title = `Ronda ${order.round}: ${STATUS_MESSAGE[order.status]}`;
+      const title = t("Ronda {n}: {msg}", { n: order.round, msg: t(STATUS_MESSAGE[order.status]) });
       const id = `estado-${order.id}-${order.status}`;
       if (order.status === "rechazado")
         toast.error(title, {
           id,
-          description: order.rejectReason ? `Motivo: ${order.rejectReason}` : undefined,
+          description: order.rejectReason
+            ? t("Motivo: {reason}", { reason: t(order.rejectReason) })
+            : undefined,
         });
       else toast.success(title, { id });
     }

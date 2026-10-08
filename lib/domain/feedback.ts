@@ -8,6 +8,7 @@ import type {
   TableSession,
   Waiter,
 } from "./types";
+import { localized, t } from "@/lib/i18n";
 
 export const COMMENT_MAX = 280;
 
@@ -94,7 +95,9 @@ export function rateDishes(params: {
       if (comment)
         return {
           ok: false,
-          error: `Ponle estrellas a ${target.dish.name} para enviar tu comentario`,
+          error: t("Ponle estrellas a {dish} para enviar tu comentario", {
+            dish: localized(target.dish),
+          }),
           dishId: d.dishId,
         };
       continue;
@@ -102,7 +105,7 @@ export function rateDishes(params: {
     if (comment && comment.length > COMMENT_MAX) {
       return {
         ok: false,
-        error: `El comentario va hasta ${COMMENT_MAX} caracteres`,
+        error: t("El comentario va hasta {n} caracteres", { n: COMMENT_MAX }),
         dishId: d.dishId,
       };
     }

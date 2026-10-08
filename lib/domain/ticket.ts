@@ -1,3 +1,4 @@
+import { localized, t } from "@/lib/i18n";
 import { STAFF_DINER_ID, STAFF_DINER_LABEL } from "./staffOrders";
 import type { Diner, Dish, Order, OrderItem, OrderStatus, Variant } from "./types";
 
@@ -109,18 +110,25 @@ export function consolidateTicket(params: {
 /** Frase para el cliente sobre un ajuste del mesero (regla 5), sin el motivo. */
 export function describeAdjustment(line: Pick<TicketLine, "item" | "dish" | "variant">): string {
   const { item, dish, variant } = line;
-  const name = dish?.name ?? "un plato";
-  if (item.removed) return `El mesero quitó ${name}`;
+  const name = dish ? localized(dish) : t("un plato");
+  if (item.removed) return t("El mesero quitó {name}", { name });
   const from = item.adjustedFrom;
-  if (!from) return `El mesero ajustó ${name}`;
+  if (!from) return t("El mesero ajustó {name}", { name });
   const fromVariant = dish?.variants.find((v) => v.id === from.variantId)?.name;
   const qtyChanged = from.qty !== item.qty;
   const variantChanged = from.variantId !== item.variantId;
   if (qtyChanged && variantChanged) {
-    return `El mesero cambió ${name}: ${from.qty}× ${fromVariant ?? ""} → ${item.qty}× ${variant?.name ?? ""}`
+    const before = `${from.qty}× ${fromVariant ? t(fromVariant) : ""}`;
+    const after = `${item.qty}× ${variant ? t(variant.name) : ""}`;
+    return `${t("El mesero cambió {name}", { name })}: ${before} → ${after}`
       .replace(/\s+/g, " ")
       .trim();
   }
-  if (qtyChanged) return `El mesero cambió ${name} de ${from.qty} a ${item.qty}`;
-  return `El mesero cambió ${name} de ${fromVariant ?? "la opción original"} a ${variant?.name ?? "otra opción"}`;
+  if (qtyChanged)
+    return t("El mesero cambió {name} de {from} a {to}", { name, from: from.qty, to: item.qty });
+  return t("El mesero cambió {name} de {from} a {to}", {
+    name,
+    from: fromVariant ? t(fromVariant) : t("la opción original"),
+    to: variant ? t(variant.name) : t("otra opción"),
+  });
 }

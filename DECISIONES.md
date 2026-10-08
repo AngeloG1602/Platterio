@@ -388,3 +388,24 @@ pueden cambiar sin rehacer pantallas.
 117.  **Rendimiento de la carta de domicilios.** Sin animaciones de librería en las pantallas del
       cliente; la hoja de "agregar plato" se descarga solo al tocar un plato; las secciones de la
       carta usan `content-visibility`, las filas están memorizadas y las fotos cargan perezosas.
+118.  **Sin propina y sin impuestos.** Platterio no suma propina (ni sugerida ni automática) ni calcula
+      impuestos: el precio de la carta es el precio final y cada negocio maneja la propina y sus
+      obligaciones fiscales (impuesto al consumo, IVA, factura electrónica) como siempre. Quedan
+      fuera a propósito y se dirá en los términos de uso que Platterio no es un sistema de
+      facturación.
+119.  **Idiomas: español e inglés, solo para el cliente.** El texto en español es la clave de
+      traducción (`t("Ver la carta")`): si falta una traducción se ve el español, nunca una pantalla
+      rota. Se traduce todo lo que ve el cliente (entrada a la mesa, carta, ficha, carrito, pedido,
+      calificación y domicilios, con sus mensajes de error). El personal siempre ve español.
+120.  **Cómo se elige el idioma.** El negocio decide si ofrece inglés (Configuración → Idioma y
+      moneda). El cliente ve el de su celular si el negocio lo ofrece, puede cambiarlo con el
+      selector de arriba y se le recuerda en su navegador. Al cambiar, la pantalla se vuelve a
+      pintar con los textos nuevos.
+121.  **Platos en inglés.** Cada plato tiene campos opcionales de nombre y descripción en inglés
+      (en la ficha del plato del panel). Si no los llena, se usa el diccionario (la carta de la demo
+      está completa, con una prueba que lo verifica) y, si tampoco está, queda el español. Falta aún
+      que la búsqueda de la carta entienda los nombres en inglés.
+122.  **Moneda.** El negocio elige entre COP, MXN, USD, EUR, PEN y CLP. Cambia el símbolo y el
+      separador de miles, pero **no convierte** los precios ya escritos, y los precios van en
+      unidades enteras (sin centavos). Si un cliente necesita centavos, se pasa a guardar en la
+      unidad menor de la moneda (cambio grande, se evalúa cuando haga falta).

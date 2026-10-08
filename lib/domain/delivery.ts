@@ -1,5 +1,6 @@
 import { inPeriod, orderTotal, startOfDay, type Period } from "./analytics";
 import { unitPrice } from "./cart";
+import { formatMoney } from "./format";
 import type {
   DeliveryConfig,
   DeliveryInfo,
@@ -11,6 +12,7 @@ import type {
   Table,
   TableSession,
 } from "./types";
+import { localized, t } from "@/lib/i18n";
 
 /** Las sesiones de domicilio no tienen mesa: comparten este identificador. */
 export const DELIVERY_TABLE_ID = "domicilio";
@@ -110,21 +112,24 @@ export function validateCheckout(
 ): { ok: true; info: Omit<DeliveryInfo, "code"> } | { ok: false; errors: CheckoutErrors } {
   const errors: CheckoutErrors = {};
   const name = input.name.trim().replace(/\s+/g, " ");
-  if (name.length < 2 || name.length > 40) errors.name = "Escribe tu nombre (2 a 40 letras)";
+  if (name.length < 2 || name.length > 40) errors.name = t("Escribe tu nombre (2 a 40 letras)");
   const phone = normalizePhone(input.phone);
-  if (!phone) errors.phone = "Escribe un celular de 10 dígitos que empiece por 3";
+  if (!phone) errors.phone = t("Escribe un celular de 10 dígitos que empiece por 3");
 
   const domicilio = input.type === "domicilio";
   const zone = domicilio ? zoneOf(config, input.zoneId) : undefined;
   const address = input.address.trim().replace(/\s+/g, " ");
   if (domicilio) {
-    if (!zone) errors.zoneId = "Elige tu zona";
+    if (!zone) errors.zoneId = t("Elige tu zona");
     if (address.length < 6 || address.length > 120)
-      errors.address = "Escribe la dirección completa";
+      errors.address = t("Escribe la dirección completa");
     if (zone && subtotal < zone.minOrder)
-      errors.cart = `El pedido mínimo para ${zone.name} es $${zone.minOrder.toLocaleString("es-CO")}`;
+      errors.cart = t("El pedido mínimo para {zone} es {amount}", {
+        zone: zone.name,
+        amount: formatMoney(zone.minOrder),
+      });
   } else if (!config.pickup) {
-    errors.type = "Por ahora solo hacemos domicilios";
+    errors.type = t("Por ahora solo hacemos domicilios");
   }
 
   const fee = zone?.fee ?? 0;
@@ -132,15 +137,16 @@ export function validateCheckout(
   if (input.payWith === "efectivo" && input.cashFor.trim()) {
     const value = Number(input.cashFor.replace(/\D/g, ""));
     if (!Number.isInteger(value) || value > MAX_CASH_FOR)
-      errors.cashFor = "Escribe con cuánto vas a pagar";
-    else if (value < subtotal + fee) errors.cashFor = "Tiene que ser al menos el total del pedido";
+      errors.cashFor = t("Escribe con cuánto vas a pagar");
+    else if (value < subtotal + fee)
+      errors.cashFor = t("Tiene que ser al menos el total del pedido");
     else cashFor = value;
   }
 
   const note = input.note.trim();
-  if (note.length > 140) errors.note = "Máximo 140 caracteres";
+  if (note.length > 140) errors.note = t("Máximo 140 caracteres");
   const reference = input.reference.trim();
-  if (reference.length > 80) errors.reference = "Máximo 80 caracteres";
+  if (reference.length > 80) errors.reference = t("Máximo 80 caracteres");
   if (Object.keys(errors).length > 0 || !phone) return { ok: false, errors };
 
   const etaMin = (zone?.etaMin ?? 0) + config.prepMin;
@@ -196,32 +202,38 @@ export function placeDeliveryOrder(params: {
   itemId: () => string;
 }): PlaceResult {
   const { config, dishes, cart, input, nowMs } = params;
-  if (!config?.enabled) return { ok: false, error: "Por ahora no recibimos pedidos a domicilio" };
+  if (!config?.enabled)
+    return { ok: false, error: t("Por ahora no recibimos pedidos a domicilio") };
   if (!isDeliveryOpen(config, nowMs))
     return {
       ok: false,
-      error: `Ahora estamos cerrados. Recibimos pedidos de ${config.opensAt} a ${config.closesAt}.`,
+      error: t("Ahora estamos cerrados. Recibimos pedidos de {opens} a {closes}.", {
+        opens: config.opensAt,
+        closes: config.closesAt,
+      }),
     };
-  if (cart.length === 0) return { ok: false, error: "Tu pedido está vacío" };
+  if (cart.length === 0) return { ok: false, error: t("Tu pedido está vacío") };
   const byId = new Map(dishes.map((d) => [d.id, d]));
   for (const line of cart) {
     const dish = byId.get(line.dishId);
     if (!dish?.active)
       return {
         ok: false,
-        error: `${dish?.name ?? "Un plato"} ya no está disponible. Quítalo para seguir.`,
+        error: t("{dish} ya no está disponible. Quítalo para seguir.", {
+          dish: dish ? localized(dish) : t("Un plato"),
+        }),
       };
     if (!dish.variants.some((v) => v.id === line.variantId))
-      return { ok: false, error: `Elige otra opción de ${dish.name}` };
+      return { ok: false, error: t("Elige otra opción de {dish}", { dish: localized(dish) }) };
     if (!Number.isInteger(line.qty) || line.qty < 1 || line.qty > 20)
-      return { ok: false, error: "La cantidad va de 1 a 20" };
+      return { ok: false, error: t("La cantidad va de 1 a 20") };
   }
   const subtotal = deliverySubtotal(cart, dishes);
   const checked = validateCheckout(input, config, subtotal);
   if (!checked.ok)
     return {
       ok: false,
-      error: Object.values(checked.errors)[0] ?? "Revisa tus datos",
+      error: Object.values(checked.errors)[0] ?? t("Revisa tus datos"),
       errors: checked.errors,
     };
 
@@ -302,11 +314,11 @@ export function deliveryTimeline(order: Pick<Order, "status">, info: DeliveryInf
   const stage = deliveryStage(order, info);
   const pickup = info.type === "recoger";
   const labels = [
-    "Recibido",
-    "Confirmado",
-    "En preparación",
-    pickup ? "Listo para recoger" : "En camino",
-    "Entregado",
+    t("Recibido"),
+    t("Confirmado"),
+    t("En preparación"),
+    pickup ? t("Listo para recoger") : t("En camino"),
+    t("Entregado"),
   ];
   // Paso en curso. "Listo" de un domicilio aún sin domiciliario sigue marcado como preparación.
   const current: Record<DeliveryStage, number> = {
@@ -331,21 +343,25 @@ export function stageMessage(stage: DeliveryStage, info: DeliveryInfo): string {
   const pickup = info.type === "recoger";
   switch (stage) {
     case "recibido":
-      return "Recibimos tu pedido. En un momento lo confirmamos.";
+      return t("Recibimos tu pedido. En un momento lo confirmamos.");
     case "confirmado":
-      return "Tu pedido está confirmado y pasa a la cocina.";
+      return t("Tu pedido está confirmado y pasa a la cocina.");
     case "preparando":
-      return "Lo estamos preparando.";
+      return t("Lo estamos preparando.");
     case "listo":
       return pickup
-        ? "Tu pedido está listo. Puedes pasar a recogerlo."
-        : "Tu pedido está listo y esperando al domiciliario.";
+        ? t("Tu pedido está listo. Puedes pasar a recogerlo.")
+        : t("Tu pedido está listo y esperando al domiciliario.");
     case "en_camino":
-      return info.driver ? `${info.driver} va en camino con tu pedido.` : "Tu pedido va en camino.";
+      return info.driver
+        ? t("{driver} va en camino con tu pedido.", { driver: info.driver })
+        : t("Tu pedido va en camino.");
     case "entregado":
-      return pickup ? "Pedido entregado. ¡Buen provecho!" : "Tu pedido llegó. ¡Buen provecho!";
+      return pickup
+        ? t("Pedido entregado. ¡Buen provecho!")
+        : t("Tu pedido llegó. ¡Buen provecho!");
     case "cancelado":
-      return "Este pedido se canceló.";
+      return t("Este pedido se canceló.");
   }
 }
 

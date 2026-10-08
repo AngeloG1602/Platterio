@@ -9,8 +9,9 @@ import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
 import { deliveryClientActions } from "@/lib/data";
-import { formatCOP } from "@/lib/domain/format";
+import { formatMoney } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
+import { localized, t } from "@/lib/i18n";
 
 /** Elegir opción, cantidad y nota de un plato antes de agregarlo al pedido. */
 export function AddDishSheet({ dish, onClose }: { dish: Dish; onClose: () => void }) {
@@ -23,49 +24,50 @@ export function AddDishSheet({ dish, onClose }: { dish: Dish; onClose: () => voi
     <Sheet
       open
       onOpenChange={(o) => !o && onClose()}
-      title={dish.name}
-      description={dish.description}
+      title={localized(dish)}
+      description={localized(dish, "description")}
       footer={
         <Button
           block
           size="lg"
           onClick={() => {
             const r = deliveryClientActions.add({ dishId: dish.id, variantId, qty, note });
-            if (!r.ok) return toast.error(r.error);
-            toast.success(`${dish.name} agregado`);
+            if (!r.ok) return toast.error(t(r.error));
+            toast.success(t("{dish} agregado", { dish: localized(dish) }));
             onClose();
           }}
         >
-          Agregar · <Price value={variant.price * qty} />
+          {t("Agregar")} · <Price value={variant.price * qty} />
         </Button>
       }
     >
       <div className="flex flex-col gap-5 pb-3">
         {dish.variants.length > 1 && (
           <Segmented
-            label="Opción"
+            label={t("Opción")}
             value={variantId}
             onChange={setVariantId}
             options={dish.variants.map((v) => ({
               value: v.id,
-              label: v.name,
-              hint: formatCOP(v.price),
+              label: t(v.name),
+              hint: formatMoney(v.price),
             }))}
           />
         )}
         <div className="flex items-center justify-between">
-          <span className="text-[15px] font-medium">Cantidad</span>
+          <span className="text-[15px] font-medium">{t("Cantidad")}</span>
           <QtyStepper value={qty} onChange={setQty} />
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="nota-plato" className="text-sm font-medium">
-            Nota para la cocina <span className="text-muted font-normal">(opcional)</span>
+            {t("Nota para la cocina")}{" "}
+            <span className="text-muted font-normal">({t("opcional")})</span>
           </label>
           <Input
             id="nota-plato"
             value={note}
             maxLength={80}
-            placeholder="Sin cebolla, bien cocida…"
+            placeholder={t("Sin cebolla, bien cocida…")}
             onChange={(e) => setNote(e.target.value)}
           />
         </div>

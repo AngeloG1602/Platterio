@@ -9,6 +9,7 @@ import { ALLERGEN_LABEL } from "@/lib/domain/allergens";
 import { plural } from "@/lib/domain/format";
 import { ALLERGENS, type Allergen, type Category, type SpiceLevel } from "@/lib/domain/types";
 import { menuFilterActions, useMenuFilters } from "./menu-filters-store";
+import { localized, t } from "@/lib/i18n";
 
 export const SPICE_FILTER_LABEL: Record<SpiceLevel, string> = {
   0: "Sin picante",
@@ -39,7 +40,7 @@ export function FilterSheet({
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Filtros"
+      title={t("Filtros")}
       footer={
         <div className="flex gap-2">
           <Button
@@ -50,14 +51,16 @@ export function FilterSheet({
               menuFilterActions.set({ categoryId: null });
             }}
           >
-            Limpiar
+            {t("Limpiar")}
           </Button>
           <Button
             className="flex-[1.6]"
             onClick={() => onOpenChange(false)}
             disabled={resultCount === 0}
           >
-            {resultCount === 0 ? "Sin resultados" : `Ver ${plural(resultCount, "plato", "platos")}`}
+            {resultCount === 0
+              ? t("Sin resultados")
+              : t("Ver {n}", { n: plural(resultCount, "plato", "platos") })}
           </Button>
         </div>
       }
@@ -66,7 +69,7 @@ export function FilterSheet({
         <section aria-labelledby="f-alergenos">
           <div className="mb-2.5 flex items-baseline justify-between gap-3">
             <h3 id="f-alergenos" className="text-[15px] font-semibold">
-              Sin estos alérgenos
+              {t("Sin estos alérgenos")}
             </h3>
             {restrictions.length > 0 && !usingMine && (
               <button
@@ -78,7 +81,7 @@ export function FilterSheet({
                   })
                 }
               >
-                Usar mis restricciones
+                {t("Usar mis restricciones")}
               </button>
             )}
           </div>
@@ -93,7 +96,7 @@ export function FilterSheet({
                   onClick={() => menuFilterActions.toggleAllergen(a)}
                 >
                   {on ? <Check aria-hidden /> : <Icon aria-hidden strokeWidth={1.8} />}
-                  {ALLERGEN_LABEL[a]}
+                  {t(ALLERGEN_LABEL[a])}
                 </FilterChip>
               );
             })}
@@ -102,7 +105,7 @@ export function FilterSheet({
 
         <section aria-labelledby="f-picante">
           <h3 id="f-picante" className="mb-2.5 text-[15px] font-semibold">
-            Nivel de picante
+            {t("Nivel de picante")}
           </h3>
           <div className="flex flex-wrap gap-2">
             {([0, 1, 2, 3] as SpiceLevel[]).map((level) => {
@@ -120,7 +123,7 @@ export function FilterSheet({
                       ))}
                     </span>
                   )}
-                  {SPICE_FILTER_LABEL[level]}
+                  {t(SPICE_FILTER_LABEL[level])}
                 </FilterChip>
               );
             })}
@@ -129,7 +132,7 @@ export function FilterSheet({
 
         <section aria-labelledby="f-categoria">
           <h3 id="f-categoria" className="mb-2.5 text-[15px] font-semibold">
-            Categoría
+            {t("Categoría")}
           </h3>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="f-categoria">
             {[{ id: null, name: "Todas" }, ...categories].map((c) => (
@@ -141,7 +144,7 @@ export function FilterSheet({
                 selected={filters.categoryId === c.id}
                 onClick={() => menuFilterActions.set({ categoryId: c.id })}
               >
-                {c.name}
+                {localized(c)}
               </FilterChip>
             ))}
           </div>

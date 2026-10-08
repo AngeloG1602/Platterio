@@ -29,8 +29,9 @@ import {
   type CheckoutErrors,
   type CheckoutInput,
 } from "@/lib/domain/delivery";
-import { formatCOP } from "@/lib/domain/format";
+import { formatMoney } from "@/lib/domain/format";
 import type { DeliveryPayWith, FulfillmentType } from "@/lib/domain/types";
+import { localized, t } from "@/lib/i18n";
 
 export function CheckoutScreen() {
   return (
@@ -79,7 +80,7 @@ function Checkout() {
 
   if (!hydrated || !config) {
     return (
-      <div className="px-4 pt-6" aria-busy aria-label="Cargando">
+      <div className="px-4 pt-6" aria-busy aria-label={t("Cargando")}>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="mt-6 h-40 rounded-xl" />
       </div>
@@ -90,10 +91,10 @@ function Checkout() {
   if (cart.length === 0) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="font-display text-[26px] font-semibold">Tu pedido está vacío</h1>
-        <p className="text-ink-soft">Agrega algo de la carta para continuar.</p>
+        <h1 className="font-display text-[26px] font-semibold">{t("Tu pedido está vacío")}</h1>
+        <p className="text-ink-soft">{t("Agrega algo de la carta para continuar.")}</p>
         <Link href="/domicilio" className="text-accent-strong font-semibold underline">
-          Volver a la carta
+          {t("Volver a la carta")}
         </Link>
       </main>
     );
@@ -106,7 +107,7 @@ function Checkout() {
     if (!r.ok) {
       setSending(false);
       if (r.errors) setErrors(r.errors);
-      return toast.error("No pudimos enviar tu pedido", { description: r.error });
+      return toast.error(t("No pudimos enviar tu pedido"), { description: r.error });
     }
     router.push(`/domicilio/seguimiento/${r.orderId}`);
   }
@@ -116,12 +117,12 @@ function Checkout() {
       <header className="flex items-center gap-2 px-2 pt-3">
         <Link
           href="/domicilio"
-          aria-label="Volver a la carta"
+          aria-label={t("Volver a la carta")}
           className="hover:bg-surface-2 flex size-11 items-center justify-center rounded-full"
         >
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
-        <h1 className="font-display text-[24px] font-semibold">Tu pedido</h1>
+        <h1 className="font-display text-[24px] font-semibold">{t("Tu pedido")}</h1>
       </header>
 
       <form onSubmit={submit} noValidate className="flex flex-1 flex-col gap-6 px-4 pt-4 pb-10">
@@ -132,23 +133,27 @@ function Checkout() {
             return (
               <li key={l.id} className="flex items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[16px] leading-snug font-semibold">{dish?.name ?? "Plato"}</p>
+                  <p className="text-[16px] leading-snug font-semibold">
+                    {dish ? localized(dish) : t("Plato")}
+                  </p>
                   {dish && dish.variants.length > 1 && variant && (
-                    <p className="text-ink-soft text-sm">{variant.name}</p>
+                    <p className="text-ink-soft text-sm">{t(variant.name)}</p>
                   )}
-                  {l.note && <p className="text-muted text-sm">Nota: {l.note}</p>}
+                  {l.note && (
+                    <p className="text-muted text-sm">{t("Nota: {note}", { note: l.note })}</p>
+                  )}
                   <Price value={(variant?.price ?? 0) * l.qty} className="text-sm" />
                 </div>
                 <QtyStepper
                   size="sm"
                   min={0}
-                  label={`Cantidad de ${dish?.name ?? "plato"}`}
+                  label={t("Cantidad de {dish}", { dish: dish ? localized(dish) : t("plato") })}
                   value={l.qty}
                   onChange={(q) => deliveryClientActions.setQty(l.id, q)}
                 />
                 <button
                   type="button"
-                  aria-label={`Quitar ${dish?.name ?? "plato"}`}
+                  aria-label={t("Quitar {dish}", { dish: dish ? localized(dish) : t("plato") })}
                   onClick={() => deliveryClientActions.setQty(l.id, 0)}
                   className="text-muted hover:bg-surface-2 flex size-10 items-center justify-center rounded-full"
                 >
@@ -161,19 +166,19 @@ function Checkout() {
 
         {config.pickup && (
           <Segmented
-            label="¿Cómo lo quieres?"
+            label={t("¿Cómo lo quieres?")}
             value={values.type}
             onChange={(t: FulfillmentType) => set("type", t)}
             options={[
-              { value: "domicilio", label: "A domicilio" },
-              { value: "recoger", label: "Recoger" },
+              { value: "domicilio", label: t("A domicilio") },
+              { value: "recoger", label: t("Recoger") },
             ]}
           />
         )}
 
         <fieldset className="flex flex-col gap-4">
-          <legend className="font-display mb-1 text-[19px] font-semibold">Tus datos</legend>
-          <Field label="Nombre" error={errors.name}>
+          <legend className="font-display mb-1 text-[19px] font-semibold">{t("Tus datos")}</legend>
+          <Field label={t("Nombre")} error={errors.name}>
             {(p) => (
               <Input
                 {...p}
@@ -184,7 +189,7 @@ function Checkout() {
               />
             )}
           </Field>
-          <Field label="Celular" error={errors.phone} hint="Para avisarte si algo cambia">
+          <Field label={t("Celular")} error={errors.phone} hint={t("Para avisarte si algo cambia")}>
             {(p) => (
               <Input
                 {...p}
@@ -199,48 +204,48 @@ function Checkout() {
           </Field>
           {values.type === "domicilio" && (
             <>
-              <Field label="Zona" error={errors.zoneId}>
+              <Field label={t("Zona")} error={errors.zoneId}>
                 {(p) => (
                   <Select
                     {...p}
                     value={values.zoneId}
                     onChange={(e) => set("zoneId", e.target.value)}
                   >
-                    <option value="">Elige tu zona</option>
+                    <option value="">{t("Elige tu zona")}</option>
                     {config.zones.map((z) => (
                       <option key={z.id} value={z.id}>
-                        {z.name} · envío {formatCOP(z.fee)}
+                        {z.name} · {t("envío")} {formatMoney(z.fee)}
                       </option>
                     ))}
                   </Select>
                 )}
               </Field>
-              <Field label="Dirección" error={errors.address}>
+              <Field label={t("Dirección")} error={errors.address}>
                 {(p) => (
                   <Input
                     {...p}
                     autoComplete="street-address"
                     value={values.address}
                     maxLength={120}
-                    placeholder="Calle 10 # 5-20, apto 301"
+                    placeholder={t("Calle 10 # 5-20, apto 301")}
                     onChange={(e) => set("address", e.target.value)}
                   />
                 )}
               </Field>
-              <Field label="Referencia" optional error={errors.reference}>
+              <Field label={t("Referencia")} optional error={errors.reference}>
                 {(p) => (
                   <Input
                     {...p}
                     value={values.reference}
                     maxLength={80}
-                    placeholder="Portón negro, frente al parque"
+                    placeholder={t("Portón negro, frente al parque")}
                     onChange={(e) => set("reference", e.target.value)}
                   />
                 )}
               </Field>
             </>
           )}
-          <Field label="Nota para el pedido" optional error={errors.note}>
+          <Field label={t("Nota para el pedido")} optional error={errors.note}>
             {(p) => (
               <Textarea
                 {...p}
@@ -254,25 +259,29 @@ function Checkout() {
         </fieldset>
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="font-display mb-1 text-[19px] font-semibold">Cómo vas a pagar</legend>
+          <legend className="font-display mb-1 text-[19px] font-semibold">
+            {t("Cómo vas a pagar")}
+          </legend>
           <Segmented
-            label="Forma de pago"
+            label={t("Forma de pago")}
             value={values.payWith}
             onChange={(v: DeliveryPayWith) => set("payWith", v)}
             options={(Object.keys(PAY_WITH_LABEL) as DeliveryPayWith[]).map((k) => ({
               value: k,
-              label: k === "tarjeta" ? "Tarjeta" : PAY_WITH_LABEL[k],
+              label: k === "tarjeta" ? t("Tarjeta") : t(PAY_WITH_LABEL[k]),
             }))}
           />
           <p className="text-muted text-[13px]">
-            El pago se hace {values.type === "domicilio" ? "al recibir el pedido" : "al recogerlo"}.
+            {values.type === "domicilio"
+              ? t("El pago se hace al recibir el pedido.")
+              : t("El pago se hace al recogerlo.")}
           </p>
           {values.payWith === "efectivo" && (
             <Field
-              label="¿Con cuánto pagas?"
+              label={t("¿Con cuánto pagas?")}
               optional
               error={errors.cashFor}
-              hint="Para llevarte el cambio"
+              hint={t("Para llevarte el cambio")}
             >
               {(p) => (
                 <Input
@@ -287,28 +296,31 @@ function Checkout() {
           )}
         </fieldset>
 
-        <section aria-label="Resumen" className="bg-surface-2 rounded-xl p-4">
+        <section aria-label={t("Resumen")} className="bg-surface-2 rounded-xl p-4">
           <dl className="flex flex-col gap-1.5 text-[15px]">
             <div className="flex justify-between">
-              <dt className="text-ink-soft">Subtotal</dt>
+              <dt className="text-ink-soft">{t("Subtotal")}</dt>
               <dd>
                 <Price value={totals.subtotal} />
               </dd>
             </div>
             {values.type === "domicilio" && (
               <div className="flex justify-between">
-                <dt className="text-ink-soft">Envío{zone ? ` · ${zone.name}` : ""}</dt>
+                <dt className="text-ink-soft">
+                  {t("Envío")}
+                  {zone ? ` · ${zone.name}` : ""}
+                </dt>
                 <dd>
                   {zone ? (
                     <Price value={totals.fee} />
                   ) : (
-                    <span className="text-muted">Elige tu zona</span>
+                    <span className="text-muted">{t("Elige tu zona")}</span>
                   )}
                 </dd>
               </div>
             )}
             <div className="border-line mt-1 flex justify-between border-t pt-2 text-[17px] font-semibold">
-              <dt>Total</dt>
+              <dt>{t("Total")}</dt>
               <dd>
                 <Price value={totals.total} />
               </dd>
@@ -316,8 +328,10 @@ function Checkout() {
           </dl>
           {zone && (
             <p className="text-muted mt-2 text-[13px]">
-              Llega en unos {zone.etaMin + config.prepMin} min · pedido mínimo{" "}
-              {formatCOP(zone.minOrder)}
+              {t("Llega en unos {n} min · pedido mínimo {amount}", {
+                n: zone.etaMin + config.prepMin,
+                amount: formatMoney(zone.minOrder),
+              })}
             </p>
           )}
         </section>
@@ -335,11 +349,14 @@ function Checkout() {
             role="alert"
             className="bg-warning-soft text-warning-ink rounded-lg px-3 py-2 text-sm font-medium"
           >
-            Ahora estamos cerrados. Recibimos pedidos de {config.opensAt} a {config.closesAt}.
+            {t("Ahora estamos cerrados. Recibimos pedidos de {opens} a {closes}.", {
+              opens: config.opensAt,
+              closes: config.closesAt,
+            })}
           </p>
         )}
         <Button type="submit" size="lg" block disabled={sending || !open}>
-          Hacer el pedido · <Price value={totals.total} />
+          {t("Hacer el pedido")} · <Price value={totals.total} />
         </Button>
       </form>
     </>

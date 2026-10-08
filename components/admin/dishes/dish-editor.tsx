@@ -38,7 +38,7 @@ import {
   type DishDraft,
   type DishFormErrors,
 } from "@/lib/domain/dishForm";
-import { formatCOP } from "@/lib/domain/format";
+import { formatMoney } from "@/lib/domain/format";
 import { ALLERGENS, type SpiceLevel } from "@/lib/domain/types";
 import { resizeImage } from "@/lib/image";
 import { cn } from "@/lib/cn";
@@ -223,6 +223,31 @@ function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) 
                   />
                 )}
               </Field>
+              <Field
+                label="Nombre en inglés"
+                optional
+                hint="Lo ve el cliente que elige la carta en inglés"
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    value={draft.nameEn}
+                    onChange={(e) => set("nameEn", e.target.value)}
+                    maxLength={60}
+                  />
+                )}
+              </Field>
+              <Field label="Descripción en inglés" optional>
+                {(p) => (
+                  <Textarea
+                    {...p}
+                    value={draft.descriptionEn}
+                    onChange={(e) => set("descriptionEn", e.target.value)}
+                    maxLength={220}
+                    rows={2}
+                  />
+                )}
+              </Field>
             </div>
           </Card>
 
@@ -274,7 +299,7 @@ function DishEditor({ initial, isNew }: { initial: DishDraft; isNew: boolean }) 
                             set(
                               "variants",
                               draft.variants.map((x, j) =>
-                                j === i ? { ...x, price: formatCOP(n).slice(1) } : x,
+                                j === i ? { ...x, price: formatMoney(n).slice(1) } : x,
                               ),
                             );
                         }}

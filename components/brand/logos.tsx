@@ -2,6 +2,7 @@
 
 import { useAppStore } from "@/lib/data/store";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 /** Marca de Platterio: un plato visto desde arriba con el borde abierto. */
 export function PlatterioMark({ className }: { className?: string }) {
@@ -74,7 +75,7 @@ export function RestaurantMark({ name, className }: { name: string; className?: 
 export function MadeWithPlatterio({ className }: { className?: string }) {
   return (
     <p className={cn("text-muted flex items-center justify-center gap-1.5 text-xs", className)}>
-      Hecho con
+      {t("Hecho con")}
       <span className="font-display text-ink-soft inline-flex items-center gap-1 text-sm font-semibold">
         <PlatterioMark className="size-4" />
         platterio

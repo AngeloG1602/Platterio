@@ -1,5 +1,6 @@
 import { normalizeText } from "./menu";
 import type { Allergen, TableSession } from "./types";
+import { t } from "@/lib/i18n";
 
 export const ALIAS_MAX = 16;
 
@@ -17,13 +18,15 @@ export function validateAlias(
   deviceId: string,
 ): string | null {
   const clean = alias.trim().replace(/\s+/g, " ");
-  if (!clean) return "Escribe cómo te llamamos en el pedido";
-  if (clean.length > ALIAS_MAX) return `Usa máximo ${ALIAS_MAX} caracteres`;
+  if (!clean) return t("Escribe cómo te llamamos en el pedido");
+  if (clean.length > ALIAS_MAX) return t("Usa máximo {n} caracteres", { n: ALIAS_MAX });
   const taken = session?.diners.some(
     (d) => d.deviceId !== deviceId && normalizeText(d.alias) === normalizeText(clean),
   );
   if (taken)
-    return `Ya hay alguien llamado ${clean} en la mesa. Prueba con otro nombre o una inicial.`;
+    return t("Ya hay alguien llamado {name} en la mesa. Prueba con otro nombre o una inicial.", {
+      name: clean,
+    });
   return null;
 }
 

@@ -2,6 +2,7 @@ import { Flame } from "lucide-react";
 import { SPICE_LABEL } from "@/lib/domain/allergens";
 import type { SpiceLevel } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 /** Nivel de picante con 0 a 3 llamas. Con `showEmpty` dibuja las llamas apagadas. */
 export function Spice({
@@ -21,7 +22,7 @@ export function Spice({
     <span
       className={cn("inline-flex items-center gap-1.5", className)}
       role="img"
-      aria-label={SPICE_LABEL[level]}
+      aria-label={t(SPICE_LABEL[level])}
     >
       {total > 0 && (
         <span className="inline-flex items-center -space-x-0.5" aria-hidden>
@@ -39,7 +40,7 @@ export function Spice({
       )}
       {withLabel && (
         <span className="text-ink-soft text-[13px]" aria-hidden>
-          {SPICE_LABEL[level]}
+          {t(SPICE_LABEL[level])}
         </span>
       )}
     </span>

@@ -14,7 +14,7 @@ import {
 } from "./helpers.mjs";
 
 const browser = await launch();
-const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } });
+const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, locale: "es-CO" });
 const errors = [];
 const tab = async (name, width = 360, height = 780) => {
   const p = watch(await ctx.newPage(), name, errors);
@@ -491,6 +491,49 @@ check(
   "14. El reporte incluye los domicilios por zona",
   await visible(admin.getByText("Domicilios y recogida")),
 );
+
+// 15. Idioma y moneda del cliente
+const turista = await browser.newContext({
+  viewport: { width: 390, height: 800 },
+  locale: "en-US",
+});
+const tour = watch(await turista.newPage(), "Turista", errors);
+await tour.goto(`${BASE}/domicilio`);
+check(
+  "15. Con el celular en inglés, la carta de domicilios sale en inglés",
+  await visible(tour.getByRole("heading", { name: "Order delivery or pickup" })),
+);
+await tour.getByRole("button", { name: "Español" }).click();
+check(
+  "15. El cliente puede cambiar a español y se recuerda",
+  await visible(tour.getByRole("heading", { name: "Pide a domicilio o para recoger" })),
+);
+await tour.reload();
+check(
+  "15. Al recargar sigue en español",
+  await visible(tour.getByRole("heading", { name: "Pide a domicilio o para recoger" })),
+);
+await tour.getByRole("button", { name: "English" }).click();
+check(
+  "15. Los platos salen traducidos",
+  await visible(tour.getByText("Classic 27").or(tour.getByText("Clásica 27")).first()),
+);
+check(
+  "15. El personal siempre ve español",
+  await (async () => {
+    await tour.goto(`${BASE}/caja`);
+    return visible(tour.getByText(/Entrar a Caja|Usuarios de la demo/).first());
+  })(),
+);
+
+await admin.goto(`${BASE}/admin/configuracion`);
+await admin.getByLabel("Moneda de los precios").selectOption("USD");
+check(
+  "15. Al cambiar la moneda, los precios usan su símbolo",
+  await visible(admin.getByText("US$12,500").first()),
+);
+await admin.getByLabel("Moneda de los precios").selectOption("COP");
+await turista.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
