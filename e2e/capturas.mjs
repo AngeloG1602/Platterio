@@ -2,7 +2,7 @@
 // Recorre un día típico (cliente, mesero, cocina, caja, administrador, domicilio) con datos de
 // demostración. Uso: con la app corriendo, `E2E_URL=http://localhost:3100 node e2e/capturas.mjs`.
 import { mkdirSync } from "node:fs";
-import { abrirMesa, addDish, BASE, entrarComo, launch, visible } from "./helpers.mjs";
+import { addDish, BASE, entrarComo, launch } from "./helpers.mjs";
 
 const OUT = new URL("../docs/guia/img/", import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
