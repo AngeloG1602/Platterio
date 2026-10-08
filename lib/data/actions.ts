@@ -70,6 +70,18 @@ import {
 import type { Brand } from "@/lib/domain/types";
 import { closeShift, openShift, registerPayment } from "@/lib/domain/cash";
 import type { PaymentMethod } from "@/lib/domain/types";
+import {
+  customerCanCancel,
+  DELIVERY_TABLE_ID,
+  deliveryCode,
+  dispatchDelivery,
+  placeDeliveryOrder,
+  validateDeliveryConfig,
+  type CheckoutErrors,
+  type CheckoutInput,
+} from "@/lib/domain/delivery";
+import type { DeliveryConfig } from "@/lib/domain/types";
+import { useDeliveryClient, type DeliveryClientState } from "./delivery-store";
 import { newId } from "./ids";
 import { useDeviceStore } from "./device";
 import { createSeedState } from "./seed";
@@ -94,6 +106,7 @@ export const demoActions = {
   resetData() {
     useAppStore.setState(createSeedState(Date.now()), true);
     useDeviceStore.setState({ restrictions: [], restrictionsAnswered: false, staffId: null });
+    useDeliveryClient.setState({ cart: [], profile: {}, orderIds: [] });
   },
 };
 
@@ -621,6 +634,163 @@ export const kitchenActions = {
   },
 };
 
+/* ——— Domicilios y recogida ——— */
+
+function closeDeliverySession(sessionId: string, reason: "mesero" | "cancelada") {
+  const closedAt = nowIso();
+  useAppStore.setState((s) => ({
+    sessions: s.sessions.map((x) =>
+      x.id === sessionId && !x.closedAt ? { ...x, closedAt, closeReason: reason } : x,
+    ),
+  }));
+}
+
+function deliveryOrder(orderId: string) {
+  const state = useAppStore.getState();
+  const order = state.orders.find((o) => o.id === orderId && o.tableId === DELIVERY_TABLE_ID);
+  const session = order && state.sessions.find((x) => x.id === order.sessionId);
+  return order && session?.delivery ? { order, session, state } : null;
+}
+
+/** Acciones del cliente: armar el carrito, pedir y cancelar antes de que lo confirmen. */
+export const deliveryClientActions = {
+  add(line: { dishId: string; variantId: string; qty: number; note?: string }): ActionResult {
+    const dish = useAppStore.getState().dishes.find((d) => d.id === line.dishId);
+    if (!dish?.active) return { ok: false, error: "Ese plato no está disponible" };
+    if (!dish.variants.some((v) => v.id === line.variantId))
+      return { ok: false, error: "Elige una opción" };
+    const note = line.note?.trim() || undefined;
+    useDeliveryClient.setState((s) => {
+      const same = s.cart.find(
+        (l) => l.dishId === line.dishId && l.variantId === line.variantId && l.note === note,
+      );
+      if (same)
+        return {
+          cart: s.cart.map((l) => (l === same ? { ...l, qty: Math.min(20, l.qty + line.qty) } : l)),
+        };
+      return { cart: [...s.cart, { id: newId("linea"), ...line, ...(note ? { note } : {}) }] };
+    });
+    return { ok: true };
+  },
+  setQty(lineId: string, qty: number) {
+    useDeliveryClient.setState((s) => ({
+      cart:
+        qty < 1
+          ? s.cart.filter((l) => l.id !== lineId)
+          : s.cart.map((l) => (l.id === lineId ? { ...l, qty: Math.min(20, qty) } : l)),
+    }));
+  },
+  clear: () => useDeliveryClient.setState({ cart: [] }),
+  saveProfile(profile: DeliveryClientState["profile"]) {
+    useDeliveryClient.setState((s) => ({ profile: { ...s.profile, ...profile } }));
+  },
+  place(input: CheckoutInput): ActionResult & { orderId?: string; errors?: CheckoutErrors } {
+    const state = useAppStore.getState();
+    const cart = useDeliveryClient.getState().cart;
+    const nowMs = virtualNow(state.demo.clock, Date.now());
+    const sessionId = newId("sesion");
+    const orderId = newId("pedido");
+    const r = placeDeliveryOrder({
+      config: state.restaurant.delivery,
+      dishes: state.dishes,
+      cart,
+      input,
+      nowMs,
+      sessionId,
+      orderId,
+      code: deliveryCode(sessionId),
+      itemId: () => newId("item"),
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      sessions: [...s.sessions, r.session],
+      orders: [...s.orders, r.order],
+    }));
+    useDeliveryClient.setState((s) => ({
+      cart: [],
+      orderIds: [orderId, ...s.orderIds].slice(0, 20),
+      profile: {
+        name: input.name,
+        phone: input.phone,
+        address: input.address,
+        reference: input.reference,
+        zoneId: input.zoneId,
+        payWith: input.payWith,
+      },
+    }));
+    return { ok: true, orderId };
+  },
+  /** El cliente cancela mientras nadie lo ha confirmado. */
+  cancel(orderId: string): ActionResult {
+    const found = deliveryOrder(orderId);
+    if (!found) return { ok: false, error: "No encontramos ese pedido" };
+    if (!useDeliveryClient.getState().orderIds.includes(orderId))
+      return { ok: false, error: "Ese pedido no es de este celular" };
+    if (!customerCanCancel(found.order))
+      return { ok: false, error: "Ya lo estamos preparando. Llámanos si necesitas cambiarlo." };
+    const r = transitionOrder(
+      found.order,
+      "rechazado",
+      "mesero",
+      nowIso(),
+      "Cancelado por el cliente",
+    );
+    if (!r.ok) return r;
+    replaceOrder(r.order);
+    closeDeliverySession(found.session.id, "cancelada");
+    return { ok: true };
+  },
+};
+
+/** Acciones del personal (encargado y administrador) sobre los pedidos a domicilio. */
+export const deliveryActions = {
+  confirm: (orderId: string) => waiterActions.confirm(orderId),
+  /** Rechaza un pedido nuevo con motivo. */
+  reject(orderId: string, reason: string): ActionResult {
+    const r = waiterActions.reject(orderId, reason);
+    const found = deliveryOrder(orderId);
+    if (r.ok && found) closeDeliverySession(found.session.id, "cancelada");
+    return r;
+  },
+  /** Cancela un pedido que ya estaba en cocina o listo; queda el motivo y quién lo hizo. */
+  cancelActive(orderId: string, reason: string): ActionResult {
+    const r = waiterActions.editOrder(orderId, { type: "anular" }, reason);
+    const found = deliveryOrder(orderId);
+    if (r.ok && found) closeDeliverySession(found.session.id, "cancelada");
+    return r;
+  },
+  dispatch(orderId: string, driver: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    const found = deliveryOrder(orderId);
+    if (!found) return { ok: false, error: "No encontramos ese pedido" };
+    const r = dispatchDelivery(found.session, found.order, driver, nowIso());
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      sessions: s.sessions.map((x) => (x.id === found.session.id ? r.session : x)),
+    }));
+    return { ok: true };
+  },
+  /** Entregado al cliente (en su puerta o en el mostrador). */
+  deliver(orderId: string): ActionResult {
+    const r = waiterActions.deliver(orderId);
+    const found = deliveryOrder(orderId);
+    if (r.ok && found) closeDeliverySession(found.session.id, "mesero");
+    return r;
+  },
+};
+
+export const deliveryConfigActions = {
+  save(config: DeliveryConfig): ActionResult {
+    const allowed = requirePermission("panel.admin");
+    if (!allowed.ok) return allowed;
+    const error = validateDeliveryConfig(config);
+    if (error) return { ok: false, error };
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, delivery: config } }));
+    return { ok: true };
+  },
+};
+
 /* ——— Caja: turnos y cobros ——— */
 
 export const cashActions = {
@@ -637,13 +807,15 @@ export const cashActions = {
     useAppStore.setState((s) => ({ shifts: [...s.shifts, r.value] }));
     return { ok: true };
   },
-  /** Registra un pago contra la cuenta de la mesa abierta. */
-  pay(tableId: string, amount: number, method: PaymentMethod): ActionResult {
+  /** Registra un pago contra la cuenta de una mesa abierta o de un pedido a domicilio. */
+  pay(sessionId: string, amount: number, method: PaymentMethod): ActionResult {
     const allowed = requirePermission("cobrar");
     if (!allowed.ok) return allowed;
     const state = useAppStore.getState();
-    const session = findOpenSession(state.sessions, tableId);
-    if (!session) return { ok: false, error: "La mesa ya no está abierta" };
+    const session = state.sessions.find((x) => x.id === sessionId);
+    // Los domicilios se pueden cobrar también ya entregados (el cobro suele ser al llegar).
+    if (!session || (session.closedAt && !session.delivery))
+      return { ok: false, error: "La mesa ya no está abierta" };
     const r = registerPayment({
       shift: state.shifts.find((x) => !x.closedAt),
       session,
@@ -657,7 +829,7 @@ export const cashActions = {
     });
     if (!r.ok) return r;
     useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
-    replaceSession(session, {});
+    if (!session.closedAt) replaceSession(session, {});
     return { ok: true };
   },
   closeShift(countedCash: number, note?: string): ActionResult {

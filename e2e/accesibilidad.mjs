@@ -16,6 +16,14 @@ await page.getByRole("button", { name: "Enviar pedido" }).click();
 await page.getByRole("button", { name: /Sí, enviar/ }).click();
 await page.waitForURL("**/pedido");
 
+// Un plato en el carrito de domicilios, para escanear el formulario completo.
+await page.goto(`${BASE}/domicilio`);
+await page
+  .getByRole("button", { name: /Clásica 27/ })
+  .first()
+  .click();
+await page.getByRole("button", { name: /^Agregar ·/ }).click();
+
 const pages = [
   ["Hub", "/", 1280],
   ["Muestra", "/muestra", 1280],
@@ -26,6 +34,9 @@ const pages = [
   ["Calificar", "/mesa/3/calificar", 390],
   ["Mesa cerrada", "/mesa/6", 390],
   ["Entrada con PIN", "/entrar", 390],
+  ["Domicilios carta", "/domicilio", 390],
+  ["Domicilios pedido", "/domicilio/pedido", 390],
+  ["Domicilios pedido inexistente", "/domicilio/seguimiento/nada", 390],
   ["Mesero", "/mesero", 768],
   ["Cocina", "/cocina", 1280],
   ["Caja", "/caja", 1280],

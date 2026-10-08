@@ -137,8 +137,7 @@ function OpenShift() {
 
       {target && (
         <PaymentSheet
-          tableId={target.session.tableId}
-          tableNumber={target.table?.number ?? 0}
+          label={`Mesa ${target.table?.number ?? ""}`}
           sessionId={target.session.id}
           onClose={() => setPaying(null)}
         />

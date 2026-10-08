@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   ArrowUpRight,
+  Bike,
   ChefHat,
   ConciergeBell,
   KeyRound,
@@ -97,6 +98,14 @@ export function Hub() {
         <h2 className="sr-only">Entra como</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <ClientCard />
+          <RoleCard
+            icon={Bike}
+            device={Smartphone}
+            deviceLabel="Celular del cliente"
+            title="Domicilios"
+            description="El cliente pide desde su casa a domicilio o para recoger, y sigue su pedido hasta la puerta. El encargado lo gestiona en Caja."
+            href="/domicilio"
+          />
           <RoleCard
             icon={ConciergeBell}
             device={Tablet}

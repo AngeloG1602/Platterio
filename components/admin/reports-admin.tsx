@@ -15,6 +15,7 @@ import {
   toCsv,
   unpaidSessions,
 } from "@/lib/domain/cash";
+import { deliveryStats } from "@/lib/domain/delivery";
 import { formatCOP, formatDay, formatTime, plural } from "@/lib/domain/format";
 import { BarList } from "./ui/charts";
 import { PageHeader, Panel } from "./ui/page-header";
@@ -85,6 +86,10 @@ function Body({ period }: { period: Period }) {
         .filter((s) => s.closedAt && inPeriod(s.closedAt, period))
         .sort((a, b) => b.closedAt!.localeCompare(a.closedAt!)),
     [shifts, period],
+  );
+  const delivery = useMemo(
+    () => deliveryStats(sessions, orders, period),
+    [sessions, orders, period],
   );
   const unpaidTotal = unpaid.reduce((s, x) => s + x.pending, 0);
 
@@ -193,6 +198,74 @@ function Body({ period }: { period: Period }) {
           </table>
         </Panel>
       </div>
+
+      <Panel
+        title="Domicilios y recogida"
+        description="Pedidos hechos desde /domicilio en el periodo."
+        action={
+          <CsvButton
+            label="domicilios por zona"
+            onClick={() =>
+              download("domicilios-por-zona.csv", [
+                ["Zona", "Pedidos entregados", "Ventas"],
+                ...delivery.byZone.map((z) => [z.name, z.orders, z.sales]),
+              ])
+            }
+          />
+        }
+      >
+        {delivery.orders === 0 ? (
+          <p className="text-muted text-[15px]">No hubo pedidos a domicilio en este periodo.</p>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <dl className="grid grid-cols-2 gap-3 text-[15px]">
+              <div>
+                <dt className="text-muted text-sm">Pedidos</dt>
+                <dd className="text-xl font-semibold">{delivery.orders}</dd>
+              </div>
+              <div>
+                <dt className="text-muted text-sm">Entregados</dt>
+                <dd className="text-xl font-semibold">{delivery.delivered}</dd>
+              </div>
+              <div>
+                <dt className="text-muted text-sm">Cancelados</dt>
+                <dd className="text-xl font-semibold">{delivery.cancelled}</dd>
+              </div>
+              <div>
+                <dt className="text-muted text-sm">Para recoger</dt>
+                <dd className="text-xl font-semibold">{delivery.pickups}</dd>
+              </div>
+              <div>
+                <dt className="text-muted text-sm">Tiempo promedio</dt>
+                <dd className="text-xl font-semibold">
+                  {delivery.avgMinutes === null ? "—" : `${Math.round(delivery.avgMinutes)} min`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted text-sm">A tiempo</dt>
+                <dd className="text-xl font-semibold">
+                  {delivery.delivered
+                    ? `${Math.round((delivery.onTime / delivery.delivered) * 100)} %`
+                    : "—"}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-muted text-sm">Envíos cobrados</dt>
+                <dd className="text-xl font-semibold">{formatCOP(delivery.fees)}</dd>
+              </div>
+            </dl>
+            <BarList
+              rows={delivery.byZone.map((z) => ({
+                key: z.name,
+                label: z.name,
+                value: z.sales,
+                display: `${formatCOP(z.sales)} · ${z.orders}`,
+              }))}
+              empty={<p className="text-muted text-[15px]">Aún no hay entregas.</p>}
+            />
+          </div>
+        )}
+      </Panel>
 
       <Panel
         title="Cambios y anulaciones del personal"
@@ -309,7 +382,11 @@ function Body({ period }: { period: Period }) {
               {unpaid.slice(0, 20).map((x) => (
                 <tr key={x.session.id}>
                   <td className="py-2.5 pr-4">{stamp(x.session.closedAt!)}</td>
-                  <td className="py-2.5 pr-4">{x.table?.number ?? "—"}</td>
+                  <td className="py-2.5 pr-4">
+                    {x.session.delivery
+                      ? `Domicilio ${x.session.delivery.code}`
+                      : (x.table?.number ?? "—")}
+                  </td>
                   <td className="text-danger-ink py-2.5 text-right tabular-nums">
                     {formatCOP(x.pending)}
                   </td>

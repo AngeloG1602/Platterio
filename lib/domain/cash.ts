@@ -36,10 +36,10 @@ const emptyByMethod = (): Record<PaymentMethod, number> => ({
 /* ——— Cuenta de una mesa ——— */
 
 /** Lo que debe la sesión: todas sus rondas menos las rechazadas, con lo quitado descontado. */
-export function sessionDue(orders: readonly Order[], sessionId: string): number {
-  return orders
-    .filter((o) => o.sessionId === sessionId && o.status !== "rechazado")
-    .reduce((s, o) => s + orderTotal(o), 0);
+export function sessionDue(orders: readonly Order[], sessionId: string, fee = 0): number {
+  const own = orders.filter((o) => o.sessionId === sessionId && o.status !== "rechazado");
+  // El envío solo se cobra si el pedido sigue en pie.
+  return own.reduce((s, o) => s + orderTotal(o), 0) + (own.length > 0 ? fee : 0);
 }
 
 export function sessionPaid(payments: readonly Payment[], sessionId: string): number {
@@ -57,8 +57,9 @@ export function sessionBalance(
   orders: readonly Order[],
   payments: readonly Payment[],
   sessionId: string,
+  fee = 0,
 ): Balance {
-  const due = sessionDue(orders, sessionId);
+  const due = sessionDue(orders, sessionId, fee);
   const paid = sessionPaid(payments, sessionId);
   return { due, paid, pending: Math.max(0, due - paid) };
 }
@@ -96,7 +97,12 @@ export function registerPayment(params: {
   if (!shift) return fail("Abre la caja antes de cobrar");
   if (!PAYMENT_METHODS.includes(method)) return fail("Elige cómo pagó");
   if (!Number.isInteger(amount) || amount <= 0) return fail("Escribe cuánto pagó, en pesos");
-  const { pending } = sessionBalance(params.orders, params.payments, session.id);
+  const { pending } = sessionBalance(
+    params.orders,
+    params.payments,
+    session.id,
+    session.delivery?.fee,
+  );
   if (pending === 0) return fail("Esta cuenta ya está pagada");
   if (amount > pending) return fail("Es más de lo que falta por cobrar");
   return {
@@ -165,7 +171,7 @@ export function openTablesWithBalance(
   tables: readonly Table[],
 ) {
   return sessions
-    .filter((s) => !s.closedAt)
+    .filter((s) => !s.closedAt && !s.delivery)
     .map((s) => ({
       session: s,
       table: tables.find((t) => t.id === s.tableId),
@@ -274,7 +280,7 @@ export function unpaidSessions(
     .map((s) => ({
       session: s,
       table: tables.find((t) => t.id === s.tableId),
-      ...sessionBalance(orders, payments, s.id),
+      ...sessionBalance(orders, payments, s.id, s.delivery?.fee),
     }))
     .filter((x) => x.pending > 0)
     .sort((a, b) => b.session.closedAt!.localeCompare(a.session.closedAt!));

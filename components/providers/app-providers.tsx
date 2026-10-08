@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { toast, Toaster } from "@/components/ui/toaster";
 import { brandVars } from "@/lib/domain/brand";
+import { useDeliveryClient } from "@/lib/data/delivery-store";
 import { useDeviceStore } from "@/lib/data/device";
 import { useAppStore, useBootStore } from "@/lib/data/store";
 import { startSync } from "@/lib/data/sync";
@@ -17,7 +18,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
     let stop: (() => void) | undefined;
     let stopWatcher: (() => void) | undefined;
     let cancelled = false;
-    Promise.all([useAppStore.persist.rehydrate(), useDeviceStore.persist.rehydrate()]).then(() => {
+    Promise.all([
+      useAppStore.persist.rehydrate(),
+      useDeviceStore.persist.rehydrate(),
+      useDeliveryClient.persist.rehydrate(),
+    ]).then(() => {
       if (cancelled) return;
       useBootStore.setState({ hydrated: true });
       if (!storageAvailable()) {

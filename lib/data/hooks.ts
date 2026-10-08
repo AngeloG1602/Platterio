@@ -1,5 +1,6 @@
 "use client";
 
+import { deliveryItems } from "@/lib/domain/delivery";
 import { useEffect, useMemo, useState } from "react";
 import { activeWaiters } from "@/lib/domain/access";
 import { virtualNow } from "@/lib/domain/clock";
@@ -302,3 +303,20 @@ export function useAnalyticsData() {
 
 /** Momento de la última siembra o reinicio de los datos. */
 export const useSeedEpoch = () => useAppStore((s) => s.seedEpoch);
+
+/* ——— Domicilios ——— */
+
+export const useDeliveryConfig = () => useAppStore((s) => s.restaurant.delivery);
+
+/** Todos los pedidos a domicilio y para recoger, con su etapa (los más viejos primero). */
+export function useDeliveryItems() {
+  const sessions = useAppStore((s) => s.sessions);
+  const orders = useAppStore((s) => s.orders);
+  return useMemo(() => deliveryItems(sessions, orders), [sessions, orders]);
+}
+
+/** Un pedido a domicilio por su id. */
+export function useDeliveryOrder(orderId: string) {
+  const items = useDeliveryItems();
+  return useMemo(() => items.find((i) => i.order.id === orderId), [items, orderId]);
+}

@@ -7,27 +7,27 @@ import { Price } from "@/components/ui/price";
 import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
-import { cashActions, useOrders, useLivePayments, useOpenShift } from "@/lib/data";
+import { cashActions, useOrders, useLivePayments, useOpenShift, useSessions } from "@/lib/data";
 import { METHOD_LABEL, PAYMENT_METHODS, sessionBalance } from "@/lib/domain/cash";
 import { formatTime } from "@/lib/domain/format";
 import type { PaymentMethod } from "@/lib/domain/types";
 
 /** Cobrar la cuenta de una mesa: pago completo o en partes, con la forma de pago. */
 export function PaymentSheet({
-  tableId,
-  tableNumber,
+  label,
   sessionId,
   onClose,
 }: {
-  tableId: string;
-  tableNumber: number;
+  /** "Mesa 5" o "Domicilio D-4K7Q". */
+  label: string;
   sessionId: string;
   onClose: () => void;
 }) {
   const orders = useOrders();
   const payments = useLivePayments();
   const shift = useOpenShift();
-  const balance = sessionBalance(orders, payments, sessionId);
+  const fee = useSessions().find((x) => x.id === sessionId)?.delivery?.fee;
+  const balance = sessionBalance(orders, payments, sessionId, fee);
   const own = payments.filter((p) => p.sessionId === sessionId);
   const [method, setMethod] = useState<PaymentMethod>("efectivo");
   const [amount, setAmount] = useState(String(balance.pending || ""));
@@ -36,9 +36,9 @@ export function PaymentSheet({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const value = Number(amount.replace(/\D/g, ""));
-    const r = cashActions.pay(tableId, value, method);
+    const r = cashActions.pay(sessionId, value, method);
     if (!r.ok) return setError(r.error);
-    toast.success(`Pago registrado · Mesa ${tableNumber}`, {
+    toast.success(`Pago registrado · ${label}`, {
       description: `${METHOD_LABEL[method]} · $${value.toLocaleString("es-CO")}`,
     });
     setError(undefined);
@@ -51,7 +51,7 @@ export function PaymentSheet({
     <Sheet
       open
       onOpenChange={(o) => !o && onClose()}
-      title={`Cobrar · Mesa ${tableNumber}`}
+      title={`Cobrar · ${label}`}
       description="Registra lo que pagó el cliente. Puede pagar en partes y con varias formas."
     >
       <div className="flex flex-col gap-5 pb-3">

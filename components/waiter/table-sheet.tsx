@@ -196,8 +196,7 @@ export function TableSheet({
       )}
       {paying && session && (
         <PaymentSheet
-          tableId={table.id}
-          tableNumber={table.number}
+          label={`Mesa ${table.number}`}
           sessionId={session.id}
           onClose={() => setPaying(false)}
         />

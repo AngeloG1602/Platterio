@@ -413,6 +413,85 @@ check(
   await visible(admin.getByText("Conteo de prueba")),
 );
 
+// 14. Domicilios: pedir desde casa, gestionar en caja, cocina, despachar, cobrar y reporte
+await admin.goto(`${BASE}/admin/configuracion`);
+await admin.getByLabel("Abre", { exact: true }).fill("00:00");
+await admin.getByLabel("Cierra", { exact: true }).fill("00:00");
+await admin.getByRole("button", { name: "Guardar cambios" }).click();
+check(
+  "14. El administrador guarda el horario de domicilios",
+  await visible(admin.getByText("Domicilios guardados")),
+);
+
+const casa = await tab("Casa", 390, 800);
+await casa.goto(`${BASE}/domicilio`);
+await casa
+  .getByRole("button", { name: /Clásica 27/ })
+  .first()
+  .click();
+await casa.getByRole("button", { name: "Agregar uno" }).click();
+await casa.getByRole("button", { name: /^Agregar ·/ }).click();
+await casa.getByRole("link", { name: /Ver mi pedido/ }).click();
+await casa.getByLabel("Nombre").fill("Camila Ríos");
+await casa.getByLabel("Celular").fill("300 123 4567");
+await casa.getByLabel("Zona").selectOption("zona-centro");
+await casa.getByLabel("Dirección").fill("Calle 10 # 5-20 apto 301");
+await casa.getByRole("button", { name: /Hacer el pedido/ }).click();
+await casa.waitForURL("**/domicilio/seguimiento/**");
+check(
+  "14. El cliente ve que su pedido fue recibido",
+  await visible(casa.getByText(/Recibimos tu pedido/)),
+);
+
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: /Domicilios/ }).click();
+check("14. Caja ve el domicilio nuevo", await visible(caja.getByText(/Camila Ríos/)));
+await caja.getByRole("button", { name: "Confirmar" }).click();
+check("14. El cliente ve el pedido confirmado", await visible(casa.getByText(/está confirmado/)));
+const dom = cocina.locator('article[aria-label^="Domicilio D-"]');
+check("14. Cocina recibe el domicilio con su código", await visible(dom));
+await dom.getByRole("button", { name: /Empezar a preparar/ }).click();
+await dom.getByRole("button", { name: /Marcar listo/ }).click();
+await caja.getByRole("button", { name: "Despachar" }).click();
+check("14. El cliente ve que va en camino", await visible(casa.getByText(/va en camino/)));
+await caja.getByRole("button", { name: /^Entregado/ }).click();
+check("14. El cliente ve que llegó", await visible(casa.getByText(/Tu pedido llegó/)));
+
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+await caja.getByRole("button", { name: "Abrir caja" }).click();
+await caja.getByRole("radio", { name: /Domicilios/ }).click();
+await caja.getByRole("button", { name: /^Cobrar/ }).click();
+await caja.getByRole("button", { name: "Registrar pago" }).click();
+check(
+  "14. Se cobra el domicilio con su envío",
+  await visible(caja.getByText("Pagado", { exact: true })),
+);
+
+await casa.goto(`${BASE}/domicilio`);
+await casa
+  .getByRole("button", { name: /Clásica 27/ })
+  .first()
+  .click();
+await casa.getByRole("button", { name: /^Agregar ·/ }).click();
+await casa.getByRole("link", { name: /Ver mi pedido/ }).click();
+await casa.getByRole("radio", { name: "Recoger" }).click();
+await casa.getByLabel("Nombre").fill("Camila Ríos");
+await casa.getByLabel("Celular").fill("3001234567");
+await casa.getByRole("button", { name: /Hacer el pedido/ }).click();
+await casa.waitForURL("**/domicilio/seguimiento/**");
+await casa.getByRole("button", { name: "Cancelar pedido" }).click();
+await casa.getByRole("button", { name: "Sí, cancelar" }).click();
+check(
+  "14. El cliente puede cancelar mientras no lo confirmen",
+  await visible(casa.getByText(/Este pedido se canceló/)),
+);
+
+await admin.goto(`${BASE}/admin/reportes`);
+check(
+  "14. El reporte incluye los domicilios por zona",
+  await visible(admin.getByText("Domicilios y recogida")),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

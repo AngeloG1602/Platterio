@@ -1,3 +1,4 @@
+import { DEFAULT_DELIVERY } from "@/lib/domain/delivery";
 import type { StaffUser } from "@/lib/domain/access";
 import type {
   Allergen,
@@ -21,6 +22,7 @@ export const RESTAURANT: Restaurant = {
   id: "fogon-27",
   name: "Fogón 27",
   accentColor: "#E4572E",
+  delivery: DEFAULT_DELIVERY,
   serviceAlertThreshold: 3,
   confirmTimeoutMin: 3,
   sessionIdleMin: 30,

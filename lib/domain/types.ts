@@ -41,12 +41,62 @@ export interface Brand {
   logo?: string;
 }
 
+/** Zona de reparto con su tarifa, pedido mínimo y tiempo estimado. */
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  fee: number;
+  minOrder: number;
+  etaMin: number;
+}
+
+/** Configuración de domicilios y recogida del negocio. */
+export interface DeliveryConfig {
+  enabled: boolean;
+  /** También se puede pedir para recoger en el local. */
+  pickup: boolean;
+  /** Horario en que se reciben pedidos, "HH:MM" de 24 h (si cierra antes de abrir, cruza la medianoche). */
+  opensAt: string;
+  closesAt: string;
+  zones: DeliveryZone[];
+  /** Domiciliarios a los que se les puede asignar un pedido. */
+  drivers: string[];
+  /** Minutos de preparación que se suman al tiempo de la zona. */
+  prepMin: number;
+}
+
+export type FulfillmentType = "domicilio" | "recoger";
+export type DeliveryPayWith = "efectivo" | "tarjeta" | "transferencia";
+
+/** Datos del pedido a domicilio o para recoger; viven en la sesión del pedido. */
+export interface DeliveryInfo {
+  /** Código corto que ve el cliente, p. ej. "D-4K7Q". */
+  code: string;
+  type: FulfillmentType;
+  customerName: string;
+  phone: string;
+  address?: string;
+  reference?: string;
+  zoneId?: string;
+  zoneName?: string;
+  fee: number;
+  payWith: DeliveryPayWith;
+  /** Con cuánto va a pagar en efectivo, para llevar el cambio. */
+  cashFor?: number;
+  note?: string;
+  /** Minutos estimados que se le prometieron al cliente. */
+  etaMin: number;
+  driver?: string;
+  dispatchedAt?: string;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
   accentColor: string;
   logoUrl?: string;
   brand?: Brand;
+  delivery?: DeliveryConfig;
   serviceAlertThreshold: number;
   confirmTimeoutMin: number;
   /** Minutos sin actividad (y sin pedidos por entregar) para que una mesa se cierre sola. */
@@ -139,6 +189,8 @@ export interface TableSession {
   /** Minutos de inactividad para cerrarse sola, si el mesero cambió el del negocio. */
   idleCloseMin?: number;
   closeReason?: "mesero" | "cancelada" | "inactividad";
+  /** Si es un pedido a domicilio o para recoger (no hay mesa; `tableId` es `domicilio`). */
+  delivery?: DeliveryInfo;
 }
 
 /** Aviso de un cliente al personal desde la mesa (hoy: pedir que abran la mesa). */

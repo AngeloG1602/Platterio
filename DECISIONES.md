@@ -364,3 +364,27 @@ pueden cambiar sin rehacer pantallas.
       El historial sembrado ahora trae cobros y un cierre por día, con algunas diferencias y un
       4 % de mesas sin cobro para que los reportes tengan qué mostrar.
 111.  **Periodos hasta el final del minuto actual**, para que lo que acaba de pasar entre al reporte.
+112.  **Un domicilio es una mesa sin mesa.** Cada pedido a domicilio o para recoger crea una
+      sesión (`tableId: "domicilio"`, con sus datos en `session.delivery`) y una ronda. Así
+      reutiliza sin duplicar la cocina, los estados, el cobro, el registro de cambios y las ventas.
+      No aparece en el salón ni en las alertas de "sin confirmar" (esas son del mesero). Lo
+      gestiona el encargado o el administrador, no el mesero.
+113.  **Flujo del pedido.** Recibido → confirmado (caja) → en preparación y listo (cocina) →
+      despachado con un domiciliario → entregado. Para recoger no hay despacho: se entrega en el
+      mostrador. El cliente solo cancela mientras no lo hayan confirmado; después, solo el
+      personal, con motivo y quedando en el registro de cambios.
+114.  **Cobro al recibir.** Sin pasarela de pagos: el cliente elige cómo pagará (efectivo con
+      cuánto paga para llevar cambio, tarjeta por datáfono o transferencia) y caja registra el
+      pago como cualquier otro. El envío cuenta en la cuenta pero no en "ventas de platos". Un
+      domicilio entregado aún se puede cobrar; si no se cobra, sale en "sin cobro registrado".
+115.  **Zonas, mínimos y horario.** Cada zona tiene envío, pedido mínimo y tiempo; el tiempo
+      prometido es el de la zona más la preparación del negocio. El horario puede cruzar la
+      medianoche y se compara con la hora de la demo. Fuera de horario se puede armar el pedido
+      pero no enviarlo.
+116.  **Datos del cliente.** Nombre y celular colombiano (10 dígitos que empiezan por 3); se
+      recuerdan en su navegador para el próximo pedido. El enlace de seguimiento lleva un
+      identificador aleatorio. Con la base de datos (Fase 9) se suman límites de pedidos por
+      celular y verificación para evitar pedidos falsos.
+117.  **Rendimiento de la carta de domicilios.** Sin animaciones de librería en las pantallas del
+      cliente; la hoja de "agregar plato" se descarga solo al tocar un plato; las secciones de la
+      carta usan `content-visibility`, las filas están memorizadas y las fotos cargan perezosas.

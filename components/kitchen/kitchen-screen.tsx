@@ -12,6 +12,7 @@ import {
   kitchenActions,
   useDishes,
   useKitchenBoard,
+  useSessions,
   useNow,
   useRestaurant,
   useTables,
@@ -19,7 +20,8 @@ import {
 import { formatElapsed, formatTime, plural } from "@/lib/domain/format";
 import { KITCHEN_COLUMNS, kitchenTimeLevel, type KitchenColumn } from "@/lib/domain/kitchen";
 import { unseenChanges } from "@/lib/domain/staffOrders";
-import type { Dish, Order, Table } from "@/lib/domain/types";
+import { placeLabel } from "@/lib/domain/delivery";
+import type { Dish, Order, Table, TableSession } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 
 const COLUMN: Record<
@@ -65,7 +67,11 @@ export function KitchenScreen() {
   );
 }
 
-function useNewOrderNotice(confirmed: Order[], tables: readonly Table[]) {
+function useNewOrderNotice(
+  confirmed: Order[],
+  tables: readonly Table[],
+  sessions: readonly TableSession[],
+) {
   const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
     const ids = new Set(confirmed.map((o) => o.id));
@@ -74,8 +80,7 @@ function useNewOrderNotice(confirmed: Order[], tables: readonly Table[]) {
     if (!before) return;
     for (const o of confirmed) {
       if (before.has(o.id)) continue;
-      const n = tables.find((t) => t.id === o.tableId)?.number ?? "?";
-      toast(`Nuevo pedido · Mesa ${n}`, {
+      toast(`Nuevo pedido · ${placeLabel(o, tables, sessions)}`, {
         id: `cocina-${o.id}`,
         icon: <ChefHat className="text-accent size-5" aria-hidden />,
         description: `Ronda ${o.round} · ${plural(
@@ -85,11 +90,15 @@ function useNewOrderNotice(confirmed: Order[], tables: readonly Table[]) {
         )}`,
       });
     }
-  }, [confirmed, tables]);
+  }, [confirmed, tables, sessions]);
 }
 
 /** Avisa cuando el personal cambia una ronda que ya está en cocina. */
-function useChangeNotice(orders: readonly Order[], tables: readonly Table[]) {
+function useChangeNotice(
+  orders: readonly Order[],
+  tables: readonly Table[],
+  sessions: readonly TableSession[],
+) {
   const seen = useRef<Map<string, number> | null>(null);
   useEffect(() => {
     const counts = new Map(orders.map((o) => [o.id, unseenChanges(o).length]));
@@ -97,15 +106,14 @@ function useChangeNotice(orders: readonly Order[], tables: readonly Table[]) {
       for (const o of orders) {
         const now = counts.get(o.id) ?? 0;
         if (now > (seen.current.get(o.id) ?? 0)) {
-          const t = tables.find((x) => x.id === o.tableId);
-          toast.warning(`Cambio en la Mesa ${t?.number ?? "?"}`, {
+          toast.warning(`Cambio en ${placeLabel(o, tables, sessions)}`, {
             description: `Ronda ${o.round}: revisa lo que cambió el mesero.`,
           });
         }
       }
     }
     seen.current = counts;
-  }, [orders, tables]);
+  }, [orders, tables, sessions]);
 }
 
 function Board() {
@@ -114,8 +122,9 @@ function Board() {
   const dishes = useDishes();
   const restaurant = useRestaurant();
   const now = useNow(1000);
-  useNewOrderNotice(board.confirmado, tables);
-  useChangeNotice([...board.confirmado, ...board.en_preparacion, ...board.listo], tables);
+  const sessions = useSessions();
+  useNewOrderNotice(board.confirmado, tables, sessions);
+  useChangeNotice([...board.confirmado, ...board.en_preparacion, ...board.listo], tables, sessions);
   const total = board.confirmado.length + board.en_preparacion.length;
 
   return (
@@ -168,7 +177,7 @@ function Board() {
                       <KitchenCard
                         key={o.id}
                         order={o}
-                        table={tables.find((t) => t.id === o.tableId)}
+                        place={placeLabel(o, tables, sessions)}
                         dishes={dishes}
                         now={now}
                       />
@@ -186,12 +195,12 @@ function Board() {
 
 function KitchenCard({
   order,
-  table,
+  place,
   dishes,
   now,
 }: {
   order: Order;
-  table: Table | undefined;
+  place: string;
   dishes: readonly Dish[];
   now: number;
 }) {
@@ -200,7 +209,7 @@ function KitchenCard({
   const elapsed =
     now -
     Date.parse(ready ? (order.readyAt ?? order.createdAt) : (order.confirmedAt ?? order.createdAt));
-  const label = `Mesa ${table?.number ?? "?"}`;
+  const label = place;
   const changes = unseenChanges(order);
 
   function advance() {
@@ -234,7 +243,7 @@ function KitchenCard({
     >
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-display text-[34px] leading-none font-semibold">{label}</p>
+          <p className="font-display text-[34px] leading-tight font-semibold">{label}</p>
           <p className="text-muted mt-1 text-[15px]">Ronda {order.round}</p>
         </div>
         <span
