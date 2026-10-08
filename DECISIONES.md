@@ -518,3 +518,9 @@ pueden cambiar sin rehacer pantallas.
       Pendiente para la fase 9: límite de intentos del PIN (con 4 dígitos hay solo 10.000
       combinaciones), datos separados por negocio y subdominios o dominio propio, que serán un
       cambio de enrutado y no de pantallas.
+135.  **Dónde se ven los enlaces públicos.** El panel "Tus enlaces públicos" aparece al inicio del
+      Resumen y de Configuración: muestra la dirección de la carta de domicilios y para recoger
+      (con el prefijo del negocio), si está recibiendo pedidos o desactivada, y botones para copiar,
+      abrir y descargar el QR imprimible. Enlaza a las zonas, tarifas y horario (sección Domicilios
+      y recogida) y a los QR de cada mesa. Antes esa configuración existía pero sin ningún enlace
+      visible para el dueño.

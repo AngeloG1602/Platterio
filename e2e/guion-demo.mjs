@@ -762,6 +762,11 @@ check(
   verde.url().endsWith("/casa-verde/admin"),
 );
 check(
+  "20. El resumen muestra el enlace público de domicilios del negocio",
+  (await visible(verde.getByRole("heading", { name: "Tus enlaces públicos" }))) &&
+    (await visible(verde.getByText(/\/casa-verde\/domicilio$/))),
+);
+check(
   "20. Los enlaces del panel llevan el negocio",
   await visible(verde.locator('a[href="/casa-verde/admin/platos"]')),
 );
