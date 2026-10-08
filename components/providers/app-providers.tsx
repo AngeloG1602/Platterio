@@ -6,6 +6,7 @@ import { toast, Toaster } from "@/components/ui/toaster";
 import { brandVars } from "@/lib/domain/brand";
 import { useDeliveryClient } from "@/lib/data/delivery-store";
 import { useLangStore } from "@/lib/data/lang-store";
+import { useAccountsStore } from "@/lib/data/accounts-store";
 import { isCurrency, setCurrency } from "@/lib/domain/format";
 import { enabledLangs, pickLang, setLang } from "@/lib/i18n";
 import { useDeviceStore } from "@/lib/data/device";
@@ -47,6 +48,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       useDeviceStore.persist.rehydrate(),
       useDeliveryClient.persist.rehydrate(),
       useLangStore.persist.rehydrate(),
+      useAccountsStore.persist.rehydrate(),
     ]).then(() => {
       if (cancelled) return;
       useBootStore.setState({ hydrated: true });

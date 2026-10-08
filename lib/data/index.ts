@@ -3,3 +3,4 @@ export * from "./actions";
 export { useDeliveryClient } from "./delivery-store";
 export { setPreferredLang, useLangStore } from "./lang-store";
 export type { AppData, DemoSettings } from "./seed";
+export { accountActions, useAccountsStore, useCurrentAccount } from "./accounts-store";

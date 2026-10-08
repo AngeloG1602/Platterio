@@ -61,7 +61,7 @@ export function Hub() {
         <PlatterioLogo />
         <div className="flex items-center gap-2">
           <Link
-            href="/producto"
+            href="/"
             className={buttonClasses({
               variant: "ghost",
               size: "sm",

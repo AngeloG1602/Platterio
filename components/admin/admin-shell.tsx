@@ -15,6 +15,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { TrialBanner } from "@/components/account/account-status";
 import { PlatterioLogo, RestaurantMark } from "@/components/brand/logos";
 import { SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
@@ -101,7 +102,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <SessionButton />
           <PlatterioLogo tone="muted" className="mx-3 mt-1 scale-75 self-start" />
           <Link
-            href="/"
+            href="/demo"
             className="text-muted hover:bg-surface-2 hover:text-ink flex h-11 items-center gap-2 rounded-lg px-3 text-sm"
           >
             <ArrowLeft className="size-4" aria-hidden /> Volver al hub de demo
@@ -113,6 +114,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         tabIndex={-1}
         className="min-w-0 px-5 py-6 outline-none sm:px-8 lg:px-10 lg:py-8"
       >
+        <TrialBanner />
         {children}
       </main>
       <DemoPanel />
