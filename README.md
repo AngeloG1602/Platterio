@@ -60,7 +60,7 @@ dispositivo distinto. Ábrelas desde el hub (`/`) para que cada una tenga su pro
 1. **Hub → Panel de demo** (o `/?demo=1`): toca _Reiniciar datos_ si vienes de un ensayo y pon
    la hora en **Almuerzo**.
 2. **Pestaña A – Mesa 3 como "Ana"**: al escanear, la mesa aún está cerrada ("Pide al mesero que
-   abra tu mesa"). En otra pestaña, **Carlos** toca la Mesa 3 → _Abrir mesa_ y obtiene el PIN
+   abra tu mesa", con un enlace **Ver la carta mientras tanto**: se puede mirar la carta con precios pero no pedir). En otra pestaña, **Carlos** toca la Mesa 3 → _Abrir mesa_ y obtiene el PIN
    (o muestra su QR). Ana entra con su nombre y ese PIN. En la hoja de alergias marca **Lácteos**. Los
    recomendados cambian (sale la Clásica 27) y la ficha de la Clásica 27 muestra el aviso de
    lácteos, aunque se puede pedir igual.

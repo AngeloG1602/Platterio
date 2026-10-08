@@ -33,6 +33,8 @@ const pages = [
   ["Pedido", "/mesa/3/pedido", 390],
   ["Calificar", "/mesa/3/calificar", 390],
   ["Mesa cerrada", "/mesa/6", 390],
+  ["Carta sin pedir", "/mesa/6/menu", 390],
+  ["Ficha sin pedir", "/mesa/6/plato/clasica-27", 390],
   ["Entrada con PIN", "/entrar", 390],
   ["Domicilios carta", "/domicilio", 390],
   ["Domicilios pedido", "/domicilio/pedido", 390],
@@ -69,7 +71,9 @@ const guest = watch(
 );
 let total = 0;
 for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
-  const p = name === "Entrada QR" || name === "Mesa cerrada" ? guest : page;
+  const p = ["Entrada QR", "Mesa cerrada", "Carta sin pedir", "Ficha sin pedir"].includes(name)
+    ? guest
+    : page;
   await p.setViewportSize({ width, height: 900 });
   const errorsBefore = errors.length;
   await p.goto(BASE + path);

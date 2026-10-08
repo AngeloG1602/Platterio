@@ -577,6 +577,47 @@ check(
   await visible(personalizada.getByText(/^SIN /)),
 );
 
+// 17. Mirar la carta sin poder pedir hasta que el mesero abra la mesa
+const visita = await tab("Visita", 390, 800);
+await visita.goto(`${BASE}/mesa/6`);
+await visita.getByRole("link", { name: "Ver la carta mientras tanto" }).click();
+await visita.waitForURL("**/mesa/6/menu");
+check(
+  "17. Con la mesa cerrada se puede mirar la carta",
+  await visible(visita.getByText("Solo mirando")),
+);
+await visita.getByRole("dialog").getByRole("button", { name: "Omitir" }).click();
+check("17. Los precios se ven", await visible(visita.getByText(/\$22\.900/).first()));
+check(
+  "17. Hay un aviso en vez del carrito",
+  await visible(visita.getByText("Para pedir, tu mesero abre la mesa y te da un PIN.")),
+);
+await visita.locator('a[href="/mesa/6/plato/clasica-27"]').last().click();
+await visita.waitForURL("**/plato/clasica-27");
+check(
+  "17. En la ficha no hay botón de agregar",
+  !(await visible(visita.getByRole("button", { name: /^Agregar ·/ }), 1500)),
+);
+check("17. En la ficha se ve el precio", await visible(visita.getByText(/\$22\.900/).first()));
+check(
+  "17. Se puede abrir el visor 3D para mirar",
+  await visible(visita.getByRole("button", { name: "Ver en 3D" }).first()),
+);
+const pin6 = await abrirMesa(ctx, 6);
+check(
+  "17. Al abrir la mesa, la barra pide el PIN",
+  await visible(visita.getByText("Tu mesa ya está abierta")),
+);
+await visita.getByRole("link", { name: "Poner PIN" }).click();
+await visita.getByLabel("¿Cómo te llamamos?").fill("Visita");
+await visita.getByLabel("PIN de la mesa").fill(pin6);
+await visita.getByRole("button", { name: /Ver la carta/ }).click();
+await visita.waitForURL("**/mesa/6/plato/clasica-27");
+check(
+  "17. Tras el PIN vuelve al mismo plato y ya puede pedir",
+  await visible(visita.getByRole("button", { name: /^Agregar ·/ })),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

@@ -34,7 +34,8 @@ import type { Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
 import { useTableActivity } from "./table-activity";
-import { TableGate, type TableContext } from "./table-gate";
+import { TableViewGate, type TableContext, type TableView } from "./table-gate";
+import { BrowseBar } from "./browse-bar";
 import { localized, t } from "@/lib/i18n";
 
 const NOTE_MAX = 140;
@@ -58,9 +59,9 @@ const Dish3DSheet = dynamic(
 export function DishDetailScreen({ numero, dishId }: { numero: string; dishId: string }) {
   return (
     <ClientShell>
-      <TableGate numero={numero} fallback={<DishSkeleton />}>
-        {(ctx) => <DishDetail ctx={ctx} dishId={dishId} />}
-      </TableGate>
+      <TableViewGate numero={numero} fallback={<DishSkeleton />}>
+        {(view) => <DishDetail view={view} dishId={dishId} />}
+      </TableViewGate>
     </ClientShell>
   );
 }
@@ -73,10 +74,15 @@ function useBack(fallback: string) {
   };
 }
 
-function DishDetail({ ctx, dishId }: { ctx: TableContext; dishId: string }) {
+/** Avisos en vivo de la mesa; solo para quien ya entró. */
+function MemberActivity({ ctx }: { ctx: TableContext }) {
   useTableActivity(ctx);
+  return null;
+}
+
+function DishDetail({ view, dishId }: { view: TableView; dishId: string }) {
   const dish = useDish(dishId);
-  const menuHref = `${ctx.base}/menu`;
+  const menuHref = `${view.base}/menu`;
   const back = useBack(menuHref);
 
   if (!dish || !dish.active) {
@@ -94,10 +100,16 @@ function DishDetail({ ctx, dishId }: { ctx: TableContext; dishId: string }) {
       />
     );
   }
-  return <DishContent key={dish.id} dish={dish} ctx={ctx} onBack={back} />;
+  return (
+    <>
+      {view.member && <MemberActivity ctx={view.member} />}
+      <DishContent key={dish.id} dish={dish} view={view} onBack={back} />
+    </>
+  );
 }
 
-function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onBack: () => void }) {
+function DishContent({ dish, view, onBack }: { dish: Dish; view: TableView; onBack: () => void }) {
+  const ctx = view.member;
   const categories = useCategories();
   const stats = useDishRatingStats().get(dish.id);
   const { restrictions } = useDevice();
@@ -125,6 +137,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
   const category = categories.find((c) => c.id === dish.categoryId);
 
   function add() {
+    if (!ctx) return;
     const result = cartActions.add(ctx.table.id, {
       dishId: dish.id,
       variantId,
@@ -163,6 +176,7 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
           <RatingSummary average={stats?.average ?? null} count={stats?.count ?? 0} />
           <Spice level={dish.spiceLevel} withLabel />
         </div>
+        <Price value={variant.price + delta} className="mt-3 block text-[22px]" />
         <p className="text-ink-soft mt-4 text-[16px] leading-relaxed">
           {localized(dish, "description")}
         </p>
@@ -272,35 +286,41 @@ function DishContent({ dish, ctx, onBack }: { dish: Dish; ctx: TableContext; onB
           <AllergenList allergens={allergens} restrictions={restrictions} />
         </section>
 
-        <section className="mt-7">
-          <Field
-            label={t("Nota para la cocina")}
-            optional
-            hint={`${note.length}/${NOTE_MAX} · ${t("Por ejemplo: sin cebolla, salsa aparte")}`}
-          >
-            {(p) => (
-              <Textarea
-                {...p}
-                value={note}
-                maxLength={NOTE_MAX}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder={t("¿Algún cambio?")}
-                rows={2}
-                className="min-h-20"
-              />
-            )}
-          </Field>
-        </section>
+        {ctx && (
+          <section className="mt-7">
+            <Field
+              label={t("Nota para la cocina")}
+              optional
+              hint={`${note.length}/${NOTE_MAX} · ${t("Por ejemplo: sin cebolla, salsa aparte")}`}
+            >
+              {(p) => (
+                <Textarea
+                  {...p}
+                  value={note}
+                  maxLength={NOTE_MAX}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={t("¿Algún cambio?")}
+                  rows={2}
+                  className="min-h-20"
+                />
+              )}
+            </Field>
+          </section>
+        )}
       </div>
 
-      <div className="border-line bg-surface/95 pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t px-4 pt-3 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <QtyStepper value={qty} onChange={setQty} />
-          <Button size="lg" className="flex-1" onClick={add}>
-            <Plus aria-hidden /> {t("Agregar")} · <Price value={(variant.price + delta) * qty} />
-          </Button>
+      {ctx ? (
+        <div className="border-line bg-surface/95 pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t px-4 pt-3 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <QtyStepper value={qty} onChange={setQty} />
+            <Button size="lg" className="flex-1" onClick={add}>
+              <Plus aria-hidden /> {t("Agregar")} · <Price value={(variant.price + delta) * qty} />
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <BrowseBar view={view} />
+      )}
       {viewerOpen && spec && (
         <Dish3DSheet
           dish={dish}
