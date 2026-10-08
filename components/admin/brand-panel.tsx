@@ -348,10 +348,7 @@ function StyleSection({ currentId, cover }: { currentId: string; cover?: string 
             )}
           </div>
           <p className="text-muted text-[13px]">
-            Ideal para: {picked.suits}.
-            {picked.plan === "profesional"
-              ? " Incluido en el plan Profesional (en la demo puedes probar todos)."
-              : " Incluido en todos los planes."}
+            Ideal para: {picked.suits}. Incluido en todos los planes.
           </p>
         </div>
       </div>
@@ -394,11 +391,6 @@ function StyleCard({
         {current && (
           <span className="bg-accent-soft text-accent-strong rounded-full px-2 py-0.5 text-[11px] font-semibold">
             En uso
-          </span>
-        )}
-        {style.plan === "profesional" && (
-          <span className="bg-surface-2 text-ink-soft ml-auto rounded-full px-2 py-0.5 text-[11px] font-semibold">
-            Profesional
           </span>
         )}
       </span>

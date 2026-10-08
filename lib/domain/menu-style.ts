@@ -5,7 +5,6 @@ export type DishLayout = "lista" | "cuadricula" | "carta" | "tarjetas";
 /** Encabezado de la carta: a la izquierda, centrado o con foto de portada. */
 export type HeaderLayout = "izquierda" | "centrado" | "portada";
 export type TabsLayout = "linea" | "pildora";
-export type StylePlan = "esencial" | "profesional";
 
 export interface SurfaceColors {
   bg: string;
@@ -29,7 +28,6 @@ export interface MenuStyle {
   description: string;
   /** Para qué tipo de negocio va mejor. */
   suits: string;
-  plan: StylePlan;
   dark: boolean;
   layout: DishLayout;
   header: HeaderLayout;
@@ -57,7 +55,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Clásico",
     description: "Lista limpia con la foto a la derecha. El estilo de la casa.",
     suits: "Cualquier restaurante",
-    plan: "esencial",
     dark: false,
     layout: "lista",
     header: "izquierda",
@@ -72,7 +69,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Café minimal",
     description: "Mucho aire, cuadrícula de fotos grandes y letra limpia.",
     suits: "Cafeterías, brunch, panaderías",
-    plan: "esencial",
     dark: false,
     layout: "cuadricula",
     header: "centrado",
@@ -99,7 +95,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Fresco redondeado",
     description: "Portada con tu foto, tarjetas muy redondeadas y pestañas en píldora.",
     suits: "Saludable, jugos, postres, heladerías",
-    plan: "esencial",
     dark: false,
     layout: "tarjetas",
     header: "portada",
@@ -116,7 +111,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Bistró oscuro",
     description: "Fondo oscuro, serifa elegante y acentos dorados. Para la noche.",
     suits: "Restaurantes de noche, vinotecas, coctelería",
-    plan: "profesional",
     dark: true,
     layout: "lista",
     header: "izquierda",
@@ -143,7 +137,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Gourmet editorial",
     description: "Como una carta impresa: sin fotos, con puntos entre el plato y el precio.",
     suits: "Alta cocina, cartas cortas, tapas",
-    plan: "profesional",
     dark: false,
     layout: "carta",
     header: "centrado",
@@ -160,7 +153,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Parrilla rústica",
     description: "Papel kraft, tarjetas con borde punteado como un tiquete.",
     suits: "Asaderos, parrillas, comida tradicional",
-    plan: "profesional",
     dark: false,
     layout: "tarjetas",
     header: "izquierda",
@@ -187,7 +179,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Urbano colorido",
     description: "Bordes gruesos, sombras duras y colores vivos. Con carácter.",
     suits: "Hamburguesas, comida rápida, bares jóvenes",
-    plan: "profesional",
     dark: false,
     layout: "tarjetas",
     header: "izquierda",
@@ -214,7 +205,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Mediterráneo",
     description: "Portada luminosa, fondo claro azulado y esquinas suaves.",
     suits: "Mariscos, cocina mediterránea, terrazas",
-    plan: "profesional",
     dark: false,
     layout: "cuadricula",
     header: "portada",
@@ -241,7 +231,6 @@ export const MENU_STYLES: readonly MenuStyle[] = [
     name: "Neón nocturno",
     description: "Oscuro y vibrante, con tarjetas que brillan con tu color.",
     suits: "Bares, discotecas, comida nocturna",
-    plan: "profesional",
     dark: true,
     layout: "tarjetas",
     header: "centrado",

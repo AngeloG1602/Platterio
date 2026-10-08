@@ -33,7 +33,7 @@ export const PLANS: Plan[] = [
       "Usuarios con roles: administrador, caja, mesero y cocina",
       "Cobro, turnos y cierre de caja",
       "Reportes completos con descarga en CSV",
-      "Tu logo, el color de tu marca y 3 estilos de carta",
+      "Tu logo, tu color y 9 estilos de carta listos (claros y oscuros), con foto de portada",
     ],
   },
   {
@@ -46,7 +46,7 @@ export const PLANS: Plan[] = [
     includesPrevious: "Todo lo del plan Esencial",
     features: [
       "Domicilios y pedidos para recoger, con seguimiento para el cliente",
-      "Los 9 estilos de carta (claros y oscuros), foto de portada y tipografías propias",
+      "Diseño a medida de tu carta y tus pantallas (se cotiza aparte) y tipografías propias",
       "Carta en varios idiomas y moneda a tu elección",
       "Dominio propio para tu carta",
       "Importar tu menú desde una hoja de cálculo",

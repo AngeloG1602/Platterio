@@ -201,8 +201,9 @@ describe("estilos de la carta", () => {
     expect(shapeVars(styleById("fresco"))["--r-xl"]).toBe("35px");
   });
 
-  it("el esencial incluye 3 estilos y el resto es profesional", () => {
-    expect(MENU_STYLES.filter((s) => s.plan === "esencial")).toHaveLength(3);
+  it("hay nueve estilos, incluido el original", () => {
+    expect(MENU_STYLES).toHaveLength(9);
+    expect(MENU_STYLES[0]!.id).toBe("clasico");
   });
 });
 

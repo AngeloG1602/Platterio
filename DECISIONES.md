@@ -476,3 +476,14 @@ pueden cambiar sin rehacer pantallas.
       **Planes:** Esencial = Clásico, Café minimal y Fresco redondeado; Profesional = los 9, portada
       y tipografías propias. Hoy todos están disponibles en la demo; el bloqueo por plan llega con
       las cuentas reales (fase 9). El estilo se escoge una vez por negocio, no por sección.
+132.  **Estilos y personalización a medida por plan (reemplaza lo dicho sobre planes en la 131).**
+      **Esencial** incluye los **9 estilos de carta** (el original más los otros ocho), la foto de
+      portada, el logo, la paleta y el color de acento. **Profesional** es donde se ofrece la
+      **personalización a medida**: si un cliente quiere diseño propio de su carta y sus pantallas,
+      se hace y **se cobra aparte**, además de las tipografías propias. Debe hacerse sin partir el
+      software: un solo código, con el diseño de cada negocio guardado como datos en su cuenta.
+      Para la fase 9 (cuentas y base de datos): guardar la marca como registro por negocio, un
+      campo de **tema a medida** que solo editamos nosotros (con las mismas validaciones de
+      contraste y accesibilidad y con versión para que las actualizaciones no lo rompan) y un
+      permiso por cuenta para estilos o distribuciones exclusivas. Nunca copiar el proyecto por
+      cliente ni poner condiciones "si el cliente es X" en el código.
