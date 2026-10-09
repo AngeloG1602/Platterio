@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowRight, Bike, Clock, QrCode, Store, UtensilsCrossed } from "lucide-react";
+import {
+  ArrowRight,
+  Bike,
+  Clock,
+  MessageCircle,
+  QrCode,
+  Store,
+  UtensilsCrossed,
+} from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MadeWithPlatterio } from "@/components/brand/logos";
@@ -17,6 +25,7 @@ import {
 } from "@/lib/data";
 import { isDeliveryOpen } from "@/lib/domain/delivery";
 import { withBusiness } from "@/lib/domain/routes";
+import { waLink } from "@/lib/domain/whatsapp";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { ClientShell } from "./client-shell";
@@ -106,6 +115,22 @@ function Home({ slug }: { slug: string }) {
             </div>
           )}
         </div>
+        {delivery?.whatsapp && (
+          <a
+            href={
+              waLink(delivery.whatsapp, `Hola ${restaurant.name}, quisiera hacer una consulta.`) ??
+              undefined
+            }
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              buttonClasses({ variant: "ghost", block: true }),
+              "text-ink-soft mt-3 justify-center",
+            )}
+          >
+            <MessageCircle aria-hidden /> {t("Escríbenos por WhatsApp")}
+          </a>
+        )}
         <section
           aria-labelledby="en-el-local"
           className="bg-surface-2 mt-6 flex items-start gap-3 rounded-2xl p-4"

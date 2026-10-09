@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DISHES } from "@/lib/data/catalog";
 import {
+  addDriver,
   customerCanCancel,
   DEFAULT_DELIVERY,
   deliveryCode,
@@ -297,11 +298,67 @@ describe("configuración", () => {
     expect(validateDeliveryConfig({ ...DEFAULT_DELIVERY, zones: [{ ...z, fee: -1 }] })).toMatch(
       /envío/,
     );
-    expect(validateDeliveryConfig({ ...DEFAULT_DELIVERY, drivers: ["A", "a"] })).toMatch(
-      /repetido/,
-    );
+    expect(
+      validateDeliveryConfig({ ...DEFAULT_DELIVERY, drivers: [{ name: "A" }, { name: "a" }] }),
+    ).toMatch(/repetido/);
     expect(validateDeliveryConfig({ ...DEFAULT_DELIVERY, zones: [], pickup: false })).toMatch(
       /al menos una zona/,
     );
+  });
+});
+
+describe("domiciliarios y WhatsApp", () => {
+  it("agrega un domiciliario con su celular normalizado", () => {
+    const r = addDriver(DEFAULT_DELIVERY, { name: " Mateo ", phone: "+57 300 777 8899" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.config.drivers.at(-1)).toEqual({ name: "Mateo", phone: "3007778899" });
+  });
+
+  it("el celular es opcional, pero si se escribe debe ser válido", () => {
+    const sin = addDriver(DEFAULT_DELIVERY, { name: "Mateo", phone: "" });
+    expect(sin.ok && sin.config.drivers.at(-1)).toEqual({ name: "Mateo" });
+    expect(addDriver(DEFAULT_DELIVERY, { name: "Mateo", phone: "12345" })).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/10 dígitos/),
+    });
+  });
+
+  it("no permite nombres vacíos, largos ni repetidos", () => {
+    expect(addDriver(DEFAULT_DELIVERY, { name: " ", phone: "" }).ok).toBe(false);
+    expect(addDriver(DEFAULT_DELIVERY, { name: "a".repeat(31), phone: "" }).ok).toBe(false);
+    expect(addDriver(DEFAULT_DELIVERY, { name: "andrés", phone: "" })).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/ya está/),
+    });
+  });
+
+  it("valida el WhatsApp del negocio y los celulares de los domiciliarios", () => {
+    expect(validateDeliveryConfig({ ...DEFAULT_DELIVERY, whatsapp: "123" })).toMatch(/WhatsApp/);
+    expect(validateDeliveryConfig({ ...DEFAULT_DELIVERY, whatsapp: undefined })).toBeNull();
+    expect(
+      validateDeliveryConfig({ ...DEFAULT_DELIVERY, drivers: [{ name: "A", phone: "99" }] }),
+    ).toMatch(/celular/);
+  });
+
+  it("al despachar se guarda el celular del domiciliario en el pedido", () => {
+    const session = {
+      id: "s",
+      delivery: {
+        code: "D-1",
+        type: "domicilio",
+        customerName: "Ana",
+        phone: "3001234567",
+        fee: 0,
+        payWith: "efectivo",
+        etaMin: 30,
+      },
+    } as unknown as Parameters<typeof dispatchDelivery>[0];
+    const order = { status: "listo" } as Parameters<typeof dispatchDelivery>[1];
+    const r = dispatchDelivery(session, order, "Mateo", "2026-10-07T13:00:00Z", "3007778899");
+    expect(r.ok && r.session.delivery).toMatchObject({
+      driver: "Mateo",
+      driverPhone: "3007778899",
+      dispatchedAt: "2026-10-07T13:00:00Z",
+    });
   });
 });

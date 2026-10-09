@@ -544,3 +544,19 @@ pueden cambiar sin rehacer pantallas.
       misma lógica pura de la carta (`filterDishes`) pero con su estado propio en la hoja, para no
       mezclarse con los filtros del cliente. Lo ya elegido (cantidades, opciones y notas) se
       conserva al filtrar y el pie sigue mostrando el total.
+138.  **WhatsApp en los domicilios.** Son enlaces `wa.me` gratuitos: abren WhatsApp en el celular de
+      quien toca el botón con el mensaje ya escrito, y esa persona lo envía. No se manda solo (eso
+      pide la API de WhatsApp Business, con servidor, plantillas y costo por conversación, que queda
+      para la fase 9); el pedido siempre queda registrado y avisa a Caja. **Cliente → negocio:** si
+      el negocio guarda su WhatsApp (Configuración → Domicilios y recogida), el seguimiento del
+      pedido ofrece "Avisar por WhatsApp" con el detalle (código, platos con opciones y notas,
+      total con envío, forma de pago, nombre, celular, dirección y referencia). **Domiciliarios**
+      pasan de ser un nombre a nombre + celular, y se agregan también desde Caja (administrador y
+      encargado). **Caja → domiciliario:** "Despachar y avisar" o, ya en camino, "Avisar a …" con
+      dirección, cliente, mapa, cuánto cobrar y el pedido; también "Llamar" y WhatsApp al cliente.
+      **Cliente ↔ domiciliario:** al salir el pedido el cliente que lo hizo ve "Tu domiciliario" con
+      WhatsApp y Llamar, solo mientras va en camino y si el negocio lo permite (opción activada por
+      defecto); el celular se guarda en el pedido al despachar. Prefijo de país fijo, 57. Pendiente
+      (fase 9): envío automático con la API, y una página de entrega por pedido para el domiciliario
+      con enlace imposible de adivinar y botón "Entregué". Los datos del cliente (celular y
+      dirección) llegan al domiciliario: debe cubrirlo la política de tratamiento de datos.

@@ -1,15 +1,16 @@
 "use client";
 
-import { Bike, MapPin, Phone, Store } from "lucide-react";
+import { Bike, MapPin, MessageCircle, Phone, Plus, Store } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { ReasonPicker, resolveReason } from "@/components/waiter/reason-picker";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Select } from "@/components/ui/field";
+import { Input, Select } from "@/components/ui/field";
 import { Price } from "@/components/ui/price";
 import { toast } from "@/components/ui/toaster";
 import {
   deliveryActions,
+  deliveryConfigActions,
   useCurrentStaff,
   useDeliveryConfig,
   useDeliveryItems,
@@ -17,6 +18,7 @@ import {
   useLivePayments,
   useNow,
   useOrders,
+  useRestaurant,
 } from "@/lib/data";
 import { sessionBalance } from "@/lib/domain/cash";
 import { can } from "@/lib/domain/access";
@@ -29,6 +31,7 @@ import {
 } from "@/lib/domain/delivery";
 import { formatElapsed, formatTime, plural } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
+import { messageToDriver, orderLines, telLink, waLink } from "@/lib/domain/whatsapp";
 import { PaymentSheet } from "./payment-sheet";
 
 const REJECT_REASONS = [
@@ -192,7 +195,12 @@ const DeliveryCard = memo(function DeliveryCard({
   const staff = useCurrentStaff();
   const orders = useOrders();
   const payments = useLivePayments();
-  const [driver, setDriver] = useState(config?.drivers[0] ?? "");
+  const [driver, setDriver] = useState(config?.drivers[0]?.name ?? "");
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const restaurant = useRestaurant();
+  const driverPhone = config?.drivers.find((d) => d.name === driver)?.phone;
   const { info, order, stage } = item;
   const balance = sessionBalance(orders, payments, item.session.id, info.fee);
   const age = now - Date.parse(order.createdAt);
@@ -243,6 +251,22 @@ const DeliveryCard = memo(function DeliveryCard({
           <a href={`tel:${info.phone}`} className="underline-offset-2 hover:underline">
             {formatPhone(info.phone)}
           </a>
+          {!closed && (
+            <a
+              href={
+                waLink(
+                  info.phone,
+                  `Hola ${info.customerName}, te escribimos de ${restaurant.name} por tu pedido ${info.code}.`,
+                ) ?? undefined
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent-strong inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline"
+            >
+              <MessageCircle className="size-4" aria-hidden /> WhatsApp
+              <span className="sr-only"> con {info.customerName}</span>
+            </a>
+          )}
         </p>
       </div>
 
@@ -313,8 +337,9 @@ const DeliveryCard = memo(function DeliveryCard({
               onChange={(e) => setDriver(e.target.value)}
             >
               {(config?.drivers ?? []).map((d) => (
-                <option key={d} value={d}>
-                  {d}
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                  {d.phone ? "" : " (sin celular)"}
                 </option>
               ))}
             </Select>
@@ -326,6 +351,112 @@ const DeliveryCard = memo(function DeliveryCard({
             >
               Despachar
             </Button>
+            {driverPhone && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const r = deliveryActions.dispatch(order.id, driver);
+                  run(r, `${info.code} salió con ${driver}`);
+                  const link = waLink(
+                    driverPhone,
+                    messageToDriver({
+                      restaurant: restaurant.name,
+                      driver,
+                      info,
+                      lines: orderLines(order, dishes),
+                      total: item.total,
+                      pending: balance.pending,
+                    }),
+                  );
+                  if (r.ok && link) window.open(link, "_blank", "noopener");
+                }}
+              >
+                <MessageCircle aria-hidden /> Despachar y avisar
+                <span className="sr-only"> a {driver} por WhatsApp</span>
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-expanded={adding}
+              onClick={() => setAdding((a) => !a)}
+            >
+              <Plus aria-hidden /> Agregar domiciliario
+            </Button>
+            {adding && (
+              <form
+                className="flex w-full flex-wrap gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const r = deliveryConfigActions.addDriver(newName, newPhone);
+                  if (!r.ok) return toast.error("No se pudo agregar", { description: r.error });
+                  toast.success(`${newName.trim()} agregado`);
+                  setDriver(newName.trim());
+                  setNewName("");
+                  setNewPhone("");
+                  setAdding(false);
+                }}
+              >
+                <Input
+                  aria-label="Nombre del nuevo domiciliario"
+                  className="h-10 w-36"
+                  maxLength={30}
+                  placeholder="Nombre"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+                <Input
+                  aria-label="Celular del nuevo domiciliario"
+                  className="h-10 w-44"
+                  inputMode="tel"
+                  placeholder="Celular (WhatsApp)"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                />
+                <Button type="submit" size="sm" variant="secondary">
+                  Guardar
+                </Button>
+              </form>
+            )}
+          </>
+        )}
+        {stage === "en_camino" && info.driver && (
+          <>
+            {info.driverPhone && (
+              <>
+                <a
+                  href={
+                    waLink(
+                      info.driverPhone,
+                      messageToDriver({
+                        restaurant: restaurant.name,
+                        driver: info.driver,
+                        info,
+                        lines: orderLines(order, dishes),
+                        total: item.total,
+                        pending: balance.pending,
+                      }),
+                    ) ?? undefined
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                >
+                  <MessageCircle aria-hidden /> Avisar a {info.driver}
+                  <span className="sr-only"> por WhatsApp</span>
+                </a>
+                <a
+                  href={telLink(info.driverPhone) ?? undefined}
+                  className={buttonClasses({ variant: "ghost", size: "sm" })}
+                >
+                  <Phone aria-hidden /> Llamar<span className="sr-only"> a {info.driver}</span>
+                </a>
+              </>
+            )}
+            {!info.driverPhone && (
+              <p className="text-muted text-[13px]">{info.driver} no tiene celular guardado.</p>
+            )}
           </>
         )}
         {((stage === "listo" && info.type === "recoger") || stage === "en_camino") && (

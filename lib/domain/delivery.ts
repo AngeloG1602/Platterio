@@ -27,7 +27,12 @@ export const DEFAULT_DELIVERY: DeliveryConfig = {
   opensAt: "11:00",
   closesAt: "22:00",
   prepMin: 20,
-  drivers: ["Andrés", "Sebastián"],
+  drivers: [
+    { name: "Andrés", phone: "3000000001" },
+    { name: "Sebastián", phone: "3000000002" },
+  ],
+  whatsapp: "3000000000",
+  shareDriver: true,
   zones: [
     { id: "zona-centro", name: "Centro", fee: 4000, minOrder: 25000, etaMin: 20 },
     { id: "zona-norte", name: "Barrios del norte", fee: 6000, minOrder: 30000, etaMin: 30 },
@@ -374,6 +379,7 @@ export function dispatchDelivery(
   order: Order,
   driver: string,
   now: string,
+  driverPhone?: string,
 ): { ok: true; session: TableSession } | { ok: false; error: string } {
   const info = session.delivery;
   if (!info) return { ok: false, error: "Ese pedido no es a domicilio" };
@@ -384,7 +390,15 @@ export function dispatchDelivery(
   if (!who || who.length > 30) return { ok: false, error: "Elige quién lo lleva" };
   return {
     ok: true,
-    session: { ...session, delivery: { ...info, driver: who, dispatchedAt: now } },
+    session: {
+      ...session,
+      delivery: {
+        ...info,
+        driver: who,
+        ...(driverPhone ? { driverPhone } : {}),
+        dispatchedAt: now,
+      },
+    },
   };
 }
 
@@ -526,10 +540,33 @@ export function validateDeliveryConfig(config: DeliveryConfig): string | null {
     if (!Number.isInteger(z.etaMin) || z.etaMin < 5 || z.etaMin > 180)
       return `El tiempo de ${name} va de 5 a 180 minutos`;
   }
-  const drivers = config.drivers.map((d) => d.trim().toLowerCase());
+  const drivers = config.drivers.map((d) => d.name.trim().toLowerCase());
   if (drivers.some((d) => !d || d.length > 30)) return "Cada domiciliario necesita un nombre corto";
   if (new Set(drivers).size !== drivers.length) return "Hay un domiciliario repetido";
+  if (config.drivers.some((d) => d.phone && !normalizePhone(d.phone)))
+    return "El celular de cada domiciliario debe tener 10 dígitos y empezar por 3";
+  if (config.whatsapp && !normalizePhone(config.whatsapp))
+    return "El WhatsApp del negocio debe tener 10 dígitos y empezar por 3";
   return null;
+}
+
+/** Agrega un domiciliario a la lista (nombre corto, no repetido y celular opcional válido). */
+export function addDriver(
+  config: DeliveryConfig,
+  input: { name: string; phone: string },
+): { ok: true; config: DeliveryConfig } | { ok: false; error: string } {
+  const name = input.name.trim();
+  if (!name || name.length > 30) return { ok: false, error: "Escribe un nombre corto" };
+  if (config.drivers.some((d) => d.name.trim().toLowerCase() === name.toLowerCase()))
+    return { ok: false, error: "Ese domiciliario ya está en la lista" };
+  const raw = input.phone.trim();
+  const phone = raw ? normalizePhone(raw) : undefined;
+  if (raw && !phone)
+    return { ok: false, error: "El celular debe tener 10 dígitos y empezar por 3" };
+  return {
+    ok: true,
+    config: { ...config, drivers: [...config.drivers, { name, ...(phone ? { phone } : {}) }] },
+  };
 }
 
 /** Dónde va un pedido: "Mesa 5", "Domicilio D-4K7Q" o "Recoger D-4K7Q". */

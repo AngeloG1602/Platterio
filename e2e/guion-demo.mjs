@@ -454,6 +454,11 @@ check(
   "14. El administrador guarda el horario de domicilios",
   await visible(admin.getByText("Domicilios guardados")),
 );
+check(
+  "14. Configuración tiene el WhatsApp del negocio y el celular de cada domiciliario",
+  (await admin.getByLabel("Número de WhatsApp").inputValue()) === "3000000000" &&
+    (await visible(admin.getByText(/Andrés.*300 000 0001/))),
+);
 
 const casa = await tab("Casa", 390, 800);
 await casa.goto(`${BASE}/domicilio`);
@@ -475,6 +480,19 @@ check(
   await visible(casa.getByText(/Recibimos tu pedido/)),
 );
 
+const avisoNegocio = await casa
+  .getByRole("link", { name: /Avisar por WhatsApp/ })
+  .getAttribute("href");
+const textoNegocio = decodeURIComponent(avisoNegocio?.split("text=")[1] ?? "");
+check(
+  "14. El cliente puede avisar al negocio por WhatsApp con su pedido ya escrito",
+  avisoNegocio?.startsWith("https://wa.me/573000000000?text=") &&
+    textoNegocio.includes("Camila Ríos") &&
+    textoNegocio.includes("Calle 10 # 5-20 apto 301") &&
+    textoNegocio.includes("Clásica 27") &&
+    /\*Pedido D-/.test(textoNegocio),
+);
+
 await caja.goto(`${BASE}/caja`);
 await caja.getByRole("radio", { name: /Domicilios/ }).click();
 check("14. Caja ve el domicilio nuevo", await visible(caja.getByText(/Camila Ríos/)));
@@ -484,8 +502,40 @@ const dom = cocina.locator('article[aria-label^="Domicilio D-"]');
 check("14. Cocina recibe el domicilio con su código", await visible(dom));
 await dom.getByRole("button", { name: /Empezar a preparar/ }).click();
 await dom.getByRole("button", { name: /Marcar listo/ }).click();
-await caja.getByRole("button", { name: "Despachar" }).click();
+await caja.getByRole("button", { name: "Agregar domiciliario" }).click();
+await caja.getByLabel("Nombre del nuevo domiciliario").fill("Mateo");
+await caja.getByLabel("Celular del nuevo domiciliario").fill("300 777 8899");
+await caja.getByRole("button", { name: "Guardar", exact: true }).click();
+check(
+  "14. Caja agrega un domiciliario con su celular",
+  await visible(caja.getByText("Mateo agregado")),
+);
+await caja.getByLabel(/Domiciliario para/).selectOption("Mateo");
+check(
+  "14. Antes de despachar, el cliente aún no ve al domiciliario",
+  !(await visible(casa.getByText(/Tu domiciliario/), 800)),
+);
+await caja.getByRole("button", { name: "Despachar", exact: true }).click();
 check("14. El cliente ve que va en camino", await visible(casa.getByText(/va en camino/)));
+check(
+  "14. El cliente recibe el contacto del domiciliario: WhatsApp y llamada",
+  (await visible(casa.getByText("Tu domiciliario: Mateo"))) &&
+    (await casa.getByRole("link", { name: /WhatsApp con Mateo/ }).getAttribute("href"))?.startsWith(
+      "https://wa.me/573007778899?text=",
+    ) &&
+    (await casa.getByRole("link", { name: /Llamar a Mateo/ }).getAttribute("href")) ===
+      "tel:+573007778899",
+);
+const avisoChofer = await caja.getByRole("link", { name: /Avisar a Mateo/ }).getAttribute("href");
+const textoChofer = decodeURIComponent(avisoChofer?.split("text=")[1] ?? "");
+check(
+  "14. Caja puede escribirle al domiciliario con la dirección, el cliente y el cobro",
+  avisoChofer?.startsWith("https://wa.me/573007778899?text=") &&
+    textoChofer.includes("Camila Ríos · 300 123 4567") &&
+    textoChofer.includes("Calle 10 # 5-20 apto 301") &&
+    textoChofer.includes("google.com/maps") &&
+    textoChofer.includes("Cobrar:"),
+);
 await caja.getByRole("button", { name: /^Entregado/ }).click();
 check("14. El cliente ve que llegó", await visible(casa.getByText(/Tu pedido llegó/)));
 

@@ -73,7 +73,9 @@ import type { Brand } from "@/lib/domain/types";
 import { closeShift, openShift, registerPayment } from "@/lib/domain/cash";
 import type { PaymentMethod } from "@/lib/domain/types";
 import {
+  addDriver,
   customerCanCancel,
+  DEFAULT_DELIVERY,
   DELIVERY_TABLE_ID,
   deliveryCode,
   dispatchDelivery,
@@ -845,7 +847,10 @@ export const deliveryActions = {
     if (!allowed.ok) return allowed;
     const found = deliveryOrder(orderId);
     if (!found) return { ok: false, error: "No encontramos ese pedido" };
-    const r = dispatchDelivery(found.session, found.order, driver, nowIso());
+    const phone = useAppStore
+      .getState()
+      .restaurant.delivery?.drivers.find((d) => d.name === driver.trim())?.phone;
+    const r = dispatchDelivery(found.session, found.order, driver, nowIso(), phone);
     if (!r.ok) return r;
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === found.session.id ? r.session : x)),
@@ -862,6 +867,16 @@ export const deliveryActions = {
 };
 
 export const deliveryConfigActions = {
+  /** Agrega un domiciliario desde Caja (sin entrar a Configuración). */
+  addDriver(name: string, phone: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    const current = useAppStore.getState().restaurant.delivery ?? DEFAULT_DELIVERY;
+    const r = addDriver(current, { name, phone });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, delivery: r.config } }));
+    return { ok: true };
+  },
   save(config: DeliveryConfig): ActionResult {
     const allowed = requirePermission("panel.admin");
     if (!allowed.ok) return allowed;
