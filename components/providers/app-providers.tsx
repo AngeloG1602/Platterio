@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { BusinessScope } from "./business-scope";
-import { splitBusinessPath } from "@/lib/domain/routes";
+import { isCustomerPath } from "@/lib/domain/routes";
 import { Fragment, useEffect, type ReactNode } from "react";
 import { toast, Toaster } from "@/components/ui/toaster";
 import { brandVars } from "@/lib/domain/brand";
@@ -27,8 +27,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // El idioma solo cambia lo que ve el cliente; el personal siempre trabaja en español.
-  const screen = splitBusinessPath(pathname).path;
-  const customerView = screen.startsWith("/mesa") || screen.startsWith("/domicilio");
+  const customerView = isCustomerPath(pathname);
   const lang =
     hydrated && customerView
       ? pickLang({

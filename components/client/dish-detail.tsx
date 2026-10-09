@@ -34,7 +34,7 @@ import type { Dish } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 import { ClientShell } from "./client-shell";
 import { useTableActivity } from "./table-activity";
-import { TableViewGate, type TableContext, type TableView } from "./table-gate";
+import { PublicViewGate, TableViewGate, type TableContext, type TableView } from "./table-gate";
 import { BrowseBar } from "./browse-bar";
 import { localized, t } from "@/lib/i18n";
 
@@ -66,6 +66,17 @@ export function DishDetailScreen({ numero, dishId }: { numero: string; dishId: s
   );
 }
 
+/** Ficha de un plato en la carta pública (sin mesa). */
+export function PublicDishDetailScreen({ dishId }: { dishId: string }) {
+  return (
+    <ClientShell>
+      <PublicViewGate fallback={<DishSkeleton />}>
+        {(view) => <DishDetail view={view} dishId={dishId} />}
+      </PublicViewGate>
+    </ClientShell>
+  );
+}
+
 function useBack(fallback: string) {
   const router = useRouter();
   return () => {
@@ -82,7 +93,7 @@ function MemberActivity({ ctx }: { ctx: TableContext }) {
 
 function DishDetail({ view, dishId }: { view: TableView; dishId: string }) {
   const dish = useDish(dishId);
-  const menuHref = `${view.base}/menu`;
+  const menuHref = view.table ? `${view.base}/menu` : view.base;
   const back = useBack(menuHref);
 
   if (!dish || !dish.active) {

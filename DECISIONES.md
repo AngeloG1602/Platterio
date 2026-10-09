@@ -524,3 +524,16 @@ pueden cambiar sin rehacer pantallas.
       abrir y descargar el QR imprimible. Enlaza a las zonas, tarifas y horario (sección Domicilios
       y recogida) y a los QR de cada mesa. Antes esa configuración existía pero sin ningún enlace
       visible para el dueño.
+136.  **Carta pública y página de inicio del negocio.** Para quien busca el restaurante antes de ir
+      (o solo quiere ver qué ofrece y los precios), sin QR de mesa: `/{negocio}/carta` muestra la
+      carta completa (fotos, ingredientes, alérgenos, filtros, precios y visor 3D) y la ficha de
+      cada plato en `/{negocio}/carta/plato/{id}`. No tiene mesa ni carrito: una barra fija ofrece
+      **Pedir** (a domicilio o para recoger, si el negocio los recibe) y recuerda que en el local se
+      pide con el QR de la mesa. Encima, `/{negocio}` es la **página de inicio del negocio**: el
+      único enlace que se comparte en Instagram, WhatsApp o Google Maps, con tres caminos (Ver la
+      carta, Pedir a domicilio o para recoger con su estado abierto/cerrado, y el aviso del QR de
+      la mesa). Usa el estilo, logo, portada y colores del negocio. Sin negocio (la demo) la carta
+      es `/carta`. Es la misma pantalla de la carta de mesa en modo solo mirar (`TableView.table`
+      puede ser nulo), no una copia. En Configuración y Resumen, "Tus enlaces públicos" muestra los
+      tres enlaces (negocio, carta, domicilios) cada uno con **Copiar** y **Abrir**, y un solo QR
+      imprimible del enlace del negocio. Los códigos de negocio no pueden ser `carta`.

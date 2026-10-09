@@ -827,6 +827,67 @@ await verde.close();
 await publico.close();
 await personal.close();
 
+// 21. Carta pública y página de inicio del negocio
+const gente = await tab("Gente", 390, 900);
+await gente.goto(`${BASE}/casa-verde`);
+check(
+  "21. El enlace del negocio muestra qué hacer: carta o domicilio",
+  (await visible(gente.getByRole("heading", { name: "¿Qué quieres hacer?" }))) &&
+    (await visible(gente.getByRole("link", { name: /Ver la carta/ }))) &&
+    (await visible(gente.getByRole("link", { name: /Pedir a domicilio o para recoger/ }))),
+);
+check(
+  "21. Recuerda que en el local se pide con el QR de la mesa",
+  await visible(gente.getByText("¿Estás en el restaurante?")),
+);
+await gente.getByRole("link", { name: /Ver la carta/ }).click();
+await gente.waitForURL("**/casa-verde/carta");
+await gente.getByRole("dialog").getByRole("button", { name: "Omitir" }).click();
+check(
+  "21. La carta pública se ve sin mesa y con precios",
+  (await visible(gente.getByRole("heading", { name: "¿Qué se te antoja?" }))) &&
+    (await visible(gente.getByText(/\$22\.900/).first())),
+);
+check(
+  "21. No muestra mesa ni carrito, y ofrece pedir a domicilio",
+  !(await visible(gente.getByText(/^Mesa \d/), 1200)) &&
+    (await visible(gente.getByRole("link", { name: /Pedir$/ }))),
+);
+await gente.locator('a[href^="/casa-verde/carta/plato/"]').first().click();
+await gente.waitForURL("**/casa-verde/carta/plato/**");
+check(
+  "21. La ficha del plato se ve sin botón de agregar",
+  (await visible(gente.getByText(/\$\d/).first())) &&
+    !(await visible(gente.getByRole("button", { name: /^Agregar ·/ }), 1500)),
+);
+await gente.goto(`${BASE}/casa-verde/carta`);
+await gente.getByRole("link", { name: /Pedir$/ }).click();
+await gente.waitForURL("**/casa-verde/domicilio");
+check(
+  "21. Desde la carta se pasa a pedir a domicilio",
+  await visible(gente.getByRole("heading", { name: /Pide a domicilio/ })),
+);
+await gente.goto(`${BASE}/carta`);
+check(
+  "21. La carta pública de la demo funciona sin negocio",
+  await visible(gente.getByRole("heading", { name: "¿Qué se te antoja?" })),
+);
+await gente.goto(`${BASE}/negocio-que-no-existe`);
+check(
+  "21. Un inicio de negocio inexistente se avisa",
+  await visible(gente.getByText("No encontramos este negocio")),
+);
+await gente.close();
+
+const links = await tab("Enlaces", 1200, 900);
+await links.goto(`${BASE}/casa-verde/admin`);
+await links.getByRole("heading", { name: "Tus enlaces públicos" }).waitFor();
+check(
+  "21. El panel ofrece copiar los tres enlaces: negocio, carta y domicilios",
+  (await links.getByRole("button", { name: /Copiar enlace/ }).count()) === 3,
+);
+await links.close();
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

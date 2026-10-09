@@ -114,7 +114,8 @@ export function TableGate({
  * PIN (`sessionOpen` dice si el mesero ya la abrió).
  */
 export interface TableView {
-  table: Table;
+  /** La mesa del QR; null cuando se mira la carta pública, sin mesa. */
+  table: Table | null;
   base: string;
   member: TableContext | null;
   sessionOpen: boolean;
@@ -149,4 +150,18 @@ export function TableViewGate({
       })}
     </>
   );
+}
+
+/** Carta pública (sin mesa ni QR): se puede mirar con precios, y pedir solo a domicilio o recoger. */
+export function PublicViewGate({
+  fallback,
+  children,
+}: {
+  fallback: ReactNode;
+  children: (view: TableView) => ReactNode;
+}) {
+  const hydrated = useHydrated();
+  const href = useBusinessHref();
+  if (!hydrated) return <>{fallback}</>;
+  return <>{children({ table: null, base: href("/carta"), member: null, sessionOpen: false })}</>;
 }

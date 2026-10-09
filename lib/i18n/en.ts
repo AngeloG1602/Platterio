@@ -715,4 +715,21 @@ export const EN: Record<string, string> = {
   "Ver la carta mientras tanto": "Browse the menu meanwhile",
   "Puedes mirar la carta con sus precios; para pedir necesitas el PIN del mesero.":
     "You can browse the menu and its prices; to order you need your server's PIN.",
+  "Estás viendo la carta": "You're viewing the menu",
+  "¿Quieres pedir? A domicilio o para recoger. En el restaurante, escanea el QR de tu mesa.":
+    "Want to order? Delivery or pickup. At the restaurant, scan your table's QR.",
+  "En el restaurante, escanea el QR de tu mesa para pedir.":
+    "At the restaurant, scan your table's QR to order.",
+  Pedir: "Order",
+  "¿Qué quieres hacer?": "What would you like to do?",
+  "Platos, ingredientes y precios, para mirar con calma.":
+    "Dishes, ingredients and prices, to browse at your own pace.",
+  Abierto: "Open",
+  Cerrado: "Closed",
+  "¿Estás en el restaurante?": "Are you at the restaurant?",
+  "Escanea el QR de tu mesa para pedir desde tu celular.":
+    "Scan your table's QR to order from your phone.",
+  "No encontramos este negocio": "We couldn't find this business",
+  "Revisa la dirección o el código QR que te compartieron.":
+    "Check the address or the QR code you were given.",
 };

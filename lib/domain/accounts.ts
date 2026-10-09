@@ -68,6 +68,7 @@ export function slugify(name: string): string {
 const RESERVED = new Set([
   "admin",
   "personal",
+  "carta",
   "cuenta",
   "soporte",
   "login",
