@@ -560,3 +560,8 @@ pueden cambiar sin rehacer pantallas.
       (fase 9): envío automático con la API, y una página de entrega por pedido para el domiciliario
       con enlace imposible de adivinar y botón "Entregué". Los datos del cliente (celular y
       dirección) llegan al domiciliario: debe cubrirlo la política de tratamiento de datos.
+139.  **El enlace de entrada del personal también está en "Tus enlaces".** Además de la sección
+      Equipo, el panel de enlaces (Resumen y Configuración) tiene la fila "Entrada de tu equipo":
+      `/{negocio}/entrar` con **Copiar** y **Abrir**, el código del negocio para entrar desde
+      `/personal` y el acceso a Equipo para crear los PIN. El panel pasó a llamarse "Tus enlaces"
+      porque ese enlace no es público (pide el PIN de cada persona).

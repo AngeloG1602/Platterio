@@ -58,6 +58,13 @@ export function PublicLinksPanel() {
         </Badge>
       ),
     },
+    {
+      key: "personal",
+      title: "Entrada de tu equipo",
+      note: "Para mesero, cocina y caja: cada persona entra con su PIN, sin correo. Los PIN se crean en Equipo.",
+      path: withBusiness(slug, "/entrar"),
+      badge: <Badge tone="neutral">Solo para el personal</Badge>,
+    },
   ];
 
   async function copy(path: string) {
@@ -100,8 +107,8 @@ export function PublicLinksPanel() {
 
   return (
     <Panel
-      title="Tus enlaces públicos"
-      description="Lo que compartes con tus clientes. No piden usuario ni PIN para mirar la carta ni para pedir a domicilio."
+      title="Tus enlaces"
+      description="Los de tus clientes (la carta y los domicilios) no piden usuario ni PIN. El de tu equipo sí pide el PIN de cada persona."
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <div className="flex flex-col gap-4">
@@ -131,6 +138,25 @@ export function PublicLinksPanel() {
                   <span className="sr-only"> {r.title.toLowerCase()} en otra pestaña</span>
                 </a>
               </div>
+              {r.key === "personal" && (
+                <p className="text-muted mt-2 text-[13px]">
+                  {slug ? (
+                    <>
+                      También pueden entrar desde <b>{origin}/personal</b> con el código{" "}
+                      <b>{slug}</b> y su PIN.
+                    </>
+                  ) : (
+                    "Crea tu cuenta para tener el código de tu negocio."
+                  )}{" "}
+                  <a
+                    href={`${href("/admin/equipo")}`}
+                    className="text-accent-strong font-semibold underline"
+                  >
+                    Crear o cambiar PINs
+                  </a>
+                  .
+                </p>
+              )}
               {r.key === "domicilio" && (
                 <p className="text-muted mt-2 text-[13px]">
                   {enabled

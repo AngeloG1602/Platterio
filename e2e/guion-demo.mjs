@@ -839,7 +839,7 @@ check(
 );
 check(
   "20. El resumen muestra el enlace público de domicilios del negocio",
-  (await visible(verde.getByRole("heading", { name: "Tus enlaces públicos" }))) &&
+  (await visible(verde.getByRole("heading", { name: "Tus enlaces" }))) &&
     (await visible(verde.getByText(/\/casa-verde\/domicilio$/))),
 );
 check(
@@ -957,10 +957,16 @@ await gente.close();
 
 const links = await tab("Enlaces", 1200, 900);
 await links.goto(`${BASE}/casa-verde/admin`);
-await links.getByRole("heading", { name: "Tus enlaces públicos" }).waitFor();
+await links.getByRole("heading", { name: "Tus enlaces" }).waitFor();
 check(
-  "21. El panel ofrece copiar los tres enlaces: negocio, carta y domicilios",
-  (await links.getByRole("button", { name: /Copiar enlace/ }).count()) === 3,
+  "21. El panel ofrece copiar los enlaces: negocio, carta, domicilios y entrada del equipo",
+  (await links.getByRole("button", { name: /Copiar enlace/ }).count()) === 4,
+);
+check(
+  "21. Hay un enlace de entrada para el personal con su código",
+  (await visible(links.getByText("Entrada de tu equipo"))) &&
+    (await visible(links.getByText(/\/casa-verde\/entrar$/))) &&
+    (await visible(links.getByText(/con el código/))),
 );
 await links.close();
 
