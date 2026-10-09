@@ -10,7 +10,9 @@ import { toast } from "@/components/ui/toaster";
 import { waiterActions } from "@/lib/data";
 import { plural } from "@/lib/domain/format";
 import type { StaffLine } from "@/lib/domain/staffOrders";
+import { EMPTY_FILTERS, filterDishes, type MenuFilters } from "@/lib/domain/menu";
 import type { Category, Dish } from "@/lib/domain/types";
+import { DishFilterBar } from "./dish-filter-bar";
 
 interface Draft {
   variantId: string;
@@ -39,7 +41,8 @@ export function StaffOrderSheet({
 }) {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [error, setError] = useState<string>();
-  const available = dishes.filter((d) => d.active);
+  const [filters, setFilters] = useState<MenuFilters>(EMPTY_FILTERS);
+  const visible = filterDishes(dishes, filters);
 
   const lines: StaffLine[] = Object.entries(drafts)
     .filter(([, d]) => d.qty > 0)
@@ -122,8 +125,26 @@ export function StaffOrderSheet({
       }
     >
       <div className="flex flex-col gap-5 pb-3">
+        <DishFilterBar
+          categories={categories}
+          filters={filters}
+          onChange={setFilters}
+          resultCount={visible.length}
+        />
+        {visible.length === 0 && (
+          <p className="text-muted py-8 text-center text-[15px]">
+            No hay platos con esos filtros.{" "}
+            <button
+              type="button"
+              onClick={() => setFilters(EMPTY_FILTERS)}
+              className="text-accent-strong font-semibold underline"
+            >
+              Ver toda la carta
+            </button>
+          </p>
+        )}
         {categories.map((cat) => {
-          const list = available.filter((d) => d.categoryId === cat.id);
+          const list = visible.filter((d) => d.categoryId === cat.id);
           if (list.length === 0) return null;
           return (
             <section key={cat.id} aria-label={cat.name}>

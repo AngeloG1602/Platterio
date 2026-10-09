@@ -306,6 +306,32 @@ check(
 await daniela.getByRole("button", { name: /^Mesa 5:/ }).click();
 await daniela.getByRole("button", { name: "Tomar pedido" }).click();
 let hoja = daniela.getByRole("dialog").last();
+const clasica = hoja.getByText("Clásica 27", { exact: true });
+const limonada = hoja.getByText("Limonada de coco", { exact: true });
+check(
+  "11. El mesero ve toda la carta con buscador y filtros",
+  (await visible(clasica)) && (await visible(limonada)),
+);
+await hoja.getByLabel("Buscar plato o ingrediente").fill("quéso");
+check(
+  "11. Busca por ingrediente sin importar tildes",
+  (await visible(clasica)) && !(await visible(limonada, 800)),
+);
+await hoja.getByRole("button", { name: "Limpiar filtros" }).click();
+await hoja.getByRole("button", { name: "Filtros" }).click();
+await hoja.getByRole("button", { name: "Lácteos" }).click();
+check(
+  "11. Filtra los platos sin un alérgeno",
+  (await visible(limonada)) && !(await visible(clasica, 800)),
+);
+await hoja.getByRole("button", { name: "Hamburguesas", exact: true }).click();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("limonada");
+check(
+  "11. Combina filtros y avisa si no hay resultados",
+  await visible(hoja.getByText(/No hay platos con esos filtros|Sin resultados/)),
+);
+await hoja.getByRole("button", { name: "Limpiar filtros" }).first().click();
+check("11. Limpiar devuelve toda la carta", (await visible(clasica)) && (await visible(limonada)));
 await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
 await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
 const ronda = cocina.locator('article[aria-label="Mesa 5, ronda 1"]');

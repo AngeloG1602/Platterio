@@ -537,3 +537,10 @@ pueden cambiar sin rehacer pantallas.
       puede ser nulo), no una copia. En Configuración y Resumen, "Tus enlaces públicos" muestra los
       tres enlaces (negocio, carta, domicilios) cada uno con **Copiar** y **Abrir**, y un solo QR
       imprimible del enlace del negocio. Los códigos de negocio no pueden ser `carta`.
+137.  **Buscador y filtros al tomar un pedido.** La hoja "Tomar pedido" / "Agregar platos" del
+      mesero (y de caja) tiene arriba, fijos, un buscador (por nombre o ingrediente, sin importar
+      tildes) y filtros como los del cliente: categoría en chips, "sin" alérgenos y nivel de
+      picante, con el número de filtros activos, el conteo de platos y "Limpiar filtros". Usa la
+      misma lógica pura de la carta (`filterDishes`) pero con su estado propio en la hoja, para no
+      mezclarse con los filtros del cliente. Lo ya elegido (cantidades, opciones y notas) se
+      conserva al filtrar y el pie sigue mostrando el total.
