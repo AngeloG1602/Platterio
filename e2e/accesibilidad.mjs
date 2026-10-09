@@ -40,6 +40,8 @@ const pages = [
   ["Calificar", "/mesa/3/calificar", 390],
   ["Mesa cerrada", "/mesa/6", 390],
   ["Carta sin pedir", "/mesa/6/menu", 390],
+  ["Carta pública", "/carta", 390],
+  ["Ficha en la carta pública", "/carta/plato/clasica-27", 390],
   ["Ficha sin pedir", "/mesa/6/plato/clasica-27", 390],
   ["Entrada con PIN", "/entrar", 390],
   ["Domicilios carta", "/domicilio", 390],
@@ -77,7 +79,14 @@ const guest = watch(
 );
 let total = 0;
 for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
-  const p = ["Entrada QR", "Mesa cerrada", "Carta sin pedir", "Ficha sin pedir"].includes(name)
+  const p = [
+    "Entrada QR",
+    "Mesa cerrada",
+    "Carta sin pedir",
+    "Ficha sin pedir",
+    "Carta pública",
+    "Ficha en la carta pública",
+  ].includes(name)
     ? guest
     : page;
   await p.setViewportSize({ width, height: 900 });
@@ -151,6 +160,15 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
         );
     }
   };
+  // Una cuenta de negocio para ver su página de inicio con cada estilo.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`${BASE}/registro`);
+  await page.getByLabel("Nombre de tu negocio").fill("Casa Verde");
+  await page.getByLabel("Correo").fill("a11y@casaverde.co");
+  await page.getByLabel("Contraseña", { exact: true }).fill("clave12345");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: /Crear mi cuenta/ }).click();
+  await page.waitForURL("**/casa-verde/admin");
   for (const estilo of [...ESTILOS, "Clásico"]) {
     await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto(`${BASE}/admin/configuracion`);
@@ -167,6 +185,8 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
     await scan(`Domicilios con estilo ${estilo}`, "/domicilio");
     await scan(`Ficha con estilo ${estilo}`, "/mesa/3/plato/clasica-27");
     await scan(`Carrito con estilo ${estilo}`, "/mesa/3/carrito");
+    await scan(`Inicio del negocio con estilo ${estilo}`, "/casa-verde");
+    await scan(`Carta pública con estilo ${estilo}`, "/casa-verde/carta");
   }
 }
 

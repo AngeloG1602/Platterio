@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitBusinessPath, withBusiness } from "./routes";
+import { businessHomeSlug, isCustomerPath, splitBusinessPath, withBusiness } from "./routes";
 
 describe("direcciones por negocio", () => {
   it("separa el negocio de la pantalla", () => {
@@ -44,5 +44,35 @@ describe("direcciones por negocio", () => {
       const { slug, path } = splitBusinessPath(p);
       expect(withBusiness(slug, path)).toBe(p);
     }
+  });
+
+  it("la carta pública también es una pantalla de negocio", () => {
+    expect(splitBusinessPath("/casa-verde/carta/plato/clasica-27")).toEqual({
+      slug: "casa-verde",
+      path: "/carta/plato/clasica-27",
+    });
+  });
+});
+
+describe("inicio del negocio", () => {
+  it("reconoce `/negocio` como inicio y no las páginas de la plataforma", () => {
+    expect(businessHomeSlug("/casa-verde")).toBe("casa-verde");
+    expect(businessHomeSlug("/casa-verde/")).toBe("casa-verde");
+    expect(businessHomeSlug("/registro")).toBeNull();
+    expect(businessHomeSlug("/demo")).toBeNull();
+    expect(businessHomeSlug("/admin")).toBeNull();
+    expect(businessHomeSlug("/")).toBeNull();
+    expect(businessHomeSlug("/casa-verde/carta")).toBeNull();
+  });
+
+  it("qué pantallas ve el cliente", () => {
+    expect(isCustomerPath("/casa-verde")).toBe(true);
+    expect(isCustomerPath("/casa-verde/carta")).toBe(true);
+    expect(isCustomerPath("/carta")).toBe(true);
+    expect(isCustomerPath("/casa-verde/domicilio/pedido")).toBe(true);
+    expect(isCustomerPath("/mesa/3/menu")).toBe(true);
+    expect(isCustomerPath("/casa-verde/admin")).toBe(false);
+    expect(isCustomerPath("/registro")).toBe(false);
+    expect(isCustomerPath("/")).toBe(false);
   });
 });

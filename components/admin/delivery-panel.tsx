@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { deliveryConfigActions, useDeliveryConfig } from "@/lib/data";
 import { newId } from "@/lib/data/ids";
-import { DEFAULT_DELIVERY } from "@/lib/domain/delivery";
+import { addDriver, DEFAULT_DELIVERY, formatPhone, normalizePhone } from "@/lib/domain/delivery";
 import type { DeliveryConfig, DeliveryZone } from "@/lib/domain/types";
 import { Panel } from "./ui/page-header";
 
@@ -24,6 +24,7 @@ const num = (text: string) => Number(text.replace(/\D/g, ""));
 function DeliveryForm({ saved }: { saved: DeliveryConfig }) {
   const [draft, setDraft] = useState<DeliveryConfig>(saved);
   const [driver, setDriver] = useState("");
+  const [driverPhone, setDriverPhone] = useState("");
   const [error, setError] = useState<string>();
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const patch = (p: Partial<DeliveryConfig>) => {
@@ -42,8 +43,11 @@ function DeliveryForm({ saved }: { saved: DeliveryConfig }) {
           size="sm"
           disabled={!dirty}
           onClick={() => {
+            const { whatsapp, ...rest } = draft;
+            const wa = whatsapp?.trim();
             const r = deliveryConfigActions.save({
-              ...draft,
+              ...rest,
+              ...(wa ? { whatsapp: normalizePhone(wa) ?? wa } : {}),
               zones: draft.zones.map((z) => ({ ...z, name: z.name.trim() })),
             });
             if (!r.ok) return setError(r.error);
@@ -179,22 +183,54 @@ function DeliveryForm({ saved }: { saved: DeliveryConfig }) {
           </Button>
         </section>
 
+        <section aria-labelledby="whatsapp-negocio">
+          <h3 id="whatsapp-negocio" className="text-[15px] font-semibold">
+            WhatsApp del negocio
+          </h3>
+          <p className="text-muted text-[13px]">
+            El cliente ve un botón para avisarte su pedido por WhatsApp, con todo el detalle ya
+            escrito. Además del aviso a Caja, ayuda a hablar rápido con él.
+          </p>
+          <Field
+            label="Número de WhatsApp"
+            hint="Celular de 10 dígitos. Déjalo vacío para no mostrar el botón."
+          >
+            {(p) => (
+              <Input
+                {...p}
+                className="mt-2 max-w-xs"
+                inputMode="tel"
+                value={draft.whatsapp ?? ""}
+                placeholder="300 123 4567"
+                onChange={(e) => patch({ whatsapp: e.target.value })}
+              />
+            )}
+          </Field>
+        </section>
+
         <section aria-labelledby="domiciliarios">
           <h3 id="domiciliarios" className="text-[15px] font-semibold">
             Domiciliarios
           </h3>
+          <p className="text-muted text-[13px]">
+            Con su celular puedes escribirle por WhatsApp el pedido y, si quieres, el cliente lo ve
+            cuando el pedido va en camino.
+          </p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {draft.drivers.map((d) => (
               <li
-                key={d}
+                key={d.name}
                 className="bg-surface-2 flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-sm font-medium"
               >
-                {d}
+                {d.name}
+                <span className="text-muted font-normal">
+                  {d.phone ? `· ${formatPhone(d.phone)}` : "· sin celular"}
+                </span>
                 <IconButton
-                  label={`Quitar a ${d}`}
+                  label={`Quitar a ${d.name}`}
                   variant="ghost"
                   className="size-8"
-                  onClick={() => patch({ drivers: draft.drivers.filter((x) => x !== d) })}
+                  onClick={() => patch({ drivers: draft.drivers.filter((x) => x.name !== d.name) })}
                 >
                   <X aria-hidden />
                 </IconButton>
@@ -202,26 +238,44 @@ function DeliveryForm({ saved }: { saved: DeliveryConfig }) {
             ))}
           </ul>
           <form
-            className="mt-3 flex max-w-sm gap-2"
+            className="mt-3 flex max-w-lg flex-wrap gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              const name = driver.trim();
-              if (!name) return;
-              patch({ drivers: [...draft.drivers, name] });
+              const r = addDriver(draft, { name: driver, phone: driverPhone });
+              if (!r.ok) return setError(r.error);
+              patch({ drivers: r.config.drivers });
               setDriver("");
+              setDriverPhone("");
             }}
           >
             <Input
               aria-label="Nombre del domiciliario"
+              className="w-40"
               value={driver}
               maxLength={30}
               placeholder="Nombre"
               onChange={(e) => setDriver(e.target.value)}
             />
+            <Input
+              aria-label="Celular del domiciliario"
+              className="w-44"
+              inputMode="tel"
+              value={driverPhone}
+              placeholder="Celular (WhatsApp)"
+              onChange={(e) => setDriverPhone(e.target.value)}
+            />
             <Button type="submit" variant="secondary">
               Agregar
             </Button>
           </form>
+          <div className="mt-4">
+            <Switch
+              label="Mostrar al cliente el contacto del domiciliario"
+              description="Cuando el pedido sale, el cliente ve su nombre y puede escribirle o llamarle. Solo se ve mientras va en camino."
+              checked={draft.shareDriver !== false}
+              onChange={(shareDriver) => patch({ shareDriver })}
+            />
+          </div>
         </section>
 
         {error && (

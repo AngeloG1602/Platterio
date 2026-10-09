@@ -306,6 +306,32 @@ check(
 await daniela.getByRole("button", { name: /^Mesa 5:/ }).click();
 await daniela.getByRole("button", { name: "Tomar pedido" }).click();
 let hoja = daniela.getByRole("dialog").last();
+const clasica = hoja.getByText("Clásica 27", { exact: true });
+const limonada = hoja.getByText("Limonada de coco", { exact: true });
+check(
+  "11. El mesero ve toda la carta con buscador y filtros",
+  (await visible(clasica)) && (await visible(limonada)),
+);
+await hoja.getByLabel("Buscar plato o ingrediente").fill("quéso");
+check(
+  "11. Busca por ingrediente sin importar tildes",
+  (await visible(clasica)) && !(await visible(limonada, 800)),
+);
+await hoja.getByRole("button", { name: "Limpiar filtros" }).click();
+await hoja.getByRole("button", { name: "Filtros" }).click();
+await hoja.getByRole("button", { name: "Lácteos" }).click();
+check(
+  "11. Filtra los platos sin un alérgeno",
+  (await visible(limonada)) && !(await visible(clasica, 800)),
+);
+await hoja.getByRole("button", { name: "Hamburguesas", exact: true }).click();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("limonada");
+check(
+  "11. Combina filtros y avisa si no hay resultados",
+  await visible(hoja.getByText(/No hay platos con esos filtros|Sin resultados/)),
+);
+await hoja.getByRole("button", { name: "Limpiar filtros" }).first().click();
+check("11. Limpiar devuelve toda la carta", (await visible(clasica)) && (await visible(limonada)));
 await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
 await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
 const ronda = cocina.locator('article[aria-label="Mesa 5, ronda 1"]');
@@ -428,6 +454,11 @@ check(
   "14. El administrador guarda el horario de domicilios",
   await visible(admin.getByText("Domicilios guardados")),
 );
+check(
+  "14. Configuración tiene el WhatsApp del negocio y el celular de cada domiciliario",
+  (await admin.getByLabel("Número de WhatsApp").inputValue()) === "3000000000" &&
+    (await visible(admin.getByText(/Andrés.*300 000 0001/))),
+);
 
 const casa = await tab("Casa", 390, 800);
 await casa.goto(`${BASE}/domicilio`);
@@ -449,6 +480,19 @@ check(
   await visible(casa.getByText(/Recibimos tu pedido/)),
 );
 
+const avisoNegocio = await casa
+  .getByRole("link", { name: /Avisar por WhatsApp/ })
+  .getAttribute("href");
+const textoNegocio = decodeURIComponent(avisoNegocio?.split("text=")[1] ?? "");
+check(
+  "14. El cliente puede avisar al negocio por WhatsApp con su pedido ya escrito",
+  avisoNegocio?.startsWith("https://wa.me/573000000000?text=") &&
+    textoNegocio.includes("Camila Ríos") &&
+    textoNegocio.includes("Calle 10 # 5-20 apto 301") &&
+    textoNegocio.includes("Clásica 27") &&
+    /\*Pedido D-/.test(textoNegocio),
+);
+
 await caja.goto(`${BASE}/caja`);
 await caja.getByRole("radio", { name: /Domicilios/ }).click();
 check("14. Caja ve el domicilio nuevo", await visible(caja.getByText(/Camila Ríos/)));
@@ -458,8 +502,40 @@ const dom = cocina.locator('article[aria-label^="Domicilio D-"]');
 check("14. Cocina recibe el domicilio con su código", await visible(dom));
 await dom.getByRole("button", { name: /Empezar a preparar/ }).click();
 await dom.getByRole("button", { name: /Marcar listo/ }).click();
-await caja.getByRole("button", { name: "Despachar" }).click();
+await caja.getByRole("button", { name: "Agregar domiciliario" }).click();
+await caja.getByLabel("Nombre del nuevo domiciliario").fill("Mateo");
+await caja.getByLabel("Celular del nuevo domiciliario").fill("300 777 8899");
+await caja.getByRole("button", { name: "Guardar", exact: true }).click();
+check(
+  "14. Caja agrega un domiciliario con su celular",
+  await visible(caja.getByText("Mateo agregado")),
+);
+await caja.getByLabel(/Domiciliario para/).selectOption("Mateo");
+check(
+  "14. Antes de despachar, el cliente aún no ve al domiciliario",
+  !(await visible(casa.getByText(/Tu domiciliario/), 800)),
+);
+await caja.getByRole("button", { name: "Despachar", exact: true }).click();
 check("14. El cliente ve que va en camino", await visible(casa.getByText(/va en camino/)));
+check(
+  "14. El cliente recibe el contacto del domiciliario: WhatsApp y llamada",
+  (await visible(casa.getByText("Tu domiciliario: Mateo"))) &&
+    (await casa.getByRole("link", { name: /WhatsApp con Mateo/ }).getAttribute("href"))?.startsWith(
+      "https://wa.me/573007778899?text=",
+    ) &&
+    (await casa.getByRole("link", { name: /Llamar a Mateo/ }).getAttribute("href")) ===
+      "tel:+573007778899",
+);
+const avisoChofer = await caja.getByRole("link", { name: /Avisar a Mateo/ }).getAttribute("href");
+const textoChofer = decodeURIComponent(avisoChofer?.split("text=")[1] ?? "");
+check(
+  "14. Caja puede escribirle al domiciliario con la dirección, el cliente y el cobro",
+  avisoChofer?.startsWith("https://wa.me/573007778899?text=") &&
+    textoChofer.includes("Camila Ríos · 300 123 4567") &&
+    textoChofer.includes("Calle 10 # 5-20 apto 301") &&
+    textoChofer.includes("google.com/maps") &&
+    textoChofer.includes("Cobrar:"),
+);
 await caja.getByRole("button", { name: /^Entregado/ }).click();
 check("14. El cliente ve que llegó", await visible(casa.getByText(/Tu pedido llegó/)));
 
@@ -826,6 +902,67 @@ check(
 await verde.close();
 await publico.close();
 await personal.close();
+
+// 21. Carta pública y página de inicio del negocio
+const gente = await tab("Gente", 390, 900);
+await gente.goto(`${BASE}/casa-verde`);
+check(
+  "21. El enlace del negocio muestra qué hacer: carta o domicilio",
+  (await visible(gente.getByRole("heading", { name: "¿Qué quieres hacer?" }))) &&
+    (await visible(gente.getByRole("link", { name: /Ver la carta/ }))) &&
+    (await visible(gente.getByRole("link", { name: /Pedir a domicilio o para recoger/ }))),
+);
+check(
+  "21. Recuerda que en el local se pide con el QR de la mesa",
+  await visible(gente.getByText("¿Estás en el restaurante?")),
+);
+await gente.getByRole("link", { name: /Ver la carta/ }).click();
+await gente.waitForURL("**/casa-verde/carta");
+await gente.getByRole("dialog").getByRole("button", { name: "Omitir" }).click();
+check(
+  "21. La carta pública se ve sin mesa y con precios",
+  (await visible(gente.getByRole("heading", { name: "¿Qué se te antoja?" }))) &&
+    (await visible(gente.getByText(/\$22\.900/).first())),
+);
+check(
+  "21. No muestra mesa ni carrito, y ofrece pedir a domicilio",
+  !(await visible(gente.getByText(/^Mesa \d/), 1200)) &&
+    (await visible(gente.getByRole("link", { name: /Pedir$/ }))),
+);
+await gente.locator('a[href^="/casa-verde/carta/plato/"]').first().click();
+await gente.waitForURL("**/casa-verde/carta/plato/**");
+check(
+  "21. La ficha del plato se ve sin botón de agregar",
+  (await visible(gente.getByText(/\$\d/).first())) &&
+    !(await visible(gente.getByRole("button", { name: /^Agregar ·/ }), 1500)),
+);
+await gente.goto(`${BASE}/casa-verde/carta`);
+await gente.getByRole("link", { name: /Pedir$/ }).click();
+await gente.waitForURL("**/casa-verde/domicilio");
+check(
+  "21. Desde la carta se pasa a pedir a domicilio",
+  await visible(gente.getByRole("heading", { name: /Pide a domicilio/ })),
+);
+await gente.goto(`${BASE}/carta`);
+check(
+  "21. La carta pública de la demo funciona sin negocio",
+  await visible(gente.getByRole("heading", { name: "¿Qué se te antoja?" })),
+);
+await gente.goto(`${BASE}/negocio-que-no-existe`);
+check(
+  "21. Un inicio de negocio inexistente se avisa",
+  await visible(gente.getByText("No encontramos este negocio")),
+);
+await gente.close();
+
+const links = await tab("Enlaces", 1200, 900);
+await links.goto(`${BASE}/casa-verde/admin`);
+await links.getByRole("heading", { name: "Tus enlaces públicos" }).waitFor();
+check(
+  "21. El panel ofrece copiar los tres enlaces: negocio, carta y domicilios",
+  (await links.getByRole("button", { name: /Copiar enlace/ }).count()) === 3,
+);
+await links.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);

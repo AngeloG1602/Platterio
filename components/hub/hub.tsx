@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bike,
+  BookOpen,
   ChefHat,
   ConciergeBell,
   KeyRound,
@@ -109,6 +110,14 @@ export function Hub() {
         <h2 className="sr-only">Entra como</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <ClientCard />
+          <RoleCard
+            icon={BookOpen}
+            device={Smartphone}
+            deviceLabel="Celular de cualquier persona"
+            title="Carta pública"
+            description="Quien busca el restaurante ve qué ofrece y los precios antes de ir, sin QR de mesa. Desde ahí puede pedir a domicilio."
+            href="/carta"
+          />
           <RoleCard
             icon={Bike}
             device={Smartphone}

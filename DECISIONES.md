@@ -524,3 +524,39 @@ pueden cambiar sin rehacer pantallas.
       abrir y descargar el QR imprimible. Enlaza a las zonas, tarifas y horario (sección Domicilios
       y recogida) y a los QR de cada mesa. Antes esa configuración existía pero sin ningún enlace
       visible para el dueño.
+136.  **Carta pública y página de inicio del negocio.** Para quien busca el restaurante antes de ir
+      (o solo quiere ver qué ofrece y los precios), sin QR de mesa: `/{negocio}/carta` muestra la
+      carta completa (fotos, ingredientes, alérgenos, filtros, precios y visor 3D) y la ficha de
+      cada plato en `/{negocio}/carta/plato/{id}`. No tiene mesa ni carrito: una barra fija ofrece
+      **Pedir** (a domicilio o para recoger, si el negocio los recibe) y recuerda que en el local se
+      pide con el QR de la mesa. Encima, `/{negocio}` es la **página de inicio del negocio**: el
+      único enlace que se comparte en Instagram, WhatsApp o Google Maps, con tres caminos (Ver la
+      carta, Pedir a domicilio o para recoger con su estado abierto/cerrado, y el aviso del QR de
+      la mesa). Usa el estilo, logo, portada y colores del negocio. Sin negocio (la demo) la carta
+      es `/carta`. Es la misma pantalla de la carta de mesa en modo solo mirar (`TableView.table`
+      puede ser nulo), no una copia. En Configuración y Resumen, "Tus enlaces públicos" muestra los
+      tres enlaces (negocio, carta, domicilios) cada uno con **Copiar** y **Abrir**, y un solo QR
+      imprimible del enlace del negocio. Los códigos de negocio no pueden ser `carta`.
+137.  **Buscador y filtros al tomar un pedido.** La hoja "Tomar pedido" / "Agregar platos" del
+      mesero (y de caja) tiene arriba, fijos, un buscador (por nombre o ingrediente, sin importar
+      tildes) y filtros como los del cliente: categoría en chips, "sin" alérgenos y nivel de
+      picante, con el número de filtros activos, el conteo de platos y "Limpiar filtros". Usa la
+      misma lógica pura de la carta (`filterDishes`) pero con su estado propio en la hoja, para no
+      mezclarse con los filtros del cliente. Lo ya elegido (cantidades, opciones y notas) se
+      conserva al filtrar y el pie sigue mostrando el total.
+138.  **WhatsApp en los domicilios.** Son enlaces `wa.me` gratuitos: abren WhatsApp en el celular de
+      quien toca el botón con el mensaje ya escrito, y esa persona lo envía. No se manda solo (eso
+      pide la API de WhatsApp Business, con servidor, plantillas y costo por conversación, que queda
+      para la fase 9); el pedido siempre queda registrado y avisa a Caja. **Cliente → negocio:** si
+      el negocio guarda su WhatsApp (Configuración → Domicilios y recogida), el seguimiento del
+      pedido ofrece "Avisar por WhatsApp" con el detalle (código, platos con opciones y notas,
+      total con envío, forma de pago, nombre, celular, dirección y referencia). **Domiciliarios**
+      pasan de ser un nombre a nombre + celular, y se agregan también desde Caja (administrador y
+      encargado). **Caja → domiciliario:** "Despachar y avisar" o, ya en camino, "Avisar a …" con
+      dirección, cliente, mapa, cuánto cobrar y el pedido; también "Llamar" y WhatsApp al cliente.
+      **Cliente ↔ domiciliario:** al salir el pedido el cliente que lo hizo ve "Tu domiciliario" con
+      WhatsApp y Llamar, solo mientras va en camino y si el negocio lo permite (opción activada por
+      defecto); el celular se guarda en el pedido al despachar. Prefijo de país fijo, 57. Pendiente
+      (fase 9): envío automático con la API, y una página de entrega por pedido para el domiciliario
+      con enlace imposible de adivinar y botón "Entregué". Los datos del cliente (celular y
+      dirección) llegan al domiciliario: debe cubrirlo la política de tratamiento de datos.

@@ -19,7 +19,7 @@ import type {
 import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 5;
+export const DATA_VERSION = 6;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */

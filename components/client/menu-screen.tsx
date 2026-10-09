@@ -36,7 +36,7 @@ import { Recommendations, RecommendationsSkeleton } from "./recommendations";
 import { RestrictionsSheet } from "./restrictions-sheet";
 import { useTableActivity } from "./table-activity";
 import { TableBar } from "./table-bar";
-import { TableViewGate, type TableContext, type TableView } from "./table-gate";
+import { PublicViewGate, TableViewGate, type TableContext, type TableView } from "./table-gate";
 import { BrowseBar } from "./browse-bar";
 import { localized, t } from "@/lib/i18n";
 
@@ -46,6 +46,15 @@ export function MenuScreen({ numero }: { numero: string }) {
       <TableViewGate numero={numero} fallback={<MenuSkeleton />}>
         {(view) => <Menu view={view} />}
       </TableViewGate>
+    </ClientShell>
+  );
+}
+
+/** Carta pública de un negocio (sin mesa): para ver qué ofrece y los precios antes de ir o pedir. */
+export function PublicMenuScreen() {
+  return (
+    <ClientShell>
+      <PublicViewGate fallback={<MenuSkeleton />}>{(view) => <Menu view={view} />}</PublicViewGate>
     </ClientShell>
   );
 }
@@ -87,10 +96,12 @@ function Menu({ view }: { view: TableView }) {
         name={restaurant.name}
         actions={
           <>
-            <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
-              {t("Mesa {n}", { n: view.table.number })} ·{" "}
-              {ctx ? ctx.diner.alias : t("Solo mirando")}
-            </span>
+            {view.table && (
+              <span className="bg-surface-2 text-ink-soft rounded-full px-3 py-1.5 text-[13px] font-semibold">
+                {t("Mesa {n}", { n: view.table.number })} ·{" "}
+                {ctx ? ctx.diner.alias : t("Solo mirando")}
+              </span>
+            )}
             <button
               type="button"
               onClick={openRestrictions}

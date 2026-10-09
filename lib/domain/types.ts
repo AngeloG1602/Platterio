@@ -45,6 +45,12 @@ export interface Brand {
   logo?: string;
 }
 
+/** Domiciliario: nombre y, si se quiere escribirle por WhatsApp, su celular. */
+export interface Driver {
+  name: string;
+  phone?: string;
+}
+
 /** Zona de reparto con su tarifa, pedido mínimo y tiempo estimado. */
 export interface DeliveryZone {
   id: string;
@@ -64,7 +70,11 @@ export interface DeliveryConfig {
   closesAt: string;
   zones: DeliveryZone[];
   /** Domiciliarios a los que se les puede asignar un pedido. */
-  drivers: string[];
+  drivers: Driver[];
+  /** WhatsApp del negocio, para que el cliente le avise su pedido (celular de 10 dígitos). */
+  whatsapp?: string;
+  /** Si el cliente ve el contacto del domiciliario mientras lleva su pedido (por defecto, sí). */
+  shareDriver?: boolean;
   /** Minutos de preparación que se suman al tiempo de la zona. */
   prepMin: number;
 }
@@ -91,6 +101,8 @@ export interface DeliveryInfo {
   /** Minutos estimados que se le prometieron al cliente. */
   etaMin: number;
   driver?: string;
+  /** Celular del domiciliario al despachar (se guarda en el pedido por si luego cambia). */
+  driverPhone?: string;
   dispatchedAt?: string;
 }
 

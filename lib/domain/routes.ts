@@ -13,8 +13,21 @@ export const BUSINESS_SECTIONS = [
   "caja",
   "mesa",
   "domicilio",
+  "carta",
   "entrar",
 ] as const;
+
+/** Páginas de la plataforma que cuelgan directo de la raíz (no son un negocio). */
+const PLATFORM_PAGES: ReadonlySet<string> = new Set([
+  "registro",
+  "iniciar-sesion",
+  "personal",
+  "demo",
+  "producto",
+  "muestra",
+  "laboratorio",
+  "negocio",
+]);
 
 const SECTION_SET: ReadonlySet<string> = new Set(BUSINESS_SECTIONS);
 
@@ -42,3 +55,25 @@ export function withBusiness(slug: string | null, path: string): string {
 
 /** Expresión para next.config: qué negocios no son una sección de la plataforma. */
 export const BUSINESS_SOURCE = `/:negocio((?!(?:${BUSINESS_SECTIONS.join("|")})$)[a-z0-9-]+)/:section(${BUSINESS_SECTIONS.join("|")})/:rest*`;
+
+/** `/casa-verde` (sin pantalla detrás): la página de inicio de un negocio. Devuelve su código. */
+export function businessHomeSlug(pathname: string): string | null {
+  const parts = pathname.split("/").filter(Boolean);
+  const [only] = parts;
+  if (parts.length !== 1 || !only) return null;
+  return SECTION_SET.has(only) || PLATFORM_PAGES.has(only) ? null : only;
+}
+
+/** Pantallas que ve el cliente del negocio (carta, domicilios, inicio), no el personal. */
+export function isCustomerPath(pathname: string): boolean {
+  const { path } = splitBusinessPath(pathname);
+  return (
+    path.startsWith("/mesa") ||
+    path.startsWith("/domicilio") ||
+    path.startsWith("/carta") ||
+    businessHomeSlug(pathname) !== null
+  );
+}
+
+/** Rewrite de next.config: `/casa-verde` se sirve con `/negocio/casa-verde`. */
+export const BUSINESS_HOME_SOURCE = `/:negocio((?!(?:${[...SECTION_SET, ...PLATFORM_PAGES].join("|")})$)[a-z0-9-]+)`;

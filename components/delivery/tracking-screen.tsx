@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowLeft, Check, MapPin, Phone, Store } from "lucide-react";
+import { ArrowLeft, Check, MapPin, MessageCircle, Phone, Store } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ClientShell } from "@/components/client/client-shell";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Price } from "@/components/ui/price";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,9 +12,11 @@ import { toast } from "@/components/ui/toaster";
 import {
   deliveryClientActions,
   useDeliveryClient,
+  useDeliveryConfig,
   useDeliveryOrder,
   useDishes,
   useHydrated,
+  useRestaurant,
 } from "@/lib/data";
 import {
   customerCanCancel,
@@ -24,6 +26,13 @@ import {
   stageMessage,
 } from "@/lib/domain/delivery";
 import { formatMoney, formatTime } from "@/lib/domain/format";
+import {
+  messageCustomerToDriver,
+  messageToBusiness,
+  orderLines,
+  telLink,
+  waLink,
+} from "@/lib/domain/whatsapp";
 import { cn } from "@/lib/cn";
 import { localized, t } from "@/lib/i18n";
 import { useBusinessHref } from "@/components/providers/business-scope";
@@ -38,6 +47,8 @@ export function TrackingScreen({ id }: { id: string }) {
 
 function Tracking({ id }: { id: string }) {
   const href = useBusinessHref();
+  const restaurant = useRestaurant();
+  const config = useDeliveryConfig();
   const hydrated = useHydrated();
   const item = useDeliveryOrder(id);
   const dishes = useDishes();
@@ -109,6 +120,83 @@ function Tracking({ id }: { id: string }) {
             </span>
           )}
         </section>
+
+        {mine && !cancelled && stage !== "entregado" && config?.whatsapp && (
+          <section
+            aria-label={t("Avisar al restaurante")}
+            className="border-line bg-surface shadow-card flex flex-col gap-2 rounded-2xl border p-4"
+          >
+            <p className="text-[15px] font-semibold">{t("¿Quieres avisarle al restaurante?")}</p>
+            <p className="text-ink-soft text-[14px]">
+              {t(
+                "Tu pedido ya quedó registrado. Por WhatsApp puedes mandarle el detalle y hablar con ellos.",
+              )}
+            </p>
+            <a
+              href={
+                waLink(
+                  config.whatsapp,
+                  messageToBusiness({
+                    restaurant: restaurant.name,
+                    info,
+                    lines: orderLines(order, dishes),
+                    total,
+                  }),
+                ) ?? undefined
+              }
+              target="_blank"
+              rel="noreferrer"
+              className={buttonClasses({ variant: "secondary", block: true })}
+            >
+              <MessageCircle aria-hidden /> {t("Avisar por WhatsApp")}
+            </a>
+          </section>
+        )}
+
+        {mine &&
+          stage === "en_camino" &&
+          info.driver &&
+          config?.shareDriver !== false &&
+          info.driverPhone && (
+            <section
+              aria-label={t("Tu domiciliario")}
+              className="border-line bg-surface shadow-card flex flex-col gap-2 rounded-2xl border p-4"
+            >
+              <p className="text-[15px] font-semibold">
+                {t("Tu domiciliario: {driver}", { driver: info.driver })}
+              </p>
+              <p className="text-ink-soft text-[14px]">
+                {t("Si no encuentra la dirección o necesitas decirle algo, escríbele o llámalo.")}
+              </p>
+              <div className="flex gap-2">
+                <a
+                  href={
+                    waLink(
+                      info.driverPhone,
+                      messageCustomerToDriver({
+                        restaurant: restaurant.name,
+                        driver: info.driver,
+                        info,
+                      }),
+                    ) ?? undefined
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className={buttonClasses({ variant: "secondary", className: "flex-1" })}
+                >
+                  <MessageCircle aria-hidden /> {t("WhatsApp")}
+                  <span className="sr-only"> {t("con {driver}", { driver: info.driver })}</span>
+                </a>
+                <a
+                  href={telLink(info.driverPhone) ?? undefined}
+                  className={buttonClasses({ variant: "secondary", className: "flex-1" })}
+                >
+                  <Phone aria-hidden /> {t("Llamar")}
+                  <span className="sr-only"> {t("a {driver}", { driver: info.driver })}</span>
+                </a>
+              </div>
+            </section>
+          )}
 
         {!cancelled && (
           <ol aria-label={t("Estado del pedido")} className="flex flex-col">
@@ -198,11 +286,14 @@ function Tracking({ id }: { id: string }) {
                 <Price value={total} />
               </dd>
             </div>
-            <div className="text-muted text-[13px]">
-              {t("Pago")}: {t(PAY_WITH_LABEL[info.payWith])}
-              {info.cashFor
-                ? ` · ${t("pagas con {amount}", { amount: formatMoney(info.cashFor) })}`
-                : ""}
+            <div className="text-muted flex justify-between gap-3 text-[13px]">
+              <dt>{t("Pago")}</dt>
+              <dd className="text-right">
+                {t(PAY_WITH_LABEL[info.payWith])}
+                {info.cashFor
+                  ? ` · ${t("pagas con {amount}", { amount: formatMoney(info.cashFor) })}`
+                  : ""}
+              </dd>
             </div>
           </dl>
         </section>
