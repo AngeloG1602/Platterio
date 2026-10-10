@@ -1,4 +1,5 @@
 import { DEFAULT_DELIVERY } from "@/lib/domain/delivery";
+import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import type { StaffUser } from "@/lib/domain/access";
 import type {
   Allergen,
@@ -23,6 +24,7 @@ export const RESTAURANT: Restaurant = {
   name: "Fogón 27",
   accentColor: "#E4572E",
   delivery: DEFAULT_DELIVERY,
+  reservations: DEFAULT_RESERVATIONS,
   serviceAlertThreshold: 3,
   confirmTimeoutMin: 3,
   sessionIdleMin: 30,

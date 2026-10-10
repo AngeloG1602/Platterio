@@ -449,7 +449,7 @@ check(
 await admin.goto(`${BASE}/admin/configuracion`);
 await admin.getByLabel("Abre", { exact: true }).fill("00:00");
 await admin.getByLabel("Cierra", { exact: true }).fill("00:00");
-await admin.getByRole("button", { name: "Guardar cambios" }).click();
+await admin.locator("#domicilios").getByRole("button", { name: "Guardar cambios" }).click();
 check(
   "14. El administrador guarda el horario de domicilios",
   await visible(admin.getByText("Domicilios guardados")),
@@ -458,6 +458,24 @@ check(
   "14. Configuración tiene el WhatsApp del negocio y el celular de cada domiciliario",
   (await admin.getByLabel("Número de WhatsApp").inputValue()) === "3000000000" &&
     (await visible(admin.getByText(/Andrés.*300 000 0001/))),
+);
+
+await admin
+  .getByLabel("Enlace o identificador de tu negocio en Google")
+  .fill("https://evil.example.com/r/abc");
+await admin.getByRole("button", { name: "Guardar enlace" }).click();
+check(
+  "14. No se acepta un enlace de reseñas que no sea de Google",
+  await visible(admin.getByText(/Usa el enlace de “Pedir reseñas”/)),
+);
+await admin
+  .getByLabel("Enlace o identificador de tu negocio en Google")
+  .fill("https://g.page/r/CabcDEF123456/review");
+await admin.getByRole("button", { name: "Guardar enlace" }).click();
+check(
+  "14. El administrador enlaza las reseñas de Google",
+  (await visible(admin.getByText("Enlace de reseñas guardado"))) &&
+    (await visible(admin.getByText("Enlazado", { exact: true }))),
 );
 
 const casa = await tab("Casa", 390, 800);
@@ -538,6 +556,11 @@ check(
 );
 await caja.getByRole("button", { name: /^Entregado/ }).click();
 check("14. El cliente ve que llegó", await visible(casa.getByText(/Tu pedido llegó/)));
+check(
+  "14. Al llegar, se le invita a dejar su reseña en Google",
+  (await casa.getByRole("link", { name: /Dejar mi reseña/ }).getAttribute("href")) ===
+    "https://g.page/r/CabcDEF123456/review",
+);
 
 await caja.getByRole("radio", { name: "Caja", exact: true }).click();
 await caja.getByRole("button", { name: "Abrir caja" }).click();
@@ -959,8 +982,8 @@ const links = await tab("Enlaces", 1200, 900);
 await links.goto(`${BASE}/casa-verde/admin`);
 await links.getByRole("heading", { name: "Tus enlaces" }).waitFor();
 check(
-  "21. El panel ofrece copiar los enlaces: negocio, carta, domicilios y entrada del equipo",
-  (await links.getByRole("button", { name: /Copiar enlace/ }).count()) === 4,
+  "21. El panel ofrece copiar los enlaces: negocio, carta, domicilios, reservas y entrada del equipo",
+  (await links.getByRole("button", { name: /Copiar enlace/ }).count()) === 5,
 );
 check(
   "21. Hay un enlace de entrada para el personal con su código",
@@ -969,6 +992,112 @@ check(
     (await visible(links.getByText(/con el código/))),
 );
 await links.close();
+
+// 22. Reservas y eventos
+const manana = new Date(Date.now() + 86_400_000);
+const diaReserva = `${manana.getFullYear()}-${String(manana.getMonth() + 1).padStart(2, "0")}-${String(manana.getDate()).padStart(2, "0")}`;
+const reserva = await tab("Reserva", 390, 900);
+await reserva.goto(`${BASE}/casa-verde`);
+check(
+  "22. La página de inicio del negocio ofrece reservar",
+  await visible(reserva.getByRole("link", { name: /Reservar mesa o evento/ })),
+);
+await reserva.getByRole("link", { name: /Reservar mesa o evento/ }).click();
+await reserva.waitForURL("**/casa-verde/reservas");
+await reserva.getByLabel("Día").fill(diaReserva);
+await reserva.getByLabel("Hora").selectOption("19:30");
+await reserva.getByLabel("Tu nombre").fill("Ana Gómez");
+await reserva.getByLabel("Celular (WhatsApp)").fill("123");
+await reserva.getByRole("button", { name: "Reservar" }).click();
+check(
+  "22. Valida el celular antes de reservar",
+  await visible(reserva.getByText(/10 dígitos que empiece por 3/)),
+);
+await reserva.getByLabel("Celular (WhatsApp)").fill("300 123 4567");
+await reserva.getByLabel("Personas").fill("4");
+await reserva.getByRole("button", { name: "Reservar" }).click();
+await reserva.waitForURL("**/casa-verde/reservas/**");
+check(
+  "22. La reserva queda por confirmar, con su código",
+  (await visible(reserva.getByText("Por confirmar", { exact: true }))) &&
+    (await visible(reserva.getByRole("heading", { name: /Reserva R-/ }))),
+);
+const waReserva = await reserva
+  .getByRole("link", { name: /Escribirle al restaurante por WhatsApp/ })
+  .getAttribute("href");
+check(
+  "22. El cliente puede avisar por WhatsApp con la reserva escrita",
+  waReserva?.startsWith("https://wa.me/573000000000?text=") &&
+    decodeURIComponent(waReserva).includes("Personas: 4") &&
+    decodeURIComponent(waReserva).includes("Ana Gómez"),
+);
+
+const cajaRes = await tab("Caja reservas", 1200, 900);
+await cajaRes.goto(`${BASE}/caja`);
+await entrarComo(cajaRes, "Julián");
+check(
+  "22. Caja ve la solicitud en la pestaña de reservas",
+  await visible(cajaRes.getByRole("radio", { name: /Reservas \(1\)/ })),
+);
+await cajaRes.getByRole("radio", { name: /Reservas/ }).click();
+await cajaRes.getByRole("button", { name: "Confirmar", exact: true }).click();
+check(
+  "22. El cliente ve su reserva confirmada al instante",
+  await visible(reserva.getByText(/Tu reserva está confirmada/)),
+);
+const waConf = await cajaRes
+  .getByRole("link", { name: /Escribirle/ })
+  .first()
+  .getAttribute("href");
+check(
+  "22. Caja puede escribirle al cliente con la confirmación",
+  decodeURIComponent(waConf ?? "").includes("está confirmada"),
+);
+
+// Evento con cotización
+await reserva.goto(`${BASE}/casa-verde/reservas`);
+await reserva.getByRole("radio", { name: "Evento" }).click();
+await reserva.getByLabel("Día").fill(diaReserva);
+await reserva.getByLabel("Hora").selectOption("20:00");
+await reserva.getByLabel("Tu nombre").fill("Camila Ríos");
+await reserva.getByLabel("Celular (WhatsApp)").fill("3009876543");
+await reserva.getByLabel("Motivo del evento").selectOption("Cumpleaños");
+await reserva.getByLabel("Presupuesto aproximado").fill("3000000");
+await reserva.getByRole("button", { name: "Pedir cotización" }).click();
+await reserva.waitForURL("**/casa-verde/reservas/**");
+check(
+  "22. Un evento queda como solicitud de cotización",
+  (await visible(reserva.getByRole("heading", { name: /Evento R-/ }))) &&
+    (await visible(reserva.getByText("Cumpleaños"))),
+);
+await cajaRes.getByRole("button", { name: "Cotizar" }).click();
+await cajaRes.getByLabel("Concepto 1", { exact: true }).fill("Menú por persona");
+await cajaRes.getByLabel("Valor 1", { exact: true }).fill("1500000");
+await cajaRes.getByLabel("Concepto 2", { exact: true }).fill("Decoración");
+await cajaRes.getByLabel("Valor 2", { exact: true }).fill("300000");
+await cajaRes.getByLabel("Anticipo", { exact: true }).fill("500000");
+await cajaRes.getByRole("switch", { name: "Anticipo recibido" }).click();
+await cajaRes.getByRole("button", { name: "Guardar cotización" }).click();
+check(
+  "22. El cliente ve la cotización del evento y el anticipo recibido",
+  (await visible(reserva.getByText("Cotización del evento"))) &&
+    (await visible(reserva.getByText(/recibido/))),
+);
+await reserva.getByRole("button", { name: "Cancelar la reserva" }).click();
+await reserva.getByRole("button", { name: "Sí, cancelar" }).click();
+check(
+  "22. El cliente puede cancelar y el negocio lo ve",
+  (await visible(reserva.getByText("Cancelada", { exact: true }))) &&
+    (await visible(cajaRes.getByRole("heading", { name: /Resueltas/ }))),
+);
+
+await admin.goto(`${BASE}/admin/configuracion`);
+check(
+  "22. Configuración tiene el panel de reservas y eventos",
+  await visible(admin.getByRole("heading", { name: "Reservas y eventos" })),
+);
+await reserva.close();
+await cajaRes.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);

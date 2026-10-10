@@ -69,6 +69,22 @@ import {
   type FontId,
 } from "@/lib/domain/brand";
 import { MENU_STYLES } from "@/lib/domain/menu-style";
+import { parseGoogleReviewInput } from "@/lib/domain/google-reviews";
+import {
+  cancelReservation,
+  completeReservation,
+  confirmReservation,
+  createReservation,
+  DEFAULT_RESERVATIONS,
+  rejectReservation,
+  setQuote,
+  validateReservation,
+  validateReservationConfig,
+  type ReservationErrors,
+  type ReservationInput,
+} from "@/lib/domain/reservations";
+import type { ReservationConfig, ReservationQuote } from "@/lib/domain/types";
+import { useReservationClient } from "./reservation-store";
 import type { Brand } from "@/lib/domain/types";
 import { closeShift, openShift, registerPayment } from "@/lib/domain/cash";
 import type { PaymentMethod } from "@/lib/domain/types";
@@ -229,6 +245,25 @@ export const restaurantActions = {
   setAccentColor(hex: string) {
     if (!isValidHex(hex)) return;
     useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, accentColor: hex } }));
+  },
+  /** Guarda (o quita, con null) el enlace de reseñas de Google del negocio. */
+  setGoogleReviewUrl(input: string | null): ActionResult {
+    const allowed = requirePermission("panel.admin");
+    if (!allowed.ok) return allowed;
+    if (input === null) {
+      useAppStore.setState((s) => {
+        const { googleReviewUrl: _removed, ...rest } = s.restaurant;
+        void _removed;
+        return { restaurant: rest };
+      });
+      return { ok: true };
+    }
+    const parsed = parseGoogleReviewInput(input);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    useAppStore.setState((s) => ({
+      restaurant: { ...s.restaurant, googleReviewUrl: parsed.url },
+    }));
+    return { ok: true };
   },
 };
 
@@ -1106,6 +1141,99 @@ export const configActions = {
     const check = requirePermission("mesas.asignar");
     if (!check.ok) return check;
     useAppStore.setState((s) => ({ waiters: toggleTableAssignment(s.waiters, waiterId, tableId) }));
+    return { ok: true };
+  },
+};
+
+/* ——— Reservas y eventos ——— */
+
+const realIso = () => new Date().toISOString();
+
+/** Lo que hace el cliente al reservar: pedir, y cancelar las suyas. */
+export const reservationClientActions = {
+  create(
+    input: ReservationInput,
+  ): { ok: true; id: string } | { ok: false; error: string; errors: ReservationErrors } {
+    const state = useAppStore.getState();
+    const config = state.restaurant.reservations ?? DEFAULT_RESERVATIONS;
+    if (!config.enabled)
+      return { ok: false, error: "Por ahora no recibimos reservas por aquí", errors: {} };
+    const errors = validateReservation(input, config, state.reservations, Date.now());
+    if (Object.keys(errors).length > 0)
+      return { ok: false, error: "Revisa los datos marcados", errors };
+    const id = newId("reserva");
+    const reservation = createReservation({
+      id,
+      input,
+      config,
+      reservations: state.reservations,
+      now: realIso(),
+    });
+    useAppStore.setState((s) => ({ reservations: [...s.reservations, reservation] }));
+    useReservationClient.setState((c) => ({
+      ids: [...c.ids, id],
+      profile: { name: reservation.name, phone: reservation.phone },
+    }));
+    return { ok: true, id };
+  },
+  /** Solo el dispositivo que reservó puede cancelar desde el enlace de seguimiento. */
+  cancel(id: string): ActionResult {
+    if (!useReservationClient.getState().ids.includes(id))
+      return { ok: false, error: "Esta reserva no se hizo desde este dispositivo" };
+    return applyReservation(id, (r) => cancelReservation(r, "Cancelada por el cliente", realIso()));
+  },
+};
+
+function applyReservation(
+  id: string,
+  change: (r: import("@/lib/domain/types").Reservation) => ReturnType<typeof confirmReservation>,
+): ActionResult {
+  const found = useAppStore.getState().reservations.find((r) => r.id === id);
+  if (!found) return { ok: false, error: "No encontramos esa reserva" };
+  const r = change(found);
+  if (!r.ok) return r;
+  useAppStore.setState((s) => ({
+    reservations: s.reservations.map((x) => (x.id === id ? r.reservation : x)),
+  }));
+  return { ok: true };
+}
+
+/** Lo que hace el personal (encargado y administrador) con las reservas. */
+export const reservationActions = {
+  confirm(id: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    return applyReservation(id, (r) => confirmReservation(r, realIso()));
+  },
+  reject(id: string, reason: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    return applyReservation(id, (r) => rejectReservation(r, reason, realIso()));
+  },
+  cancel(id: string, reason: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    return applyReservation(id, (r) => cancelReservation(r, reason, realIso()));
+  },
+  complete(id: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    return applyReservation(id, (r) => completeReservation(r, realIso()));
+  },
+  setQuote(id: string, quote: ReservationQuote): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    return applyReservation(id, (r) => setQuote(r, quote, realIso()));
+  },
+};
+
+export const reservationConfigActions = {
+  save(config: ReservationConfig): ActionResult {
+    const allowed = requirePermission("panel.admin");
+    if (!allowed.ok) return allowed;
+    const error = validateReservationConfig(config);
+    if (error) return { ok: false, error };
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, reservations: config } }));
     return { ok: true };
   },
 };

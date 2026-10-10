@@ -8,6 +8,7 @@ import type {
   DishRating,
   Order,
   Payment,
+  Reservation,
   Restaurant,
   ServiceRating,
   Table,
@@ -19,7 +20,7 @@ import type {
 import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 6;
+export const DATA_VERSION = 7;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -45,6 +46,8 @@ export interface AppData {
   /** Avisos de clientes al personal (hoy: "abre mi mesa"). */
   calls: TableCall[];
   orders: Order[];
+  /** Reservas de mesa y solicitudes de eventos. */
+  reservations: Reservation[];
   /** Cobros registrados en caja durante la demo (el historial va aparte). */
   payments: Payment[];
   /** Turnos de caja de la demo; a lo sumo uno abierto. */
@@ -81,6 +84,7 @@ export function createSeedState(now: number): AppData {
     sessions: [],
     calls: [],
     orders: [],
+    reservations: [],
     payments: [],
     shifts: [],
     dishRatings: [],

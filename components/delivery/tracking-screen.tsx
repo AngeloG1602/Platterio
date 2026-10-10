@@ -4,6 +4,7 @@ import { ArrowLeft, Check, MapPin, MessageCircle, Phone, Store } from "lucide-re
 import Link from "next/link";
 import { useState } from "react";
 import { ClientShell } from "@/components/client/client-shell";
+import { GoogleReviewInvite } from "@/components/client/google-review-invite";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Price } from "@/components/ui/price";
@@ -120,6 +121,8 @@ function Tracking({ id }: { id: string }) {
             </span>
           )}
         </section>
+
+        {mine && stage === "entregado" && <GoogleReviewInvite />}
 
         {mine && !cancelled && stage !== "entregado" && config?.whatsapp && (
           <section

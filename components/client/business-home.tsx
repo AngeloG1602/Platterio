@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Bike,
   Clock,
+  CalendarDays,
   MessageCircle,
   QrCode,
   Store,
@@ -21,6 +22,7 @@ import {
   useDeliveryConfig,
   useHydrated,
   useNow,
+  useReservationConfig,
   useRestaurant,
 } from "@/lib/data";
 import { isDeliveryOpen } from "@/lib/domain/delivery";
@@ -46,6 +48,7 @@ function Home({ slug }: { slug: string }) {
   const hydrated = useHydrated();
   const restaurant = useRestaurant();
   const delivery = useDeliveryConfig();
+  const reservationsOn = useReservationConfig().enabled;
   const known = useAccountsStore((s) => s.accounts.some((a) => a.slug === slug));
   const now = useNow(60_000);
 
@@ -86,6 +89,14 @@ function Home({ slug }: { slug: string }) {
             title={t("Ver la carta")}
             text={t("Platos, ingredientes y precios, para mirar con calma.")}
           />
+          {reservationsOn && (
+            <Choice
+              href={withBusiness(slug, "/reservas")}
+              icon={<CalendarDays className="size-6" aria-hidden />}
+              title="Reservar mesa o evento"
+              text="Elige el día y la hora; te confirmamos por WhatsApp."
+            />
+          )}
           {deliveryOn ? (
             <Choice
               href={withBusiness(slug, "/domicilio")}

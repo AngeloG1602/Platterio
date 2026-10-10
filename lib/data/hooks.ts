@@ -13,6 +13,7 @@ import { tableOverview } from "@/lib/domain/waiter";
 import { kitchenBoard } from "@/lib/domain/kitchen";
 import { ratableDishes, waiterForTable } from "@/lib/domain/feedback";
 import type { Allergen, Order, TableSession, TimeSlot } from "@/lib/domain/types";
+import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
 import { HISTORY_CATALOG } from "./seed";
@@ -320,3 +321,14 @@ export function useDeliveryOrder(orderId: string) {
   const items = useDeliveryItems();
   return useMemo(() => items.find((i) => i.order.id === orderId), [items, orderId]);
 }
+
+/* ——— Reservas y eventos ——— */
+
+export const useReservationConfig = () =>
+  useAppStore((s) => s.restaurant.reservations ?? DEFAULT_RESERVATIONS);
+export const useReservations = () => useAppStore((s) => s.reservations);
+export const useReservation = (id: string) =>
+  useAppStore((s) => s.reservations.find((r) => r.id === id));
+/** Cuántas solicitudes esperan confirmación (para la marca en la pestaña de Caja). */
+export const useNewReservationCount = () =>
+  useAppStore((s) => s.reservations.filter((r) => r.status === "solicitada").length);

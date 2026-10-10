@@ -56,3 +56,5 @@ Cancelar mesas se activó en la fase 2; crear y editar pedidos y cobrar, en la f
 - Hablar con un contador sobre facturación electrónica si se cobra directo.
 - Revisión legal: política de privacidad, términos y contrato de tratamiento de datos (Ley 1581 de 2012).
 - Nombre y dominio del producto.
+
+Ideas y plus diferenciadores analizados (campañas por WhatsApp, reseñas en Google, reservas y eventos, varias sedes, modo sin internet, inventario): ver `docs/negocio/IDEAS-Y-PLUS.md`. Se evalúan e implementan por etapas.

@@ -69,6 +69,7 @@ describe("inicio del negocio", () => {
     expect(isCustomerPath("/casa-verde")).toBe(true);
     expect(isCustomerPath("/casa-verde/carta")).toBe(true);
     expect(isCustomerPath("/carta")).toBe(true);
+    expect(isCustomerPath("/casa-verde/reservas/r-1")).toBe(true);
     expect(isCustomerPath("/casa-verde/domicilio/pedido")).toBe(true);
     expect(isCustomerPath("/mesa/3/menu")).toBe(true);
     expect(isCustomerPath("/casa-verde/admin")).toBe(false);

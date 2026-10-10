@@ -20,6 +20,7 @@ import { ScreenHeader } from "./screen-header";
 import { useTableActivity } from "./table-activity";
 import { TableGate, type TableContext } from "./table-gate";
 import { localized, t } from "@/lib/i18n";
+import { GoogleReviewInvite } from "./google-review-invite";
 
 export function RatingScreen({ numero }: { numero: string }) {
   return (
@@ -369,6 +370,7 @@ function Thanks({ ctx, low }: { ctx: TableContext; low: boolean }) {
             )
           : t("Tu opinión nos ayuda a mejorar y a que otros elijan mejor.")}
       </p>
+      <GoogleReviewInvite />
       <div className="mt-8 flex w-full flex-col gap-2">
         <Link
           href={`${ctx.base}/pedido`}

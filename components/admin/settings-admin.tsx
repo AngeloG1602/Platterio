@@ -25,6 +25,8 @@ import { TableAssignments } from "@/components/team/table-assignments";
 import { BrandIdentityPanel } from "./brand-panel";
 import { DeliveryPanel } from "./delivery-panel";
 import { PublicLinksPanel } from "./public-links-panel";
+import { GoogleReviewsPanel } from "./google-reviews-panel";
+import { ReservationsPanel } from "./reservations-panel";
 import { LocalePanel } from "./locale-panel";
 import { PageHeader, Panel } from "./ui/page-header";
 import { useBusinessHref } from "@/components/providers/business-scope";
@@ -49,6 +51,10 @@ export function SettingsAdmin() {
             <BrandPanel />
             <RulesPanel />
           </div>
+          <div id="reservas" className="scroll-mt-6">
+            <ReservationsPanel />
+          </div>
+          <GoogleReviewsPanel />
           <LocalePanel />
           <div id="domicilios" className="scroll-mt-6">
             <DeliveryPanel />
