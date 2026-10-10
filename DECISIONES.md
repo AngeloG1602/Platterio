@@ -565,3 +565,35 @@ pueden cambiar sin rehacer pantallas.
       `/{negocio}/entrar` con **Copiar** y **Abrir**, el código del negocio para entrar desde
       `/personal` y el acceso a Equipo para crear los PIN. El panel pasó a llamarse "Tus enlaces"
       porque ese enlace no es público (pide el PIN de cada persona).
+140.  **Reseñas en Google, sin filtrar.** Configuración → "Reseñas en Google" guarda el enlace de
+      reseñas del negocio (el de "Pedir reseñas" del Perfil de Negocio, `g.page/r/…`, o el
+      identificador del lugar, `ChIJ…`). Solo se aceptan enlaces de dominios de Google (la validación
+      es una función pura con pruebas) y se guarda el enlace de reseña ya limpio. Después de calificar
+      en la mesa y al llegar un domicilio, **a todos** se les invita a dejar su reseña, sin mirar las
+      estrellas: Google prohíbe pedirla solo a los clientes contentos. La invitación es voluntaria,
+      sin incentivos, y se muestra en el celular del cliente (no hay un kiosco en el local). **Pendiente
+      (fase 9):** enlazar de verdad la cuenta de Google del negocio con la API del Perfil de Negocio
+      (inicio de sesión con Google del dueño) para ver el promedio y las reseñas y responderlas desde
+      el panel; requiere servidor y que Google apruebe el acceso a la API.
+141.  **Reservas y eventos, primera versión.** El cliente reserva en `/{negocio}/reservas`: mesa
+      (fecha, hora de una lista con cupo, personas, nombre, celular) o evento (además, motivo, lo que
+      busca y presupuesto aproximado). Queda "por confirmar" (o se confirma sola si el negocio lo
+      activa y hay cupo, solo en mesas) y el cliente ve su estado en un enlace propio, donde puede
+      cancelar y escribirle al negocio por WhatsApp con la solicitud ya escrita. En Caja, la pestaña
+      **Reservas** muestra por confirmar, próximas, por cerrar y resueltas: confirmar, "no
+      disponible" (con motivo que ve el cliente), cancelar, marcar realizada, escribirle al cliente por
+      WhatsApp y, en eventos, **cotizar** (conceptos, total y anticipo registrado a mano; Platterio no
+      cobra ni recibe pagos). El cupo es por hora, en personas, y cuenta solicitadas y confirmadas;
+      cancelar o rechazar lo libera. Configuración → "Reservas y eventos": horario, intervalo, cupo,
+      máximo por mesa, anticipación mínima y máxima, confirmación automática y motivos de evento. El
+      negocio comparte el enlace desde "Tus enlaces" y la página de inicio lo ofrece. Límites de esta
+      versión: el cupo no considera cuánto dura la mesa, la carta de reservas está solo en español, usa
+      el WhatsApp del negocio de Domicilios y los recordatorios automáticos llegarán con la API.
+142.  **Alcance acordado (10 de octubre).** (a) **Varias sedes** solo para casos especiales, no en el
+      software general: se atienden como varios negocios bajo un mismo dueño; para la fase 9, que un
+      usuario pueda tener varios negocios. (b) **Sin internet:** no se construye modo sin conexión;
+      el discurso es operativo (datos móviles de respaldo y comanda en papel) y a futuro un aviso claro
+      de "sin conexión". (c) **Inventario:** no por ahora; se revisa con negocios reales. (d)
+      **Recompra por WhatsApp:** se hará fácil para el negocio, con lista de clientes con permiso y un
+      anuncio (imagen y texto) enviado a muchos a la vez; el envío masivo real necesita la API de
+      WhatsApp Business (fase 9). Antes de eso se prepara la lista, el consentimiento y la vista previa.

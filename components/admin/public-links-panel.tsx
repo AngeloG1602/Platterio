@@ -7,7 +7,12 @@ import { useBusinessHref, useBusinessSlug } from "@/components/providers/busines
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/chip";
 import { toast } from "@/components/ui/toaster";
-import { useCurrentAccount, useDeliveryConfig, useRestaurant } from "@/lib/data";
+import {
+  useCurrentAccount,
+  useDeliveryConfig,
+  useReservationConfig,
+  useRestaurant,
+} from "@/lib/data";
 import { strongVariant } from "@/lib/domain/color";
 import { withBusiness } from "@/lib/domain/routes";
 import { Panel } from "./ui/page-header";
@@ -27,6 +32,7 @@ export function PublicLinksPanel() {
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const slug = urlSlug ?? account?.slug ?? null;
   const enabled = Boolean(delivery?.enabled);
+  const reservationsOn = useReservationConfig().enabled;
 
   // Con negocio, el enlace principal es su página de inicio; en la demo no hay (se entra por /demo).
   const main = slug ? `${origin}/${slug}` : `${origin}${href("/carta")}`;
@@ -58,6 +64,16 @@ export function PublicLinksPanel() {
         </Badge>
       ),
     },
+    ...(reservationsOn
+      ? [
+          {
+            key: "reservas",
+            title: "Reservas y eventos",
+            note: "Para que reserven una mesa o pidan cotización de un evento. Las solicitudes llegan a Caja.",
+            path: withBusiness(slug, "/reservas"),
+          },
+        ]
+      : []),
     {
       key: "personal",
       title: "Entrada de tu equipo",

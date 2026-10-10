@@ -69,6 +69,7 @@ const RESERVED = new Set([
   "admin",
   "personal",
   "carta",
+  "reservas",
   "cuenta",
   "soporte",
   "login",

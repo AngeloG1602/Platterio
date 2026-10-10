@@ -113,6 +113,9 @@ export interface Restaurant {
   logoUrl?: string;
   brand?: Brand;
   delivery?: DeliveryConfig;
+  reservations?: ReservationConfig;
+  /** Enlace para dejar una reseña en Google (se invita a todos los clientes por igual). */
+  googleReviewUrl?: string;
   /** Moneda en que están los precios (no se convierten al cambiarla). Por defecto, pesos colombianos. */
   currency?: string;
   /** Idiomas que ve el cliente. El español siempre está. */
@@ -362,4 +365,67 @@ export interface CashShift {
   closedBy?: string;
   note?: string;
   summary?: ShiftSummary;
+}
+
+/* ——— Reservas y eventos ——— */
+
+export type ReservationKind = "mesa" | "evento";
+export type ReservationStatus =
+  "solicitada" | "confirmada" | "rechazada" | "cancelada" | "realizada";
+
+export interface ReservationQuoteItem {
+  label: string;
+  amount: number;
+}
+
+/** Cotización de un evento: ítems, total y anticipo (que se registra a mano, sin pasarela de pago). */
+export interface ReservationQuote {
+  items: ReservationQuoteItem[];
+  deposit: number;
+  depositPaid: boolean;
+}
+
+export interface Reservation {
+  id: string;
+  /** Código corto que ve el cliente, p. ej. "R-7KQ2". */
+  code: string;
+  kind: ReservationKind;
+  name: string;
+  phone: string;
+  /** Día en formato AAAA-MM-DD, hora HH:MM. */
+  date: string;
+  time: string;
+  people: number;
+  /** Solo eventos: el motivo (cumpleaños, empresa…) y lo que quieren. */
+  occasion?: string;
+  details?: string;
+  /** Presupuesto aproximado del cliente, en la moneda del negocio. */
+  budget?: number;
+  note?: string;
+  status: ReservationStatus;
+  /** Motivo del rechazo o de la cancelación. */
+  reason?: string;
+  createdAt: string;
+  updatedAt: string;
+  quote?: ReservationQuote;
+}
+
+export interface ReservationConfig {
+  enabled: boolean;
+  /** Primera y última hora en que se puede reservar, "HH:MM". */
+  opensAt: string;
+  closesAt: string;
+  /** Cada cuántos minutos hay una hora disponible. */
+  slotMin: number;
+  /** Personas que caben por hora (suma de todas las reservas de esa hora). */
+  capacityPerSlot: number;
+  /** Máximo de personas en una reserva de mesa. */
+  maxParty: number;
+  /** Las reservas de mesa con cupo se confirman solas. */
+  autoConfirm: boolean;
+  /** Hasta cuántos días adelante se puede reservar. */
+  advanceDays: number;
+  /** Con cuántas horas de anticipación como mínimo. */
+  minHours: number;
+  events: { enabled: boolean; minPeople: number; occasions: string[] };
 }

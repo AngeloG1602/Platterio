@@ -41,6 +41,7 @@ const pages = [
   ["Mesa cerrada", "/mesa/6", 390],
   ["Carta sin pedir", "/mesa/6/menu", 390],
   ["Carta pública", "/carta", 390],
+  ["Reservas", "/reservas", 390],
   ["Ficha en la carta pública", "/carta/plato/clasica-27", 390],
   ["Ficha sin pedir", "/mesa/6/plato/clasica-27", 390],
   ["Entrada con PIN", "/entrar", 390],
@@ -85,6 +86,7 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
     "Carta sin pedir",
     "Ficha sin pedir",
     "Carta pública",
+    "Reservas",
     "Ficha en la carta pública",
   ].includes(name)
     ? guest

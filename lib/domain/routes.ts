@@ -14,6 +14,7 @@ export const BUSINESS_SECTIONS = [
   "mesa",
   "domicilio",
   "carta",
+  "reservas",
   "entrar",
 ] as const;
 
@@ -71,6 +72,7 @@ export function isCustomerPath(pathname: string): boolean {
     path.startsWith("/mesa") ||
     path.startsWith("/domicilio") ||
     path.startsWith("/carta") ||
+    path.startsWith("/reservas") ||
     businessHomeSlug(pathname) !== null
   );
 }

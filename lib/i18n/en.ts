@@ -746,4 +746,10 @@ export const EN: Record<string, string> = {
   Llamar: "Call",
   "a {driver}": "to {driver}",
   "Escríbenos por WhatsApp": "Message us on WhatsApp",
+  "Reseña en Google": "Google review",
+  "¿Nos dejas una reseña en Google?": "Would you leave us a Google review?",
+  "Es voluntaria y le ayuda mucho a {name}. Te toma un minuto.":
+    "It's optional and helps {name} a lot. It takes a minute.",
+  "Dejar mi reseña": "Leave my review",
+  "(se abre en otra pestaña)": "(opens in a new tab)",
 };

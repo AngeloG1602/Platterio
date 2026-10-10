@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   Bike,
   BookOpen,
+  CalendarDays,
   ChefHat,
   ConciergeBell,
   KeyRound,
@@ -117,6 +118,14 @@ export function Hub() {
             title="Carta pública"
             description="Quien busca el restaurante ve qué ofrece y los precios antes de ir, sin QR de mesa. Desde ahí puede pedir a domicilio."
             href="/carta"
+          />
+          <RoleCard
+            icon={CalendarDays}
+            device={Smartphone}
+            deviceLabel="Celular del cliente"
+            title="Reservas y eventos"
+            description="El cliente reserva una mesa o pide cotización de un evento; el encargado confirma y cotiza desde Caja."
+            href="/reservas"
           />
           <RoleCard
             icon={Bike}
