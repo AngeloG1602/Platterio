@@ -1,0 +1,152 @@
+{
+  "voz": "ef_dora",
+  "velocidad": 1.0,
+  "sitio": "platterio.vercel.app",
+  "notas": "Cada frase se sintetiza por separado (la voz y los subtítulos quedan sincronizados). 'decir' es lo que se manda a la voz cuando la pronunciación necesita ayuda; 'texto' es lo que sale en subtítulos.",
+  "escenas": [
+    {
+      "id": "gancho",
+      "frases": [
+        { "texto": "Hora pico." },
+        { "texto": "Mesas llenas, comandas en papel, pedidos que se pierden…" },
+        { "texto": "y clientes que esperan, solo para poder pedir." }
+      ]
+    },
+    {
+      "id": "pregunta",
+      "frases": [
+        { "texto": "¿Y si todo tu restaurante trabajara conectado, de la mesa a la caja?" }
+      ]
+    },
+    {
+      "id": "logo",
+      "frases": [
+        { "texto": "Te presentamos Platterio.", "decir": "Te presentamos Platerio." },
+        { "texto": "La plataforma que moderniza la operación de tu restaurante." }
+      ]
+    },
+    {
+      "id": "qr",
+      "frases": [
+        { "texto": "Tu cliente escanea el código QR de la mesa y abre tu carta en su celular." },
+        { "texto": "Sin descargar nada." }
+      ]
+    },
+    {
+      "id": "carta",
+      "frases": [
+        { "texto": "Fotos, precios y alérgenos a la vista, en español o en inglés." },
+        { "texto": "Si tiene una alergia, la carta se lo advierte." }
+      ]
+    },
+    {
+      "id": "tresde",
+      "frases": [
+        {
+          "texto": "Y puede ver el plato en 3D, y personalizarlo, antes de pedirlo.",
+          "decir": "Y puede ver el plato en tres dé, y personalizarlo, antes de pedirlo."
+        }
+      ]
+    },
+    {
+      "id": "carrito",
+      "frases": [
+        {
+          "texto": "Cada persona de la mesa agrega lo suyo, en un solo carrito compartido, en tiempo real."
+        }
+      ]
+    },
+    {
+      "id": "mesero",
+      "frases": [
+        { "texto": "El pedido llega al instante a la tableta del mesero," },
+        { "texto": "que lo revisa y lo confirma con un toque." }
+      ]
+    },
+    {
+      "id": "cocina",
+      "frases": [
+        {
+          "texto": "La cocina lo recibe en orden, con las notas a la vista, y marca cuando está listo."
+        },
+        { "texto": "Menos gritos. Menos errores." }
+      ]
+    },
+    {
+      "id": "seguimiento",
+      "frases": [
+        { "texto": "Mientras tanto, tu cliente ve en su celular en qué va su pedido." },
+        { "texto": "Y al final, califica la comida y el servicio." }
+      ]
+    },
+    {
+      "id": "caja",
+      "frases": [
+        { "texto": "En caja cobras cada mesa, en partes y con varias formas de pago." },
+        { "texto": "Y cierras el turno con todo registrado." }
+      ]
+    },
+    {
+      "id": "dueno",
+      "frases": [
+        { "texto": "Y tú tienes el control desde tu panel:" },
+        {
+          "texto": "ventas del día, platos más pedidos, el desempeño de tu equipo y lo que opinan tus clientes."
+        }
+      ]
+    },
+    {
+      "id": "domicilios",
+      "frases": [
+        {
+          "texto": "Recibe pedidos a domicilio, con aviso por WhatsApp,",
+          "decir": "Recibe pedidos a domicilio, con aviso por guatsap,"
+        },
+        { "texto": "y el contacto del domiciliario para tu cliente." }
+      ]
+    },
+    {
+      "id": "reservas",
+      "frases": [
+        { "texto": "Gestiona reservas y eventos," },
+        {
+          "texto": "e invita a tus clientes a dejarte una reseña en Google.",
+          "decir": "e invita a tus clientes a dejarte una reseña en Gúgol."
+        }
+      ]
+    },
+    {
+      "id": "marca",
+      "frases": [
+        {
+          "texto": "Todo con tu logo, tus colores y el estilo de carta que mejor va con tu negocio."
+        }
+      ]
+    },
+    {
+      "id": "tiempo",
+      "frases": [
+        { "texto": "Hoy, un servicio más ágil." },
+        { "texto": "Cada semana, reportes claros para decidir." },
+        { "texto": "Y mes a mes, un restaurante que conoce a sus clientes y mejora cada día." }
+      ]
+    },
+    {
+      "id": "planes",
+      "frases": [
+        { "texto": "Hay dos planes, según tu negocio:" },
+        { "texto": "uno de carta digital y domicilios, y otro completo, con todo el salón." }
+      ]
+    },
+    {
+      "id": "cierre",
+      "frases": [
+        { "texto": "Pruébalo siete días gratis, con todo incluido." },
+        {
+          "texto": "Platterio. Tu restaurante, conectado.",
+          "decir": "Platerio. Tu restaurante, conectado."
+        }
+      ]
+    }
+  ]
+}

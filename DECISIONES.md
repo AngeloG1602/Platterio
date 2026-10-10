@@ -609,3 +609,10 @@ pueden cambiar sin rehacer pantallas.
       Digital oculta Salón/Caja/Mesas, Calificaciones y Reportes, y `teamActions.add` respeta el tope.
       El cumplimiento real (por cuenta y cobro) llega con la base de datos en la fase 9. Pendiente:
       aviso en `/mesa` y `/mesero` cuando el plan no incluye salón.
+144.  **Video de presentación (10 de octubre).** Se produce con código en `video/`: capturas reales
+      de la demo con Playwright, animación HTML determinista grabada cuadro a cuadro, voz sintetizada
+      local (Kokoro, `ef_dora`) y música y efectos propios generados con numpy (sin derechos de
+      terceros). Dos formatos: horizontal 16:9 y vertical 9:16 con subtítulos quemados; ~2:10. Sin
+      precios ni cifras prometidas; menciona la prueba de 7 días y los dos planes. La voz neuronal
+      colombiana de Microsoft sonaría más natural, pero la red del entorno la bloquea. La dirección
+      del cierre (`sitio` en `video/guion.json`) debe confirmarse antes de publicar.

@@ -1,0 +1,540 @@
+{
+ "p-mesa-cerrada": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-entrar": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "boton": {
+    "x": 20,
+    "y": 777.9375,
+    "width": 350,
+    "height": 52
+   },
+   "pin": {
+    "x": 20,
+    "y": 688.4375,
+    "width": 350,
+    "height": 48
+   }
+  }
+ },
+ "p-alergias": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "lacteos": {
+    "x": 199,
+    "y": 519,
+    "width": 171,
+    "height": 52
+   },
+   "guardar": {
+    "x": 167.84375,
+    "y": 784,
+    "width": 202.15625,
+    "height": 44
+   }
+  }
+ },
+ "p-carta": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-carta-larga": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-ficha": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-ficha-lacteos": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "alerta": {
+    "x": 16,
+    "y": 595.5,
+    "width": 358,
+    "height": 126.75
+   },
+   "boton3d": {
+    "x": 33,
+    "y": 963.953125,
+    "width": 324,
+    "height": 44
+   }
+  }
+ },
+ "p-3d": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "visor": {
+    "x": 21,
+    "y": 189.03125,
+    "width": 348,
+    "height": 348
+   },
+   "listo": {
+    "x": 20,
+    "y": 776,
+    "width": 350,
+    "height": 52
+   }
+  }
+ },
+ "p-carrito": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "enviar": {
+    "x": 16,
+    "y": 776,
+    "width": 358,
+    "height": 52
+   },
+   "envivo": {
+    "x": 327,
+    "y": 62.25,
+    "width": 55,
+    "height": 16
+   }
+  }
+ },
+ "p-enviar": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "si": {
+    "x": 40,
+    "y": 487.375,
+    "width": 310,
+    "height": 44
+   },
+   "dialogo": {
+    "x": 16,
+    "y": 236.625,
+    "width": 358,
+    "height": 370.75
+   }
+  }
+ },
+ "p-pedido-enviado": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "w-mesero": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {
+   "ticket": {
+    "x": 596.4375,
+    "y": 211.5,
+    "width": 595.5625,
+    "height": 499.375
+   },
+   "confirmar": {
+    "x": 831,
+    "y": 648.875,
+    "width": 343,
+    "height": 44
+   },
+   "mesa": {
+    "x": 412.28125,
+    "y": 211.5,
+    "width": 152.140625,
+    "height": 112
+   }
+  }
+ },
+ "w-mesero-confirmado": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {}
+ },
+ "p-pedido-confirmado": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "w-cocina": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {
+   "tarjeta": {
+    "x": 40,
+    "y": 145,
+    "width": 363.328125,
+    "height": 426.5
+   },
+   "empezar": {
+    "x": 58,
+    "y": 493.5,
+    "width": 327.328125,
+    "height": 60
+   }
+  }
+ },
+ "w-cocina-preparando": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {
+   "tarjeta": {
+    "x": 457.328125,
+    "y": 145,
+    "width": 363.328125,
+    "height": 426.5
+   },
+   "listo": {
+    "x": 475.328125,
+    "y": 493.5,
+    "width": 327.328125,
+    "height": 60
+   }
+  }
+ },
+ "p-pedido-preparando": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "w-cocina-listo": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {
+   "tarjeta": {
+    "x": 874.65625,
+    "y": 145,
+    "width": 363.34375,
+    "height": 392
+   }
+  }
+ },
+ "w-mesero-listo": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {
+   "entregar": {
+    "x": 614.4375,
+    "y": 827.125,
+    "width": 559.5625,
+    "height": 52
+   }
+  }
+ },
+ "p-pedido-entregado": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-calificar": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "estrellas": {
+    "x": 25,
+    "y": 325,
+    "width": 220,
+    "height": 44
+   },
+   "enviar": {
+    "x": 16,
+    "y": 776,
+    "width": 358,
+    "height": 52
+   }
+  }
+ },
+ "w-mesero-salon": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {}
+ },
+ "w-cocina-varias": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {}
+ },
+ "w-caja-salon": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {}
+ },
+ "w-caja-abierta": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "cobrar": {
+    "x": 1178,
+    "y": 449.5,
+    "width": 73,
+    "height": 36
+   },
+   "resumen": {
+    "x": 185,
+    "y": 164,
+    "width": 233,
+    "height": 20
+   }
+  }
+ },
+ "w-caja-cobro": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "dialogo": {
+    "x": 464,
+    "y": 462,
+    "width": 512,
+    "height": 438
+   },
+   "registrar": {
+    "x": 484,
+    "y": 824,
+    "width": 472,
+    "height": 52
+   }
+  }
+ },
+ "w-caja-cierre": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "dialogo": {
+    "x": 496,
+    "y": 240.0625,
+    "width": 448,
+    "height": 419.875
+   }
+  }
+ },
+ "p-domicilio": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-domicilio-datos": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-domicilio-recibido": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "whatsapp": {
+    "x": 33,
+    "y": 360.5,
+    "width": 324,
+    "height": 44
+   }
+  }
+ },
+ "w-caja-domicilios": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "pedido": {
+    "x": 237,
+    "y": 225.5,
+    "width": 379.96875,
+    "height": 21.25
+   },
+   "confirmar": {
+    "x": 185,
+    "y": 412.75,
+    "width": 93,
+    "height": 36
+   }
+  }
+ },
+ "w-cocina-domicilio": {
+  "w": 1280,
+  "h": 800,
+  "boxes": {}
+ },
+ "w-caja-despachado": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {}
+ },
+ "p-domicilio-camino": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "domiciliario": {
+    "x": 33,
+    "y": 438.5,
+    "width": 324,
+    "height": 22.5
+   }
+  }
+ },
+ "p-resena-google": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "resena": {
+    "x": 33,
+    "y": 326,
+    "width": 324,
+    "height": 44
+   }
+  }
+ },
+ "p-reserva": {
+  "w": 390,
+  "h": 844,
+  "boxes": {
+   "reservar": {
+    "x": 16,
+    "y": 711.40625,
+    "width": 358,
+    "height": 52
+   }
+  }
+ },
+ "p-reserva-enviada": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "w-caja-reservas": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "confirmar": {
+    "x": 185,
+    "y": 382.25,
+    "width": 93,
+    "height": 36
+   }
+  }
+ },
+ "w-admin": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "main": {
+    "x": 288,
+    "y": 0,
+    "width": 1152,
+    "height": 1916
+   }
+  }
+ },
+ "w-admin-ventas": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "main": {
+    "x": 288,
+    "y": 0,
+    "width": 1152,
+    "height": 1207
+   }
+  }
+ },
+ "w-admin-calificaciones": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "main": {
+    "x": 288,
+    "y": 0,
+    "width": 1152,
+    "height": 1782.5
+   }
+  }
+ },
+ "w-admin-reportes": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "main": {
+    "x": 288,
+    "y": 0,
+    "width": 1152,
+    "height": 2107.5
+   }
+  }
+ },
+ "w-admin-equipo": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "main": {
+    "x": 288,
+    "y": 0,
+    "width": 1152,
+    "height": 1014
+   }
+  }
+ },
+ "w-admin-platos": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {
+   "main": {
+    "x": 288,
+    "y": 0,
+    "width": 1152,
+    "height": 1728.5
+   }
+  }
+ },
+ "w-admin-estilos": {
+  "w": 1440,
+  "h": 900,
+  "boxes": {}
+ },
+ "p-estilo-bistro-oscuro": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-estilo-cafe-minimal": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-estilo-neon-nocturno": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-estilo-mediterraneo": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-estilo-gourmet-editorial": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-estilo-urbano-colorido": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-estilo-clasico": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ },
+ "p-ingles": {
+  "w": 390,
+  "h": 844,
+  "boxes": {}
+ }
+}
