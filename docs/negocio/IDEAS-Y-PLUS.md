@@ -3,6 +3,16 @@
 Estado: **analizado, sin implementar**. Se evalúa y se implementa por etapas, una a la vez, con visto
 bueno de cada una. Fecha del análisis: 9 de octubre de 2026.
 
+## Decisiones del 10 de octubre
+
+- **Reseñas en Google:** hecho (enlace validado e invitación a todos). Falta enlazar de verdad la
+  cuenta de Google con la API del Perfil de Negocio (fase 9).
+- **Reservas y eventos:** primera versión hecha (ver decisión 141 en `DECISIONES.md`).
+- **Varias sedes:** solo casos especiales, como varios negocios bajo un dueño; no en el software general.
+- **Sin internet:** no se construye; se explica con datos móviles de respaldo y comanda en papel.
+- **Inventario:** no por ahora; se evalúa con negocios reales.
+- **Recompra por WhatsApp:** sigue en la lista; envío masivo fácil para el negocio (siguiente paso).
+
 ## Resumen en una tabla
 
 | Idea                             | Qué es                                               | Costo para el negocio                                    | Depende de la fase 9       | Esfuerzo                                                 | Orden |
