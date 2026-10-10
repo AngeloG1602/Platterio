@@ -24,6 +24,8 @@ import {
   accountActions,
   demoActions,
   demoDinerActions,
+  restaurantActions,
+  usePlan,
   useCurrentAccount,
   useOpenTableNumbers,
   useTables,
@@ -34,6 +36,7 @@ import {
   useSyncSupported,
   useTimeSlots,
 } from "@/lib/data";
+import { PLAN_LIMITS } from "@/lib/domain/pricing";
 import { statusMessage } from "@/lib/domain/accounts";
 import { formatSlotRange, formatTime, plural } from "@/lib/domain/format";
 import { cn } from "@/lib/cn";
@@ -188,6 +191,8 @@ export function DemoSheet({
               </p>
             )}
           </section>
+
+          <PlanSwitch />
 
           <SimulateDiner />
 
@@ -370,6 +375,35 @@ function SimulateAccount() {
         <Button variant="secondary" size="sm" onClick={accountActions.simulateActivation}>
           Simular pago
         </Button>
+      </div>
+    </section>
+  );
+}
+
+/** Prototipo: cambia el plan del negocio para ver qué incluye cada uno. */
+function PlanSwitch() {
+  const plan = usePlan();
+  return (
+    <section aria-labelledby="demo-plan" className="border-line rounded-xl border p-4">
+      <h3 id="demo-plan" className="text-[15px] font-semibold">
+        Plan del negocio
+      </h3>
+      <p className="text-muted mt-1 text-[13px]">
+        Digital: hasta {PLAN_LIMITS.digital.users} personas, sin salón. Completo: hasta{" "}
+        {PLAN_LIMITS.completo.users}, con todo.
+      </p>
+      <div className="mt-3 flex gap-2">
+        {(["digital", "completo"] as const).map((id) => (
+          <Button
+            key={id}
+            size="sm"
+            variant={plan === id ? "primary" : "secondary"}
+            aria-pressed={plan === id}
+            onClick={() => restaurantActions.setPlan(id)}
+          >
+            {id === "digital" ? "Digital" : "Completo"}
+          </Button>
+        ))}
       </div>
     </section>
   );

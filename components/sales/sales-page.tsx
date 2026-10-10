@@ -20,7 +20,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PlatterioLogo } from "@/components/brand/logos";
 import { buttonClasses } from "@/components/ui/button";
-import { TRIAL_DAYS } from "@/lib/data/plans";
+import { formatMoney } from "@/lib/domain/format";
+import { yearsOfSubscription } from "@/lib/domain/pricing";
+import { CUSTOM_BUILD, PLANS, SUPPORT, TRIAL_DAYS } from "@/lib/data/plans";
 import { cn } from "@/lib/cn";
 import { Phone, Screen } from "./frames";
 import { Pricing } from "./pricing";
@@ -53,22 +55,24 @@ export function SalesPage() {
         <Features />
         <ThreeD />
         <Control />
+        <Fit />
         <section id="planes" className="scroll-mt-20 px-5 py-20 sm:px-8">
           <div className="mx-auto max-w-6xl">
             <SectionTitle
               eyebrow="Planes"
               title="Un precio claro, sin cobros por pedido"
-              text={`Pruébalo ${TRIAL_DAYS} días gratis. Sin contratos: cambias de plan o cancelas cuando quieras.`}
+              text={`Pruébalo ${TRIAL_DAYS} días gratis con todo incluido. Sin contratos: cambias de plan o cancelas cuando quieras.`}
             />
             <div className="mt-10">
               <Pricing />
             </div>
             <p className="text-muted mx-auto mt-6 max-w-2xl text-center text-[13px]">
-              Precios y condiciones de ejemplo para esta versión preliminar; se confirman al lanzar.
-              Los precios no incluyen impuestos.
+              Precios en pesos colombianos, vigentes hasta que los actualicemos con aviso previo.
+              Los impuestos aplicables se confirman al facturar.
             </p>
           </div>
         </section>
+        <Compare />
         <NotDoing />
         <Faq />
         <FinalCta />
@@ -405,7 +409,7 @@ function Features() {
           title="Entiende tu negocio sin una hoja de cálculo"
           text="Lo vendido contra lo cobrado, por forma de pago y por mesero, los cambios del personal, los platos más pedidos por franja y los cierres de caja. Todo con descarga en CSV para tu contador."
           points={[
-            "Todos los reportes van incluidos en el plan Esencial",
+            "Los reportes completos y la descarga en CSV van en el plan Completo",
             "Periodos: hoy, 7 días, 14 días o fechas propias",
             "Alertas cuando una mesa califica mal el servicio",
           ]}
@@ -626,6 +630,22 @@ const FAQS: [string, string][] = [
     "Sí, cuando quieras. Pagas mensual o anual y el acceso queda vigente hasta la fecha pagada.",
   ],
   [
+    "¿Cuántas personas pueden usar el sistema?",
+    "Cuenta cada persona del equipo con PIN propio: administrador, caja, meseros y cocina. Tus clientes no cuentan. El plan Digital incluye hasta 3 y el Completo hasta 20.",
+  ],
+  [
+    "¿Qué horario de soporte tienen?",
+    `Atendemos ${SUPPORT.hours}. Respondemos ${SUPPORT.standardReply}; en el plan Completo, ${SUPPORT.priorityReply}. ${SUPPORT.outside} No ofrecemos atención 24/7.`,
+  ],
+  [
+    "¿Qué significa «precio congelado» en el plan Fundador?",
+    "Que pagas lo mismo durante los 12 meses del plan, aunque el precio de lista suba. Al terminar, renueva al precio anual vigente y te avisamos 30 días antes.",
+  ],
+  [
+    "¿Qué pasa si se cae el internet del local?",
+    "Tus clientes piden desde su propio celular con datos móviles, así que la carta sigue funcionando. Para el equipo recomendamos un respaldo de datos en un celular y mantener una comanda en papel por emergencia.",
+  ],
+  [
     "¿Qué pasa con los datos de mis clientes?",
     "Solo se guardan los datos necesarios para el pedido (por ejemplo, un nombre o un celular en domicilios), siguiendo la Ley 1581 de 2012. Las políticas completas estarán disponibles al lanzar.",
   ],
@@ -713,5 +733,51 @@ function Footer() {
         <p className="text-muted text-[13px]">Versión preliminar de la página de ventas.</p>
       </div>
     </footer>
+  );
+}
+
+function Fit() {
+  return (
+    <section className="px-5 pt-4 pb-0 sm:px-8">
+      <div className="border-line bg-surface mx-auto max-w-4xl rounded-2xl border p-6 sm:p-8">
+        <h2 className="font-display text-[26px] font-semibold">¿Cuál plan es para tu negocio?</h2>
+        <div className="text-ink-soft mt-4 grid gap-5 text-[16px] leading-relaxed sm:grid-cols-2">
+          <p>
+            <strong className="text-ink">Digital:</strong> si vendes por domicilio o recoges en el
+            local y quieres una carta bonita con pedidos por WhatsApp, sin atender mesas.
+          </p>
+          <p>
+            <strong className="text-ink">Completo:</strong> si tienes salón con meseros, cocina y
+            caja, y quieres el pedido desde la mesa con QR, calificaciones y reportes.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Compare() {
+  const completo = PLANS.find((p) => p.id === "completo");
+  const yearly = completo?.yearly ?? 0;
+  const years = Math.floor(yearsOfSubscription(CUSTOM_BUILD.low, yearly));
+  const [m1, m2] = CUSTOM_BUILD.maintenancePercent;
+  return (
+    <section className="px-5 pb-20 sm:px-8">
+      <div className="border-line bg-surface mx-auto max-w-4xl rounded-2xl border p-6 sm:p-8">
+        <h2 className="font-display text-[26px] font-semibold sm:text-[32px]">
+          ¿Y si mandas a hacer uno propio?
+        </h2>
+        <p className="text-ink-soft mt-3 text-[16px] leading-relaxed">
+          Un sistema a la medida con carta por QR, mesero, cocina, caja y reportes suele costar
+          entre {formatMoney(CUSTOM_BUILD.low)} y {formatMoney(CUSTOM_BUILD.high)}, tardar{" "}
+          {CUSTOM_BUILD.weeks} y pedir un {m1} a {m2} % anual de mantenimiento, además del hosting.
+          Con el plan Completo anual ({formatMoney(yearly)}), el costo mínimo de desarrollo equivale
+          a unos {years} años de suscripción, con las mejoras y el soporte incluidos.
+        </p>
+        <p className="text-muted mt-3 text-[13px]">
+          Cifras orientativas del mercado colombiano; cada proyecto se cotiza según su alcance.
+        </p>
+      </div>
+    </section>
   );
 }

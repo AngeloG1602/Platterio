@@ -157,3 +157,9 @@ por el **costo y margen por plato** (no exige conteos) y dejar el stock para des
 - Meta: precios de la plataforma de WhatsApp Business (https://developers.facebook.com/docs/whatsapp/pricing)
 - Política de reseñas de Google y filtrado de reseñas (varias fuentes; confirmar en la política oficial)
 - Ley 2300 de 2023 (CRC y prensa económica); confirmar el texto de los artículos 3 y 5 en el Diario Oficial
+
+## Video de presentación (por evaluar, no se hace todavía)
+Video corto y bien guionizado para la página de ventas: escenas del cliente, mesero, cocina y caja,
+animaciones y transiciones, voz en off con guion redactado. Se puede producir con animación en código
+(por ejemplo, escenas HTML/Remotion renderizadas a video) más una voz sintetizada o grabada. Pendiente:
+decidir tono, duración (60–90 s), guion y quién pone la voz.

@@ -19,11 +19,14 @@ import { PlatterioLogo, RestaurantMark } from "@/components/brand/logos";
 import { SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { useAlerts, useRestaurant } from "@/lib/data";
+import { planAllows, type Feature } from "@/lib/domain/pricing";
 import { cn } from "@/lib/cn";
 import { useBusinessHref, useScreenPath } from "@/components/providers/business-scope";
 
 interface NavItem {
   href: string;
+  /** Función del plan que necesita; sin ella, el plan Digital no ve esta sección. */
+  feature?: Feature;
   label: string;
   icon: LucideIcon;
 }
@@ -33,9 +36,19 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard },
   { href: "/admin/platos", label: "Platos", icon: UtensilsCrossed },
   { href: "/admin/recomendaciones", label: "Recomendaciones", icon: Sparkles },
-  { href: "/admin/calificaciones", label: "Calificaciones", icon: MessageSquareText },
+  {
+    href: "/admin/calificaciones",
+    label: "Calificaciones",
+    icon: MessageSquareText,
+    feature: "calificaciones",
+  },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
-  { href: "/admin/reportes", label: "Reportes", icon: FileSpreadsheet },
+  {
+    href: "/admin/reportes",
+    label: "Reportes",
+    icon: FileSpreadsheet,
+    feature: "reportes-completos",
+  },
   { href: "/admin/equipo", label: "Equipo", icon: Users },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];
@@ -66,38 +79,40 @@ export function AdminShell({ children }: { children: ReactNode }) {
           aria-label="Secciones del panel"
           className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-0"
         >
-          {NAV.map((item) => {
-            const active =
-              item.href === "/admin" ? screen === "/admin" : screen.startsWith(item.href);
-            const content = (
-              <>
-                <item.icon className="size-5 shrink-0" aria-hidden strokeWidth={1.8} />
-                <span className="flex-1 whitespace-nowrap">{item.label}</span>
-                {item.href === "/admin" && openAlerts > 0 && (
-                  <span
-                    className="bg-danger flex size-5 items-center justify-center rounded-full text-[11px] font-bold text-white tabular-nums"
-                    aria-label={`${openAlerts} alertas activas`}
-                  >
-                    {openAlerts}
-                  </span>
-                )}
-              </>
-            );
-            const cls = cn(
-              "flex h-11 shrink-0 items-center gap-3 rounded-lg px-3 text-[15px] font-medium transition-colors",
-              active ? "bg-ink text-bg" : "text-ink-soft hover:bg-surface-2 hover:text-ink",
-            );
-            return (
-              <Link
-                key={item.href}
-                href={href(item.href)}
-                aria-current={active ? "page" : undefined}
-                className={cls}
-              >
-                {content}
-              </Link>
-            );
-          })}
+          {NAV.filter((item) => !item.feature || planAllows(restaurant.plan, item.feature)).map(
+            (item) => {
+              const active =
+                item.href === "/admin" ? screen === "/admin" : screen.startsWith(item.href);
+              const content = (
+                <>
+                  <item.icon className="size-5 shrink-0" aria-hidden strokeWidth={1.8} />
+                  <span className="flex-1 whitespace-nowrap">{item.label}</span>
+                  {item.href === "/admin" && openAlerts > 0 && (
+                    <span
+                      className="bg-danger flex size-5 items-center justify-center rounded-full text-[11px] font-bold text-white tabular-nums"
+                      aria-label={`${openAlerts} alertas activas`}
+                    >
+                      {openAlerts}
+                    </span>
+                  )}
+                </>
+              );
+              const cls = cn(
+                "flex h-11 shrink-0 items-center gap-3 rounded-lg px-3 text-[15px] font-medium transition-colors",
+                active ? "bg-ink text-bg" : "text-ink-soft hover:bg-surface-2 hover:text-ink",
+              );
+              return (
+                <Link
+                  key={item.href}
+                  href={href(item.href)}
+                  aria-current={active ? "page" : undefined}
+                  className={cls}
+                >
+                  {content}
+                </Link>
+              );
+            },
+          )}
         </nav>
         <div className="mt-auto hidden flex-col gap-2 p-4 lg:flex">
           <SessionButton />

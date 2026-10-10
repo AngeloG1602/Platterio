@@ -1,5 +1,6 @@
 "use client";
 
+import { canAddUser, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
 import { addToCart, cartCount, removeCartItem, updateCartItem } from "@/lib/domain/cart";
@@ -245,6 +246,10 @@ export const restaurantActions = {
   setAccentColor(hex: string) {
     if (!isValidHex(hex)) return;
     useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, accentColor: hex } }));
+  },
+  /** Cambia el plan del negocio (prototipo: después lo fija el cobro, no el panel). */
+  setPlan(plan: PlanId) {
+    useAppStore.setState((s) => ({ restaurant: { ...s.restaurant, plan } }));
   },
   /** Guarda (o quita, con null) el enlace de reseñas de Google del negocio. */
   setGoogleReviewUrl(input: string | null): ActionResult {
@@ -557,6 +562,9 @@ export const teamActions = {
   add(input: { name: string; role: Role; pin: string }): ActionResult {
     const actor = currentStaff();
     if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+    const state = useAppStore.getState();
+    const limit = canAddUser(state.restaurant.plan, state.staff.filter((u) => u.active).length);
+    if (!limit.ok) return limit;
     const r = addStaff(useAppStore.getState(), input, actor.role);
     if (!r.ok) return r;
     useAppStore.setState(r.value);

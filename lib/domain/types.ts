@@ -116,6 +116,8 @@ export interface Restaurant {
   reservations?: ReservationConfig;
   /** Enlace para dejar una reseña en Google (se invita a todos los clientes por igual). */
   googleReviewUrl?: string;
+  /** Plan contratado (en la demo se cambia desde el panel). Sin valor = Completo. */
+  plan?: "digital" | "completo";
   /** Moneda en que están los precios (no se convierten al cambiarla). Por defecto, pesos colombianos. */
   currency?: string;
   /** Idiomas que ve el cliente. El español siempre está. */
