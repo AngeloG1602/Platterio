@@ -99,3 +99,16 @@ export const SUPPORT = {
   standardReply: "en el mismo día hábil",
   priorityReply: "en máximo 2 horas hábiles",
 };
+
+/**
+ * Referencia del costo de mandar a hacer un sistema parecido (QR, mesero, cocina, caja y reportes).
+ * Es un estimado orientativo del mercado colombiano, no una cotización: confirmar con cotizaciones
+ * reales antes de usarlo en publicidad.
+ */
+export const CUSTOM_BUILD = {
+  low: 25_000_000,
+  high: 80_000_000,
+  /** Mantenimiento anual típico, como parte del costo de desarrollo. */
+  maintenancePercent: [15, 20],
+  weeks: "3 a 6 meses",
+} as const;

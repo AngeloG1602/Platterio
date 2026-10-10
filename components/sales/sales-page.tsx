@@ -20,7 +20,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PlatterioLogo } from "@/components/brand/logos";
 import { buttonClasses } from "@/components/ui/button";
-import { SUPPORT, TRIAL_DAYS } from "@/lib/data/plans";
+import { formatMoney } from "@/lib/domain/format";
+import { yearsOfSubscription } from "@/lib/domain/pricing";
+import { CUSTOM_BUILD, PLANS, SUPPORT, TRIAL_DAYS } from "@/lib/data/plans";
 import { cn } from "@/lib/cn";
 import { Phone, Screen } from "./frames";
 import { Pricing } from "./pricing";
@@ -70,6 +72,7 @@ export function SalesPage() {
             </p>
           </div>
         </section>
+        <Compare />
         <NotDoing />
         <Faq />
         <FinalCta />
@@ -748,6 +751,32 @@ function Fit() {
             caja, y quieres el pedido desde la mesa con QR, calificaciones y reportes.
           </p>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Compare() {
+  const completo = PLANS.find((p) => p.id === "completo");
+  const yearly = completo?.yearly ?? 0;
+  const years = Math.floor(yearsOfSubscription(CUSTOM_BUILD.low, yearly));
+  const [m1, m2] = CUSTOM_BUILD.maintenancePercent;
+  return (
+    <section className="px-5 pb-20 sm:px-8">
+      <div className="border-line bg-surface mx-auto max-w-4xl rounded-2xl border p-6 sm:p-8">
+        <h2 className="font-display text-[26px] font-semibold sm:text-[32px]">
+          ¿Y si mandas a hacer uno propio?
+        </h2>
+        <p className="text-ink-soft mt-3 text-[16px] leading-relaxed">
+          Un sistema a la medida con carta por QR, mesero, cocina, caja y reportes suele costar
+          entre {formatMoney(CUSTOM_BUILD.low)} y {formatMoney(CUSTOM_BUILD.high)}, tardar{" "}
+          {CUSTOM_BUILD.weeks} y pedir un {m1} a {m2} % anual de mantenimiento, además del hosting.
+          Con el plan Completo anual ({formatMoney(yearly)}), el costo mínimo de desarrollo equivale
+          a unos {years} años de suscripción, con las mejoras y el soporte incluidos.
+        </p>
+        <p className="text-muted mt-3 text-[13px]">
+          Cifras orientativas del mercado colombiano; cada proyecto se cotiza según su alcance.
+        </p>
       </div>
     </section>
   );

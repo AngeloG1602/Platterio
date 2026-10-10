@@ -88,3 +88,9 @@ export function netAfterHotmart(gross: number, trm: number): number {
 export function clientsToCover(annualCost: number, netPerClientPerYear: number): number {
   return netPerClientPerYear > 0 ? Math.ceil(annualCost / netPerClientPerYear) : Infinity;
 }
+
+/* ——— Comparación con mandarlo a hacer ——— */
+
+/** Años de suscripción que se pagan con el costo de desarrollar el sistema a la medida. */
+export const yearsOfSubscription = (buildCost: number, yearlyPrice: number) =>
+  yearlyPrice > 0 ? buildCost / yearlyPrice : Infinity;

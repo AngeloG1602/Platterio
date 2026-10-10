@@ -10,6 +10,7 @@ import {
   resolvePlan,
   SMMLV_2026,
   yearlySaving,
+  yearsOfSubscription,
 } from "./pricing";
 
 describe("plan de cada negocio", () => {
@@ -78,5 +79,12 @@ describe("proyección", () => {
     expect(clientsToCover(infra, netAfterHotmart(1_490_000, trm))).toBe(2);
     expect(clientsToCover(infra, netAfterHotmart(69_000, trm) * 12)).toBe(3);
     expect(clientsToCover(infra, 0)).toBe(Infinity);
+  });
+});
+
+describe("comparación con desarrollo a la medida", () => {
+  it("cuenta cuántos años de suscripción equivalen al desarrollo", () => {
+    expect(yearsOfSubscription(30_000_000, 1_490_000)).toBeCloseTo(20.1, 1);
+    expect(yearsOfSubscription(30_000_000, 0)).toBe(Infinity);
   });
 });
