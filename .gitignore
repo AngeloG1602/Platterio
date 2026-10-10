@@ -15,3 +15,4 @@ next-env.d.ts
 /video/salida/
 /video/voz/voz.wav
 /video/captura/png/
+__pycache__/
