@@ -15,7 +15,9 @@ import { PasswordInput } from "./password-field";
 /** Registro del dueño: crea su negocio y empieza la prueba gratis, sin tarjeta. */
 export function SignupForm() {
   const router = useRouter();
-  const planId = useSearchParams().get("plan");
+  const params = useSearchParams();
+  const planId = params.get("plan");
+  const founder = params.get("fundador") === "1";
   const plan = PLANS.find((p) => p.id === planId);
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -62,7 +64,8 @@ export function SignupForm() {
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         {plan && (
           <p className="bg-accent-soft text-accent-strong rounded-lg px-3 py-2 text-[14px] font-semibold">
-            Plan elegido: {plan.name}. Podrás cambiarlo cuando quieras.
+            Plan elegido: {plan.name}
+            {founder ? " (oferta Fundador)" : ""}. Podrás cambiarlo cuando quieras.
           </p>
         )}
         <Field label="Nombre de tu negocio" error={errors.businessName}>

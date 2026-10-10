@@ -15,10 +15,13 @@ import {
   useDeliveryItems,
   useNewReservationCount,
   useNow,
+  useFeature,
   useRestaurant,
   useSalonBoard,
 } from "@/lib/data";
 import { formatTime, plural } from "@/lib/domain/format";
+
+const SALON_TABS: Tab[] = ["salon", "caja", "mesas"];
 
 type Tab = "salon" | "domicilios" | "reservas" | "caja" | "mesas" | "equipo";
 
@@ -39,8 +42,10 @@ export function CajaScreen() {
 
 function Caja() {
   const restaurant = useRestaurant();
+  const hasSalon = useFeature("salon");
   const now = useNow(1000);
-  const [tab, setTab] = useState<Tab>("salon");
+  const [chosen, setTab] = useState<Tab>("salon");
+  const tab: Tab = !hasSalon && SALON_TABS.includes(chosen) ? "domicilios" : chosen;
   const board = useSalonBoard();
   const newDeliveries = useNewDeliveryCount();
   const newReservations = useNewReservationCount();
@@ -67,7 +72,7 @@ function Caja() {
           onChange={setTab}
           className="w-full sm:w-auto sm:min-w-[640px]"
           options={[
-            { value: "salon", label: "Salón" },
+            ...(hasSalon ? [{ value: "salon" as Tab, label: "Salón" }] : []),
             {
               value: "domicilios",
               label: newDeliveries > 0 ? `Domicilios (${newDeliveries})` : "Domicilios",
@@ -76,8 +81,12 @@ function Caja() {
               value: "reservas",
               label: newReservations > 0 ? `Reservas (${newReservations})` : "Reservas",
             },
-            { value: "caja", label: "Caja" },
-            { value: "mesas", label: "Mesas y meseros" },
+            ...(hasSalon
+              ? [
+                  { value: "caja" as Tab, label: "Caja" },
+                  { value: "mesas" as Tab, label: "Mesas y meseros" },
+                ]
+              : []),
             { value: "equipo", label: "Equipo" },
           ]}
         />

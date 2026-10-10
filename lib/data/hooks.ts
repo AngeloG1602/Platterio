@@ -1,5 +1,6 @@
 "use client";
 
+import { planAllows, resolvePlan, type Feature } from "@/lib/domain/pricing";
 import { deliveryItems } from "@/lib/domain/delivery";
 import { useEffect, useMemo, useState } from "react";
 import { activeWaiters } from "@/lib/domain/access";
@@ -24,6 +25,11 @@ import { usePresenceStore } from "./sync";
 
 export const useHydrated = () => useBootStore((s) => s.hydrated);
 export const useRestaurant = () => useAppStore((s) => s.restaurant);
+/** Plan del negocio (sin valor guardado = Completo). */
+export const usePlan = () => useAppStore((s) => resolvePlan(s.restaurant.plan));
+/** ¿El plan del negocio incluye esta función? */
+export const useFeature = (feature: Feature) =>
+  useAppStore((s) => planAllows(s.restaurant.plan, feature));
 export const useOrders = () => useAppStore((s) => s.orders);
 export const useCategories = () => useAppStore((s) => s.categories);
 export const useTimeSlots = () => useAppStore((s) => s.timeSlots);

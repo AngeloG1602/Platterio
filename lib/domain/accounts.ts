@@ -23,7 +23,7 @@ export interface Account {
   validUntil: number;
   kind: AccountKind;
   /** Plan que eligió al registrarse, si venía de la tabla de precios. */
-  plan?: "esencial" | "profesional";
+  plan?: "digital" | "completo";
 }
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();

@@ -597,3 +597,15 @@ pueden cambiar sin rehacer pantallas.
       **Recompra por WhatsApp:** se hará fácil para el negocio, con lista de clientes con permiso y un
       anuncio (imagen y texto) enviado a muchos a la vez; el envío masivo real necesita la API de
       WhatsApp Business (fase 9). Antes de eso se prepara la lista, el consentimiento y la vista previa.
+143.  **Planes y precios (10 de octubre).** Dos planes: **Digital** $69.000/mes (solo mensual, para
+      evitar que el anual compita con el Fundador; sin salón, hasta 3 personas) y **Completo**
+      $149.000/mes o $1.490.000/año (2 meses gratis; todo incluido, hasta 20 personas, soporte
+      prioritario). **Fundador:** $700.000 el primer año para los primeros 10 clientes, con carga de
+      carta gratis, precio congelado 12 meses y feedback/testimonio. Prueba de 7 días con todo. Extras
+      aparte (3D, diseño a medida, carga y capacitación, otro negocio al 50 %). Sin cobro por pedido.
+      "Usuarios" = personas del equipo con PIN (los clientes no cuentan). Soporte de lunes a sábado,
+      8 a. m.–6 p. m.; sin 24/7 (redacción legal por revisar). Esta versión **prototipa** la separación:
+      `Restaurant.plan` (sin valor = Completo), `usePlan`/`useFeature`, selector en el panel de demo,
+      Digital oculta Salón/Caja/Mesas, Calificaciones y Reportes, y `teamActions.add` respeta el tope.
+      El cumplimiento real (por cuenta y cobro) llega con la base de datos en la fase 9. Pendiente:
+      aviso en `/mesa` y `/mesero` cuando el plan no incluye salón.

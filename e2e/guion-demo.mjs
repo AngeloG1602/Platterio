@@ -1099,6 +1099,21 @@ check(
 await reserva.close();
 await cajaRes.close();
 
+// 23. Planes: Digital y Completo
+await hub.goto(`${BASE}/demo?demo=1`);
+await hub.getByRole("button", { name: "Digital", exact: true }).click();
+await admin.goto(`${BASE}/admin`);
+check(
+  "23. En el plan Digital el panel no muestra Calificaciones",
+  !(await visible(admin.getByRole("link", { name: "Calificaciones" }))),
+);
+await hub.getByRole("button", { name: "Completo", exact: true }).click();
+await admin.goto(`${BASE}/admin`);
+check(
+  "23. En el plan Completo el panel sí muestra Calificaciones",
+  await visible(admin.getByRole("link", { name: "Calificaciones" })),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();
