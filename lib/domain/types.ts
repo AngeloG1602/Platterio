@@ -234,6 +234,8 @@ export interface TableSession {
   /** Minutos de inactividad para cerrarse sola, si el mesero cambió el del negocio. */
   idleCloseMin?: number;
   closeReason?: "mesero" | "cancelada" | "inactividad" | "pagada";
+  /** Cambios de mesa de esta sesión, en orden: de qué mesa a cuál, cuándo y quién los hizo. */
+  transfers?: { from: string; to: string; at: string; by?: string }[];
   /** Si es un pedido a domicilio o para recoger (no hay mesa; `tableId` es `domicilio`). */
   delivery?: DeliveryInfo;
 }

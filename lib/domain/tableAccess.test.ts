@@ -12,6 +12,8 @@ import {
   sessionsPaidInFull,
   sessionsToAutoClose,
   setIdleClose,
+  transferSession,
+  movedTableFor,
   validateIdleMinutes,
 } from "./tableAccess";
 import type { Order, Payment, TableCall, TableSession } from "./types";
@@ -250,6 +252,77 @@ describe("liberar sola al pagar", () => {
         payments: [pay(20_000)],
       }),
     ).toEqual([]);
+  });
+});
+
+describe("cambio de mesa", () => {
+  const diner = { id: "d1", alias: "Ana", deviceId: "cel-ana", joinedAt: iso(1), restrictions: [] };
+  const base = () => ({
+    sessions: [session({ id: "s1", tableId: "mesa-1", pin: "1234", diners: [diner as never] })],
+    orders: [
+      order({ tableId: "mesa-1" }),
+      order({ id: "o9", sessionId: "otra", tableId: "mesa-9" }),
+    ],
+    payments: [{ ...pay(1_000), tableId: "mesa-1" }],
+    fromTableId: "mesa-1",
+    toTableId: "mesa-2",
+    now: iso(30),
+    by: "Carlos",
+  });
+
+  it("pasa la misma sesión a la mesa nueva con sus rondas y cobros, y deja la vieja libre", () => {
+    const r = transferSession(base());
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.session).toMatchObject({ id: "s1", tableId: "mesa-2", pin: "1234" });
+    expect(r.value.session.diners).toHaveLength(1);
+    expect(r.value.session.transfers).toEqual([
+      { from: "mesa-1", to: "mesa-2", at: iso(30), by: "Carlos" },
+    ]);
+    expect(r.value.orders.map((o) => o.tableId)).toEqual(["mesa-2", "mesa-9"]);
+    expect(r.value.payments[0]!.tableId).toBe("mesa-2");
+    // Nadie queda en la mesa 1: su QR abre una sesión nueva.
+    expect(r.value.sessions.some((s) => s.tableId === "mesa-1" && !s.closedAt)).toBe(false);
+  });
+
+  it("no pasa a una mesa ocupada, a la misma ni desde una mesa libre", () => {
+    const b = base();
+    const busy = [...b.sessions, session({ id: "s2", tableId: "mesa-2" })];
+    expect(transferSession({ ...b, sessions: busy }).ok).toBe(false);
+    expect(transferSession({ ...b, toTableId: "mesa-1" }).ok).toBe(false);
+    expect(transferSession({ ...b, fromTableId: "mesa-7" }).ok).toBe(false);
+  });
+
+  it("sirve una mesa que ya se había liberado antes (sesión cerrada)", () => {
+    const b = base();
+    const closed = [...b.sessions, session({ id: "viejo", tableId: "mesa-2", closedAt: iso(5) })];
+    expect(transferSession({ ...b, sessions: closed }).ok).toBe(true);
+  });
+
+  it("guarda todos los cambios de mesa en orden", () => {
+    const first = transferSession(base());
+    if (!first.ok) throw new Error("falló");
+    const second = transferSession({
+      ...base(),
+      sessions: first.value.sessions,
+      orders: first.value.orders,
+      payments: first.value.payments,
+      fromTableId: "mesa-2",
+      toTableId: "mesa-3",
+      now: iso(40),
+    });
+    expect(second.ok && second.value.session.transfers?.map((t) => t.to)).toEqual([
+      "mesa-2",
+      "mesa-3",
+    ]);
+  });
+
+  it("el celular del cliente sabe a qué mesa lo pasaron", () => {
+    const r = transferSession(base());
+    if (!r.ok) throw new Error("falló");
+    expect(movedTableFor(r.value.sessions, "cel-ana", "mesa-1")).toBe("mesa-2");
+    expect(movedTableFor(r.value.sessions, "cel-otro", "mesa-1")).toBeNull();
+    expect(movedTableFor(r.value.sessions, "cel-ana", "mesa-5")).toBeNull();
   });
 });
 

@@ -48,6 +48,7 @@ import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
 import {
   cancelSession,
+  transferSession,
   openSession,
   requestOpen,
   resolveCalls,
@@ -791,6 +792,35 @@ export const waiterActions = {
     if (!result.ok) return result;
     replaceSession(session, result.session);
     recordAudit("mesa.liberar", tableName(tableId));
+    return { ok: true };
+  },
+  /**
+   * Pasa la sesión de una mesa a otra libre (el cliente se cambió de sitio). Lo hace el mesero
+   * de la mesa, el encargado o el administrador; el cliente no. Los celulares siguen conectados.
+   */
+  transferTable(fromTableId: string, toTableId: string): ActionResult {
+    const check = checkWaiterTable(fromTableId);
+    if (!check.ok) return check;
+    const state = useAppStore.getState();
+    if (!state.tables.some((t) => t.id === toTableId))
+      return { ok: false, error: "No encontramos esa mesa" };
+    const r = transferSession({
+      sessions: state.sessions,
+      orders: state.orders,
+      payments: state.payments,
+      fromTableId,
+      toTableId,
+      now: nowIso(),
+      by: currentStaff()?.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      sessions: r.value.sessions,
+      orders: r.value.orders,
+      payments: r.value.payments,
+      calls: resolveCalls(s.calls, toTableId),
+    }));
+    recordAudit("mesa.transferir", `${tableName(fromTableId)} → ${tableName(toTableId)}`);
     return { ok: true };
   },
 };

@@ -19,6 +19,7 @@ export const AUDIT_ACTIONS = {
   "mesa.abrir": { label: "Abrió una mesa", area: "Mesas" },
   "mesa.liberar": { label: "Liberó una mesa", area: "Mesas" },
   "mesa.cancelar": { label: "Canceló una mesa", area: "Mesas" },
+  "mesa.transferir": { label: "Pasó una mesa a otra", area: "Mesas" },
   "mesa.liberar_al_pagar": { label: "La mesa se liberó al pagarse", area: "Mesas" },
   "mesa.cerrar_inactividad": { label: "La mesa se cerró por inactividad", area: "Mesas" },
   "domicilio.despachar": { label: "Despachó un domicilio", area: "Pedidos" },

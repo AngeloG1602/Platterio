@@ -1,5 +1,6 @@
 "use client";
 
+import { movedTableFor } from "@/lib/domain/tableAccess";
 import type { AuditEntry } from "@/lib/domain/audit";
 import { planAllows, resolvePlan, type Feature } from "@/lib/domain/pricing";
 import { deliveryItems } from "@/lib/domain/delivery";
@@ -132,6 +133,19 @@ export function useMyDiner(tableId: string | undefined) {
   const deviceId = useDeviceStore((s) => s.deviceId);
   const diner = session?.diners.find((d) => d.deviceId === deviceId);
   return { session, diner };
+}
+
+/**
+ * Si el personal pasó la sesión de este dispositivo a otra mesa, el número de la mesa nueva
+ * (para llevar al cliente allí sin que escanee ni escriba otro PIN).
+ */
+export function useMovedTable(tableId: string | undefined): number | null {
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  return useAppStore((s) => {
+    if (!tableId) return null;
+    const to = movedTableFor(s.sessions, deviceId, tableId);
+    return (to && s.tables.find((t) => t.id === to)?.number) || null;
+  });
 }
 
 export function useDish(id: string) {

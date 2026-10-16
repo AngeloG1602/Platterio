@@ -163,6 +163,79 @@ export function cancelSession(
   };
 }
 
+/**
+ * Cambio de mesa: el cliente se cambió de sitio y el personal pasa su sesión a otra mesa libre.
+ * La sesión es la misma (comensales, PIN, carrito, rondas, cobros y cambios), solo cambia de mesa;
+ * la mesa de origen queda libre sola, porque ya no tiene sesión. Queda anotado de dónde a dónde.
+ */
+export function transferSession(params: {
+  sessions: readonly TableSession[];
+  orders: readonly Order[];
+  payments: readonly Payment[];
+  fromTableId: string;
+  toTableId: string;
+  now: string;
+  /** Nombre de quien lo hizo. */
+  by?: string;
+}): AccessResult<{
+  sessions: TableSession[];
+  orders: Order[];
+  payments: Payment[];
+  session: TableSession;
+}> {
+  const { fromTableId, toTableId } = params;
+  if (fromTableId === toTableId) return { ok: false, error: "Elige otra mesa" };
+  const session = params.sessions.find((s) => s.tableId === fromTableId && isOpen(s));
+  if (!session) return { ok: false, error: "La mesa ya estaba libre" };
+  if (params.sessions.some((s) => s.tableId === toTableId && isOpen(s)))
+    return { ok: false, error: "Esa mesa está ocupada. Elige una libre" };
+  const moved: TableSession = {
+    ...session,
+    tableId: toTableId,
+    lastActivityAt: params.now,
+    transfers: [
+      ...(session.transfers ?? []),
+      {
+        from: fromTableId,
+        to: toTableId,
+        at: params.now,
+        ...(params.by ? { by: params.by } : {}),
+      },
+    ],
+  };
+  return {
+    ok: true,
+    value: {
+      session: moved,
+      sessions: params.sessions.map((s) => (s.id === session.id ? moved : s)),
+      orders: params.orders.map((o) =>
+        o.sessionId === session.id ? { ...o, tableId: toTableId } : o,
+      ),
+      payments: params.payments.map((p) =>
+        p.sessionId === session.id ? { ...p, tableId: toTableId } : p,
+      ),
+    },
+  };
+}
+
+/**
+ * Si este dispositivo estaba en una sesión que se pasó a otra mesa, dónde está ahora. Sirve para
+ * llevar al cliente a la mesa nueva sin que escanee ni escriba otro PIN.
+ */
+export function movedTableFor(
+  sessions: readonly TableSession[],
+  deviceId: string,
+  fromTableId: string,
+): string | null {
+  const s = sessions.find(
+    (x) =>
+      isOpen(x) &&
+      x.diners.some((d) => d.deviceId === deviceId) &&
+      x.transfers?.some((t) => t.from === fromTableId),
+  );
+  return s ? s.tableId : null;
+}
+
 export function setIdleClose(
   session: TableSession,
   minutes: number | null,

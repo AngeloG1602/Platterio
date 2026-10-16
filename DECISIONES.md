@@ -661,3 +661,16 @@ pueden cambiar sin rehacer pantallas.
       1.500 entradas. Se consulta en Admin → Auditoría, solo para el administrador (el panel ya
       lo exige), con periodo, área, persona y búsqueda sin tildes, y descarga CSV. No hizo falta
       subir la versión de los datos: los guardados antes no traen el campo y arrancan vacíos.
+148.  **Cambio de mesa (bloque 4 de las mejoras de la entrevista).** (a) En la hoja de la mesa,
+      "Cambiar de mesa" pasa la **misma sesión** a una mesa libre: comensales, PIN, carrito,
+      rondas, cobros y cambios (`transferSession`). La mesa de origen queda libre por sí sola
+      porque ya no tiene sesión, y su QR abre una sesión nueva. Lo hace quien opera la mesa de
+      origen (su mesero, el encargado o el administrador); el cliente no. Puede pasarla a
+      cualquier mesa libre, aunque sea de otro mesero: desde ese momento la ve el mesero de la
+      mesa nueva. (b) El celular del cliente lo detecta (`movedTableFor`: el dispositivo está en
+      una sesión abierta con un cambio que sale de esta mesa) y lo lleva a la misma pantalla de
+      la mesa nueva, con el aviso "Te pasamos a la Mesa N", sin escanear ni pedir otro PIN.
+      (c) La sesión guarda `transfers` (de qué mesa a cuál, cuándo y quién), y la auditoría
+      registra "Pasó una mesa a otra" con "Mesa 1 → Mesa 2". No pide motivo, solo queda quién
+      lo hizo. (d) Corrección de la hoja "Liberar mesa": ya no dice que se puede cerrar con saldo
+      (decisión 146); con saldo muestra cuánto falta y deshabilita la confirmación.

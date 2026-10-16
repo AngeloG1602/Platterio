@@ -1216,11 +1216,12 @@ check(
 );
 await daniela.getByRole("button", { name: /^Mesa 6:/ }).click();
 await daniela.getByRole("button", { name: "Liberar mesa" }).click();
-await daniela.getByRole("button", { name: "Sí, liberar" }).click();
 check(
   "25. No se puede liberar una mesa con saldo, y dice cuánto falta",
-  await visible(daniela.getByText(/La mesa tiene \$[\d.]+ por cobrar/)),
+  (await visible(daniela.getByText(/La mesa tiene \$[\d.]+ por cobrar/))) &&
+    (await daniela.getByRole("button", { name: "Sí, liberar" }).isDisabled()),
 );
+await daniela.getByRole("button", { name: "Cancelar", exact: true }).click();
 await caja.goto(`${BASE}/caja`);
 await caja.getByRole("radio", { name: "Caja", exact: true }).click();
 check(
@@ -1279,6 +1280,46 @@ check(
   (await admin.getByRole("button", { name: /Borrar|Eliminar|Editar/ }).count()) === 0,
 );
 await admin.goto(`${BASE}/admin`);
+
+// 27. Cambio de mesa: el cliente se cambia de sitio y el mesero pasa su sesión
+const hugo = await tab("Hugo");
+await joinTable(hugo, 6, "Hugo");
+await addDish(hugo, 6, "limonada-de-coco");
+await hugo.goto(`${BASE}/mesa/6/carrito`);
+await daniela.goto(`${BASE}/mesero`);
+await daniela.getByRole("button", { name: /^Mesa 6:/ }).click();
+await daniela.getByRole("button", { name: "Cambiar de mesa" }).click();
+const destino = daniela.getByLabel("Mesa nueva");
+const nuevaMesa = Number(
+  ((await destino.locator("option").nth(1).textContent()) ?? "").replace(/\D/g, ""),
+);
+await destino.selectOption({ index: 1 });
+await daniela.getByRole("button", { name: "Pasar a esa mesa" }).click();
+await hugo.waitForURL(`**/mesa/${nuevaMesa}/carrito`);
+check(
+  "27. El celular del cliente pasa solo a la mesa nueva, sin otro PIN",
+  (await visible(hugo.getByText(`Mesa ${nuevaMesa}`).first())) &&
+    (await visible(hugo.getByText("Limonada de coco").first())),
+);
+const visitante = await tab("Visitante");
+await visitante.goto(`${BASE}/mesa/6`);
+check(
+  "27. La mesa de origen queda libre para el siguiente cliente",
+  await visible(visitante.getByText("Pide al mesero que abra tu mesa.")),
+);
+await admin.goto(`${BASE}/admin/auditoria`);
+check(
+  "27. Queda registrado quién pasó la mesa, de cuál a cuál",
+  await visible(
+    admin
+      .getByRole("table", { name: "Acciones registradas" })
+      .getByRole("row", {
+        name: new RegExp(`Daniela.*Pasó una mesa a otra.*Mesa 6 → Mesa ${nuevaMesa}`),
+      }),
+  ),
+);
+await visitante.close();
+await hugo.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);

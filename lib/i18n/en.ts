@@ -1,6 +1,8 @@
 /** Español → inglés. Ver `lib/i18n/index.ts`. */
 export const EN: Record<string, string> = {
   "Mesa {n}": "Table {n}",
+  "Te pasamos a la Mesa {n}": "We moved you to Table {n}",
+  "Tu pedido y tu carrito siguen igual.": "Your order and cart are unchanged.",
   "Pide desde tu mesa, sin afán.": "Order from your table, no rush.",
   "Mira la carta con fotos, ingredientes y alérgenos. El mesero confirma tu pedido antes de que pase a la cocina.":
     "Browse the menu with photos, ingredients and allergens. Your server confirms your order before it goes to the kitchen.",
