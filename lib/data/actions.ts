@@ -18,7 +18,7 @@ import {
   type RepaymentMethod,
 } from "@/lib/domain/credit";
 import type { AuditAction } from "@/lib/domain/audit";
-import { canAddUser, type PlanId } from "@/lib/domain/pricing";
+import { canAddUser, planAllows, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
 import { addToCart, cartCount, removeCartItem, updateCartItem } from "@/lib/domain/cart";
@@ -55,7 +55,17 @@ import {
   type OrderEdit,
   type StaffLine,
 } from "@/lib/domain/staffOrders";
-import type { Order, OrderStatus } from "@/lib/domain/types";
+import type { InventoryItem, InventoryMove, Order, OrderStatus } from "@/lib/domain/types";
+import {
+  addItem as addInventoryItem,
+  availableUnits,
+  registerMove,
+  syncOrderStock,
+  updateItem as updateInventoryItem,
+  validateItem,
+  type ItemDraft,
+  type ManualKind,
+} from "@/lib/domain/inventory";
 import { placeLabel } from "@/lib/domain/delivery";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
@@ -380,6 +390,15 @@ export const cartActions = {
     if (!dish?.active) return { ok: false, error: "Este plato ya no está disponible" };
     if (!dish.variants.some((v) => v.id === item.variantId))
       return { ok: false, error: "Elige una opción válida" };
+    const left = availableUnits(state.inventory ?? [], item.dishId, item.variantId);
+    if (left !== undefined) {
+      const inCart = session.cart
+        .filter((c) => c.dishId === item.dishId && c.variantId === item.variantId)
+        .reduce((n, c) => n + c.qty, 0);
+      if (left <= 0) return { ok: false, error: `${dish.name} se agotó.` };
+      if (inCart + item.qty > left)
+        return { ok: false, error: `De ${dish.name} solo quedan ${left}.` };
+    }
     const { customization, ...base } = item;
     let custom: CartCustomization | undefined;
     if (customization) {
@@ -521,8 +540,39 @@ export const demoDinerActions = {
 
 /* ——— Estados del pedido ——— */
 
-function replaceOrder(order: Order) {
-  useAppStore.setState((s) => ({ orders: s.orders.map((o) => (o.id === order.id ? order : o)) }));
+/** Guarda la ronda y deja el inventario al día con su nuevo estado, todo en un solo cambio. */
+function replaceOrder(order: Order): ActionResult {
+  const state = useAppStore.getState();
+  const stock = stockSync(state, order);
+  if (!stock.ok) return stock;
+  useAppStore.setState((s) => ({
+    orders: s.orders.map((o) => (o.id === order.id ? order : o)),
+    ...stock.patch,
+  }));
+  return { ok: true };
+}
+
+/**
+ * Qué cambia en el inventario cuando la ronda queda así. Sin el plan con inventario, o si el
+ * negocio no tiene productos, no hay nada que mover.
+ */
+function stockSync(
+  state: ReturnType<typeof useAppStore.getState>,
+  order: Order,
+):
+  | { ok: true; patch: { inventory?: InventoryItem[]; inventoryMoves?: InventoryMove[] } }
+  | { ok: false; error: string } {
+  const items = state.inventory ?? [];
+  if (!planAllows(state.restaurant.plan, "inventario") || items.length === 0)
+    return { ok: true, patch: {} };
+  const r = syncOrderStock(
+    { items, moves: state.inventoryMoves ?? [] },
+    order,
+    currentStaff()?.name ?? "Pedido",
+    nowIso(),
+  );
+  if (!r.ok) return r;
+  return { ok: true, patch: { inventory: r.value.items, inventoryMoves: r.value.moves } };
 }
 
 /** "Mesa 3 · Ronda 1" o "Domicilio D-XXXX · Ronda 1": sobre qué pedido se hizo algo. */
@@ -537,7 +587,8 @@ function moveOrder(orderId: string, to: OrderStatus, actor: Actor, reason?: stri
   if (!order) return { ok: false, error: "No encontramos ese pedido" };
   const result = transitionOrder(order, to, actor, nowIso(), reason);
   if (!result.ok) return result;
-  replaceOrder(result.order);
+  const saved = replaceOrder(result.order);
+  if (!saved.ok) return saved;
   const action: Partial<Record<OrderStatus, AuditAction>> = {
     confirmado: "pedido.confirmar",
     rechazado: "pedido.rechazar",
@@ -658,7 +709,8 @@ export const waiterActions = {
       const dish = state.dishes.find((d) => d.id === item?.dishId);
       const result = adjustOrderItem(order, itemId, change, reason, dish);
       if (!result.ok) return result;
-      replaceOrder(result.order);
+      const saved = replaceOrder(result.order);
+      if (!saved.ok) return saved;
       recordAudit("pedido.ajustar", orderTarget(order), {
         detail: `${dish?.name ?? "Plato"} · ${change.type}`,
         reason,
@@ -706,11 +758,14 @@ export const waiterActions = {
       newId: () => newId("item"),
     });
     if (!r.ok) return r;
+    const stock = stockSync(state, r.order);
+    if (!stock.ok) return stock;
     const sid = session.id;
     useAppStore.setState((s) => ({
       sessions: sessions.map((x) => (x.id === sid ? { ...x, lastActivityAt: now } : x)),
       orders: [...s.orders, r.order],
       calls: openedPin ? resolveCalls(s.calls, tableId) : s.calls,
+      ...stock.patch,
     }));
     recordAudit("pedido.crear", orderTarget(r.order), {
       detail: `${r.order.items.reduce((n, i) => n + i.qty, 0)} platos`,
@@ -735,7 +790,8 @@ export const waiterActions = {
         itemId: newId("item"),
       });
       if (!r.ok) return r;
-      replaceOrder(r.order);
+      const saved = replaceOrder(r.order);
+      if (!saved.ok) return saved;
       const last = r.order.changes?.at(-1);
       recordAudit("pedido.editar", orderTarget(order), {
         detail: last ? `${last.dishName} · ${last.detail}` : edit.type,
@@ -772,9 +828,18 @@ export const waiterActions = {
     if (!session) return { ok: false, error: "La mesa ya estaba cerrada" };
     const r = cancelSession(session, state.orders, state.payments, nowIso());
     if (!r.ok) return r;
+    // Las rondas que se rechazan devuelven al inventario lo que tenían descontado.
+    let stock: { inventory?: InventoryItem[]; inventoryMoves?: InventoryMove[] } = {};
+    for (const o of r.value.orders) {
+      const before = state.orders.find((x) => x.id === o.id);
+      if (!before || before.status === o.status) continue;
+      const synced = stockSync({ ...state, ...stock }, o);
+      if (synced.ok) stock = { ...stock, ...synced.patch };
+    }
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === session.id ? r.value.session : x)),
       orders: r.value.orders,
+      ...stock,
     }));
     recordAudit("mesa.cancelar", tableName(tableId), {
       detail:
@@ -903,6 +968,20 @@ export const deliveryClientActions = {
     const state = useAppStore.getState();
     const cart = useDeliveryClient.getState().cart;
     const nowMs = virtualNow(state.demo.clock, Date.now());
+    for (const line of cart) {
+      const left = availableUnits(state.inventory ?? [], line.dishId, line.variantId);
+      const asked = cart
+        .filter((c) => c.dishId === line.dishId && c.variantId === line.variantId)
+        .reduce((n, c) => n + c.qty, 0);
+      if (left !== undefined && asked > left) {
+        const name = state.dishes.find((d) => d.id === line.dishId)?.name ?? "Un plato";
+        return {
+          ok: false,
+          error:
+            left <= 0 ? `${name} se agotó. Quítalo del pedido.` : `De ${name} solo quedan ${left}.`,
+        };
+      }
+    }
     const sessionId = newId("sesion");
     const orderId = newId("pedido");
     const r = placeDeliveryOrder({
@@ -1291,6 +1370,74 @@ export const feedbackActions = {
       alerts: result.alert ? [...s.alerts, result.alert] : s.alerts,
     }));
     return { ok: true, lowAlert: Boolean(result.alert) };
+  },
+};
+
+export const inventoryActions = {
+  /** Agrega un producto. Lo hacen despensa, encargado y administrador. */
+  addItem(draft: ItemDraft): ActionResult & { errors?: Partial<Record<keyof ItemDraft, string>> } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const errors = validateItem(draft, s.inventory ?? []);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa los datos", errors };
+    const r = addInventoryItem(
+      { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
+      draft,
+      allowed.actor!.name,
+      nowIso(),
+      newId("mov"),
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, inventoryMoves: r.value.moves });
+    recordAudit("inventario.crear", r.value.item.name, {
+      detail: `${r.value.item.qty} ${r.value.item.unit}`,
+    });
+    return { ok: true };
+  },
+  updateItem(
+    itemId: string,
+    draft: ItemDraft,
+  ): ActionResult & { errors?: Partial<Record<keyof ItemDraft, string>> } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const errors = validateItem({ ...draft, qty: "0" }, s.inventory ?? [], itemId);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa los datos", errors };
+    const r = updateInventoryItem(
+      { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
+      itemId,
+      draft,
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items });
+    recordAudit("inventario.editar", draft.name.trim());
+    return { ok: true };
+  },
+  /** Entrada, salida o ajuste manual. En el ajuste, `amount` es lo realmente contado. */
+  move(itemId: string, kind: ManualKind, amount: number, reason: string): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const item = (s.inventory ?? []).find((i) => i.id === itemId);
+    const r = registerMove(
+      { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
+      { itemId, kind, amount, reason },
+      allowed.actor!.name,
+      nowIso(),
+      newId("mov"),
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, inventoryMoves: r.value.moves });
+    const last = r.value.moves.at(-1)!;
+    recordAudit(`inventario.${kind}` as AuditAction, item?.name ?? itemId, {
+      detail:
+        kind === "ajuste"
+          ? `${item?.qty} → ${last.balance} ${item?.unit ?? ""}`.trim()
+          : `${Math.abs(last.delta)} ${item?.unit ?? ""}`.trim(),
+      reason,
+    });
+    return { ok: true };
   },
 };
 

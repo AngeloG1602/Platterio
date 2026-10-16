@@ -710,3 +710,27 @@ pueden cambiar sin rehacer pantallas.
      mapa de calor día × hora medido en pedidos o en ventas, con día, hora y franja más
      movidos. (d) Toda la lógica está en `lib/domain/orderHistory.ts` (funciones puras con
      pruebas); la pantalla solo la usa y pagina de 100 en 100.
+
+151. **Inventario etapa 1 y rol de despensa (mejoras, bloque 7).** (a) Producto de inventario =
+     nombre, unidad, existencias, umbral de aviso y, opcional, el plato (y la opción) que
+     consume. Sin vínculo solo lleva la cuenta. Función `inventario` del plan Completo.
+     (b) **Descuento:** la ronda tiene descontado su stock mientras esté confirmada (en
+     preparación, lista o entregada). `syncOrderStock` compara lo que la ronda necesita con lo que
+     ya tiene descontado (suma de sus movimientos) y mueve solo la diferencia; así confirmar,
+     editar, quitar un ítem, rechazar o anular siempre dejan el inventario correcto sin descontar
+     dos veces. Los ids de los movimientos son fijos por ronda y producto, para que dos pestañas
+     no dupliquen. Si no alcanza, la acción falla entera con el mensaje (el stock nunca queda
+     negativo, RNF-06). Los pedidos del personal, que van directo a cocina, descuentan al
+     crearse; los del cliente, al confirmar el mesero. Al cancelar una mesa las rondas rechazadas
+     devuelven su stock. (c) **Agotado:** con existencias en cero la carta marca el plato
+     «Agotado» (cuando lo están todas sus opciones), no se puede agregar al carrito ni al pedido
+     a domicilio, y la toma de pedidos del personal no deja pedirlo ni más de lo que hay.
+     (d) Movimientos manuales: entrada, salida y ajuste (el ajuste es la cantidad contada y guarda
+     la diferencia); salida y ajuste exigen motivo; todo queda con persona y hora, y en la
+     auditoría (nueva área «Inventario»). (e) **Rol `despensa`:** solo el permiso `inventario`
+     (entra a `/inventario`, PIN de 4 a 6 dígitos); administrador y encargado también lo tienen y
+     lo ven en `/admin/inventario` y en la pestaña «Inventario» de Caja. El encargado puede crear
+     usuarios de despensa. (f) El resumen del administrador avisa los productos en su límite o
+     agotados. Informe de movimientos por periodo, producto y tipo, con CSV (RF-29b). (g) La demo
+     siembra gaseosas (una en poco stock) y el usuario Rosa; se sube `DATA_VERSION` a 8.
+     (h) Pendiente para la etapa 2: inventario por receta.

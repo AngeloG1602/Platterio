@@ -10,6 +10,7 @@ export const BUSINESS_SECTIONS = [
   "admin",
   "mesero",
   "cocina",
+  "inventario",
   "caja",
   "mesa",
   "domicilio",

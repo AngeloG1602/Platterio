@@ -473,3 +473,38 @@ export interface ReservationConfig {
   minHours: number;
   events: { enabled: boolean; minPeople: number; occasions: string[] };
 }
+
+/* ——— Inventario (etapa 1: productos terminados) ——— */
+
+/** Un producto con existencias: gaseosas, cervezas, postres ya hechos, insumos sueltos. */
+export interface InventoryItem {
+  id: string;
+  name: string;
+  /** "botellas", "unidades", "kg"… solo para mostrar. */
+  unit: string;
+  qty: number;
+  /** Con esta cantidad o menos se avisa que queda poco. */
+  threshold: number;
+  /** Plato (y variante, si aplica) que consume este producto al venderse. Sin vínculo: solo se lleva la cuenta. */
+  link?: { dishId: string; variantId?: string };
+  createdAt: string;
+}
+
+export type InventoryMoveKind = "entrada" | "salida" | "ajuste" | "consumo" | "devolucion";
+
+/** Un movimiento de inventario. Solo se agregan: no se editan ni se borran. */
+export interface InventoryMove {
+  id: string;
+  itemId: string;
+  at: string;
+  /** Quién lo hizo, o "Pedido" si lo causó la confirmación de una ronda. */
+  by: string;
+  kind: InventoryMoveKind;
+  /** Cambio en las existencias: positivo suma, negativo resta. */
+  delta: number;
+  /** Existencias después del movimiento. */
+  balance: number;
+  reason?: string;
+  /** Ronda que lo causó (consumo y devolución). */
+  orderId?: string;
+}

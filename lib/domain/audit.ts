@@ -5,8 +5,15 @@ import { inPeriod, type Period } from "./analytics";
  * Solo se agrega: desde la interfaz no se edita ni se borra. Lo consulta el administrador.
  */
 
-export type AuditArea = "Pedidos" | "Cocina" | "Mesas" | "Caja" | "Equipo";
-export const AUDIT_AREAS: readonly AuditArea[] = ["Pedidos", "Cocina", "Mesas", "Caja", "Equipo"];
+export type AuditArea = "Pedidos" | "Cocina" | "Mesas" | "Caja" | "Inventario" | "Equipo";
+export const AUDIT_AREAS: readonly AuditArea[] = [
+  "Pedidos",
+  "Cocina",
+  "Mesas",
+  "Caja",
+  "Inventario",
+  "Equipo",
+];
 
 export const AUDIT_ACTIONS = {
   "pedido.crear": { label: "Tomó un pedido", area: "Pedidos" },
@@ -31,6 +38,11 @@ export const AUDIT_ACTIONS = {
   "credito.abonar": { label: "Recibió un abono de crédito", area: "Caja" },
   "credito.persona_crear": { label: "Agregó una persona a crédito", area: "Caja" },
   "credito.persona_editar": { label: "Editó una persona a crédito", area: "Caja" },
+  "inventario.crear": { label: "Agregó un producto al inventario", area: "Inventario" },
+  "inventario.editar": { label: "Editó un producto del inventario", area: "Inventario" },
+  "inventario.entrada": { label: "Registró una entrada de inventario", area: "Inventario" },
+  "inventario.salida": { label: "Registró una salida de inventario", area: "Inventario" },
+  "inventario.ajuste": { label: "Ajustó el inventario", area: "Inventario" },
   "equipo.crear": { label: "Creó un usuario", area: "Equipo" },
   "equipo.editar": { label: "Editó un usuario", area: "Equipo" },
   "equipo.activar": { label: "Activó un usuario", area: "Equipo" },

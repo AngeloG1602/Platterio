@@ -12,6 +12,7 @@ import {
   ScrollText,
   Users,
   UtensilsCrossed,
+  Package,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -45,6 +46,7 @@ const NAV: NavItem[] = [
     feature: "calificaciones",
   },
   { href: "/admin/pedidos", label: "Pedidos", icon: ListOrdered },
+  { href: "/admin/inventario", label: "Inventario", icon: Package, feature: "inventario" },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
   {
     href: "/admin/reportes",

@@ -2,6 +2,7 @@ import { DEFAULT_DELIVERY } from "@/lib/domain/delivery";
 import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import type { StaffUser } from "@/lib/domain/access";
 import type {
+  InventoryItem,
   Allergen,
   Category,
   Dish,
@@ -74,6 +75,37 @@ export const STAFF: StaffUser[] = [
     waiterId: "daniela",
   },
   { id: "cocina", name: "Cocina", role: "cocina", pin: "3333", active: true },
+  { id: "rosa", name: "Rosa", role: "despensa", pin: "5678", active: true },
+];
+
+/** Inventario de la demo: las gaseosas se descuentan al confirmar; el agua solo lleva la cuenta. */
+export const INVENTORY: InventoryItem[] = [
+  {
+    id: "gaseosa-400",
+    name: "Gaseosa 400 ml",
+    unit: "botellas",
+    qty: 24,
+    threshold: 6,
+    link: { dishId: "gaseosa", variantId: "400ml" },
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
+    id: "gaseosa-1-5l",
+    name: "Gaseosa 1,5 L",
+    unit: "botellas",
+    qty: 4,
+    threshold: 4,
+    link: { dishId: "gaseosa", variantId: "1-5l" },
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
+    id: "agua-botella",
+    name: "Agua en botella",
+    unit: "botellas",
+    qty: 30,
+    threshold: 8,
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
 ];
 
 const ALL_SLOTS = TIME_SLOTS.map((s) => s.id);

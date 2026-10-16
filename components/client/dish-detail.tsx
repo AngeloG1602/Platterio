@@ -18,7 +18,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spice } from "@/components/ui/spice";
 import { RatingSummary } from "@/components/ui/stars";
 import { toast } from "@/components/ui/toaster";
-import { cartActions, useCategories, useDevice, useDish, useDishRatingStats } from "@/lib/data";
+import {
+  cartActions,
+  useCategories,
+  useDevice,
+  useDish,
+  useDishRatingStats,
+  useSoldOut,
+} from "@/lib/data";
 import { customizationSpecFor } from "@/lib/data/customization-specs";
 import { ALLERGEN_LABEL, dishAllergens } from "@/lib/domain/allergens";
 import {
@@ -132,6 +139,7 @@ function DishContent({ dish, view, onBack }: { dish: Dish; view: TableView; onBa
   const [viewerOpen, setViewerOpen] = useState(false);
 
   const variant = dish.variants.find((v) => v.id === variantId) ?? dish.variants[0]!;
+  const soldOutNow = useSoldOut()(dish.id, variant.id);
   const base = Math.min(...dish.variants.map((v) => v.price));
   const delta = spec ? priceDelta(spec, custom, variantId) : 0;
   const customSummary = describeCustomization(
@@ -324,8 +332,15 @@ function DishContent({ dish, view, onBack }: { dish: Dish; view: TableView; onBa
         <div className="border-line bg-surface/95 pb-safe fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t px-4 pt-3 backdrop-blur">
           <div className="flex items-center gap-3">
             <QtyStepper value={qty} onChange={setQty} />
-            <Button size="lg" className="flex-1" onClick={add}>
-              <Plus aria-hidden /> {t("Agregar")} · <Price value={(variant.price + delta) * qty} />
+            <Button size="lg" className="flex-1" onClick={add} disabled={soldOutNow}>
+              {soldOutNow ? (
+                t("Agotado")
+              ) : (
+                <>
+                  <Plus aria-hidden /> {t("Agregar")} ·{" "}
+                  <Price value={(variant.price + delta) * qty} />
+                </>
+              )}
             </Button>
           </div>
         </div>

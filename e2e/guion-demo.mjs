@@ -201,7 +201,7 @@ await admin.getByLabel("Subir fotos del plato").setInputFiles({
     "base64",
   ),
 });
-await admin.getByText("Principal").waitFor();
+await admin.getByText("Principal", { exact: true }).waitFor();
 await admin.getByRole("button", { name: /^Almuerzo/ }).click();
 await admin.getByRole("switch", { name: "Destacado por la casa" }).click();
 await admin.getByRole("button", { name: "Crear plato" }).click();
@@ -1472,6 +1472,118 @@ await caja.getByRole("radio", { name: "Pedidos", exact: true }).click();
 check(
   "29. Caja también consulta el historial de pedidos",
   await visible(caja.getByRole("table", { name: "Pedidos" }), 8000),
+);
+
+// 30. Inventario y rol de despensa
+const tomarPedido5 = async () => {
+  const tomar = daniela.getByRole("button", { name: "Tomar pedido" });
+  if (!(await visible(tomar, 1500)))
+    await daniela.getByRole("button", { name: /^Mesa 5:/ }).click();
+  await tomar.click();
+};
+const rosa = await tab("Rosa", 1280, 900);
+await rosa.goto(`${BASE}/inventario`);
+await entrarComo(rosa, "Rosa");
+const existencias = rosa.getByRole("table", { name: "Existencias" });
+const filaGas = (nombre) => existencias.getByRole("row").filter({ hasText: nombre });
+check(
+  "30. La despensa entra con su PIN y ve las existencias",
+  (await visible(filaGas("Gaseosa 400 ml"))) && (await visible(filaGas("Gaseosa 1,5 L"))),
+);
+check(
+  "30. El producto con poco stock se marca",
+  await visible(filaGas("Gaseosa 1,5 L").getByText("Poco stock")),
+);
+await rosa.goto(`${BASE}/caja`);
+check(
+  "30. La despensa no entra a la caja",
+  await visible(rosa.getByText("Esta sección no es para tu usuario")),
+);
+await rosa.goto(`${BASE}/inventario`);
+await rosa.getByRole("button", { name: "Entrada de Gaseosa 1,5 L" }).click();
+await rosa.getByLabel("Cantidad que llega").fill("6");
+await rosa.getByRole("button", { name: "Registrar entrada" }).click();
+check(
+  "30. Una entrada suma a las existencias y quita el aviso",
+  await visible(filaGas("Gaseosa 1,5 L").getByText("Bien")),
+);
+await rosa.getByRole("button", { name: "Salida de Gaseosa 1,5 L" }).click();
+await rosa.getByLabel("Cantidad que sale").fill("99");
+await rosa.getByRole("button", { name: "Registrar salida" }).click();
+check(
+  "30. No se puede sacar más de lo que hay",
+  await visible(rosa.getByText(/Solo hay 10 botellas/)),
+);
+await rosa.getByRole("button", { name: "Cancelar" }).click();
+
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("gaseosa");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await rosa.reload();
+check(
+  "30. Al tomar el pedido el mesero, la gaseosa baja del inventario",
+  await visible(filaGas("Gaseosa 400 ml").getByText("23", { exact: true })),
+);
+await rosa.getByRole("radio", { name: "Movimientos" }).click();
+check(
+  "30. El movimiento queda con quién lo causó",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Movimientos" })
+      .getByRole("row")
+      .filter({ hasText: "Venta" })
+      .filter({ hasText: "Daniela" }),
+  ),
+);
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+
+for (const nombre of ["Gaseosa 400 ml", "Gaseosa 1,5 L"]) {
+  await rosa.getByRole("button", { name: `Ajustar ${nombre}` }).click();
+  await rosa.getByLabel("Cantidad contada").fill("0");
+  await rosa.getByRole("button", { name: "Guardar ajuste" }).click();
+}
+check("30. Con cero queda agotada", await visible(filaGas("Gaseosa 400 ml").getByText("Agotado")));
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("gaseosa");
+check(
+  "30. El mesero ve la gaseosa agotada y no la puede pedir",
+  (await visible(hoja.getByText("Agotado", { exact: true }))) &&
+    (await hoja.getByRole("button", { name: "Agregar uno" }).count()) === 0,
+);
+await daniela.keyboard.press("Escape");
+const cliente = await tab("Cliente", 390, 900);
+await cliente.goto(`${BASE}/domicilio`);
+check(
+  "30. La carta marca el plato agotado",
+  await visible(cliente.getByText("Agotado", { exact: true }).first()),
+);
+await admin.goto(`${BASE}/admin`);
+check(
+  "30. El resumen del administrador avisa lo que hay que reponer",
+  await visible(admin.getByText("Inventario por reponer")),
+);
+await admin.getByRole("link", { name: "Inventario", exact: true }).click();
+check(
+  "30. El administrador también ve y carga el inventario",
+  await visible(admin.getByRole("table", { name: "Existencias" })),
+);
+await admin.goto(`${BASE}/admin/auditoria`);
+check(
+  "30. La auditoría registra los movimientos de inventario",
+  await visible(
+    admin
+      .getByRole("table", { name: "Acciones registradas" })
+      .getByRole("row", { name: /Rosa.*Ajustó el inventario.*Gaseosa 400 ml/ }),
+    8000,
+  ),
+);
+await caja.goto(`${BASE}/caja`);
+check(
+  "30. El encargado tiene el inventario en la caja",
+  await visible(caja.getByRole("radio", { name: "Inventario" })),
 );
 
 // Limpieza: hora automática

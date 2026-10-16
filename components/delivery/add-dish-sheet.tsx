@@ -8,7 +8,7 @@ import { QtyStepper } from "@/components/ui/qty-stepper";
 import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
-import { deliveryClientActions } from "@/lib/data";
+import { deliveryClientActions, useSoldOut } from "@/lib/data";
 import { formatMoney } from "@/lib/domain/format";
 import type { Dish } from "@/lib/domain/types";
 import { localized, t } from "@/lib/i18n";
@@ -19,6 +19,7 @@ export function AddDishSheet({ dish, onClose }: { dish: Dish; onClose: () => voi
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const variant = dish.variants.find((v) => v.id === variantId)!;
+  const soldOutNow = useSoldOut()(dish.id, variant.id);
 
   return (
     <Sheet
@@ -30,6 +31,7 @@ export function AddDishSheet({ dish, onClose }: { dish: Dish; onClose: () => voi
         <Button
           block
           size="lg"
+          disabled={soldOutNow}
           onClick={() => {
             const r = deliveryClientActions.add({ dishId: dish.id, variantId, qty, note });
             if (!r.ok) return toast.error(t(r.error));
@@ -37,7 +39,13 @@ export function AddDishSheet({ dish, onClose }: { dish: Dish; onClose: () => voi
             onClose();
           }}
         >
-          {t("Agregar")} · <Price value={variant.price * qty} />
+          {soldOutNow ? (
+            t("Agotado")
+          ) : (
+            <>
+              {t("Agregar")} · <Price value={variant.price * qty} />
+            </>
+          )}
         </Button>
       }
     >

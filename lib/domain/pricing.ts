@@ -11,7 +11,8 @@ export type Feature =
   | "calificaciones"
   | "reportes-completos"
   | "idiomas-y-monedas"
-  | "dominio-propio";
+  | "dominio-propio"
+  | "inventario";
 
 export interface PlanLimits {
   /** Personas del equipo que pueden entrar con PIN (administrador, caja, meseros, cocina). */
@@ -29,6 +30,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
       "reportes-completos",
       "idiomas-y-monedas",
       "dominio-propio",
+      "inventario",
     ],
   },
 };

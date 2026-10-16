@@ -9,7 +9,7 @@ import type { Waiter } from "./types";
  * datos, el acceso pasa a Supabase Auth y estas reglas se aplican también en el servidor.
  */
 
-export const ROLES = ["admin", "encargado", "mesero", "cocina"] as const;
+export const ROLES = ["admin", "encargado", "mesero", "cocina", "despensa"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -17,6 +17,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   encargado: "Encargado de caja",
   mesero: "Mesero",
   cocina: "Cocina",
+  despensa: "Despensa",
 };
 
 export const ROLE_DESCRIPTION: Record<Role, string> = {
@@ -24,6 +25,7 @@ export const ROLE_DESCRIPTION: Record<Role, string> = {
   encargado: "Opera el salón: mesas, pedidos, cobro y equipo de servicio. Sin el panel completo.",
   mesero: "Atiende sus mesas: abre la mesa, toma y confirma pedidos.",
   cocina: "Ve el tablero de cocina y avanza los pedidos.",
+  despensa: "Carga y revisa el inventario. No ve ventas, caja ni reportes.",
 };
 
 export const PERMISSIONS = [
@@ -46,6 +48,8 @@ export const PERMISSIONS = [
   "cobrar",
   "cocina.tablero",
   "agotados",
+  /** Ver y cargar el inventario: entradas, salidas y ajustes. */
+  "inventario",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -63,6 +67,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "cobrar",
     "cocina.tablero",
     "agotados",
+    "inventario",
   ],
   encargado: [
     "equipo.personal",
@@ -75,9 +80,11 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "cobrar",
     "cocina.tablero",
     "agotados",
+    "inventario",
   ],
   mesero: ["mesas.propias", "pedidos.crear", "pedidos.editar", "pedidos.confirmar", "agotados"],
   cocina: ["cocina.tablero", "agotados"],
+  despensa: ["inventario"],
 };
 
 export const can = (role: Role | undefined, permission: Permission): boolean =>
@@ -91,6 +98,7 @@ const ROUTE_PERMISSION: ReadonlyArray<readonly [string, Permission]> = [
   ["/caja", "mesas.todas"],
   ["/mesero", "mesas.propias"],
   ["/cocina", "cocina.tablero"],
+  ["/inventario", "inventario"],
 ];
 
 export function permissionForPath(pathname: string): Permission | null {
@@ -111,6 +119,7 @@ export const HOME: Record<Role, string> = {
   encargado: "/caja",
   mesero: "/mesero",
   cocina: "/cocina",
+  despensa: "/inventario",
 };
 
 /* ——— Usuarios ——— */
@@ -133,6 +142,7 @@ const PIN_LENGTH: Record<Role, readonly [number, number]> = {
   encargado: [6, 8],
   mesero: [4, 6],
   cocina: [4, 6],
+  despensa: [4, 6],
 };
 
 export function pinHint(role: Role): string {
@@ -159,7 +169,10 @@ export function login(staff: readonly StaffUser[], pin: string): AccessResult<St
 /** Quién puede crear o administrar a quién. */
 export function canManage(actor: Role, target: Role): boolean {
   if (can(actor, "equipo.todos")) return true;
-  return can(actor, "equipo.personal") && (target === "mesero" || target === "cocina");
+  return (
+    can(actor, "equipo.personal") &&
+    (target === "mesero" || target === "cocina" || target === "despensa")
+  );
 }
 
 /** Roles que `actor` puede asignar al crear un usuario. */

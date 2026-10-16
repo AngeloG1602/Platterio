@@ -16,7 +16,16 @@ import { consolidateTicket } from "@/lib/domain/ticket";
 import { tableOverview } from "@/lib/domain/waiter";
 import { kitchenBoard } from "@/lib/domain/kitchen";
 import { ratableDishes, waiterForTable } from "@/lib/domain/feedback";
-import type { Allergen, Order, TableSession, TimeSlot } from "@/lib/domain/types";
+import { isDishSoldOut, isSoldOut } from "@/lib/domain/inventory";
+import type {
+  Allergen,
+  Dish,
+  InventoryItem,
+  InventoryMove,
+  Order,
+  TableSession,
+  TimeSlot,
+} from "@/lib/domain/types";
 import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
@@ -65,6 +74,29 @@ const NO_REPAYMENTS: CreditPayment[] = [];
 export const useCreditAccounts = () => useAppStore((s) => s.creditAccounts ?? NO_ACCOUNTS);
 /** Abonos a las deudas de esas personas. */
 export const useCreditPayments = () => useAppStore((s) => s.creditPayments ?? NO_REPAYMENTS);
+
+const NO_ITEMS: InventoryItem[] = [];
+const NO_MOVES: InventoryMove[] = [];
+/** Productos con existencias. */
+export const useInventory = () => useAppStore((s) => s.inventory ?? NO_ITEMS);
+/** Movimientos de inventario (el más reciente al final). */
+export const useInventoryMoves = () => useAppStore((s) => s.inventoryMoves ?? NO_MOVES);
+/** ¿Esta opción de plato está agotada? Solo cuenta si el negocio tiene la función de inventario. */
+export function useSoldOut() {
+  const items = useInventory();
+  const enabled = useFeature("inventario");
+  return useMemo(
+    () => (dishId: string, variantId: string) => enabled && isSoldOut(items, dishId, variantId),
+    [items, enabled],
+  );
+}
+
+/** ¿Se agotaron todas las opciones de este plato? (para marcarlo en la carta) */
+export function useDishSoldOut(dish: Dish) {
+  const items = useInventory();
+  const enabled = useFeature("inventario");
+  return enabled && isDishSoldOut(items, dish);
+}
 
 const NO_AUDIT: AuditEntry[] = [];
 /** Registro de acciones del personal (el más reciente al final). */

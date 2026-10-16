@@ -40,6 +40,16 @@ describe("permisos por rol", () => {
     expect(can("mesero", "cobrar")).toBe(false);
     expect(can("cocina", "pedidos.crear")).toBe(false);
     expect(can("cocina", "cocina.tablero")).toBe(true);
+    expect(can("despensa", "inventario")).toBe(true);
+    expect(can("despensa", "cobrar")).toBe(false);
+    expect(can("despensa", "mesas.todas")).toBe(false);
+    expect(can("despensa", "panel.admin")).toBe(false);
+    expect(can("mesero", "inventario")).toBe(false);
+    expect(can("encargado", "inventario") && can("admin", "inventario")).toBe(true);
+    expect(canAccessPath("despensa", "/inventario")).toBe(true);
+    expect(canAccessPath("despensa", "/caja")).toBe(false);
+    expect(canAccessPath("cocina", "/inventario")).toBe(false);
+    expect(HOME.despensa).toBe("/inventario");
     expect(can(undefined, "cocina.tablero")).toBe(false);
   });
 
@@ -94,8 +104,14 @@ describe("entrar con PIN", () => {
 
 describe("crear usuarios", () => {
   it("el administrador crea cualquier rol; el encargado, solo meseros y cocina", () => {
-    expect(assignableRoles("admin")).toEqual(["admin", "encargado", "mesero", "cocina"]);
-    expect(assignableRoles("encargado")).toEqual(["mesero", "cocina"]);
+    expect(assignableRoles("admin")).toEqual([
+      "admin",
+      "encargado",
+      "mesero",
+      "cocina",
+      "despensa",
+    ]);
+    expect(assignableRoles("encargado")).toEqual(["mesero", "cocina", "despensa"]);
     expect(assignableRoles("mesero")).toEqual([]);
     expect(canManage("encargado", "admin")).toBe(false);
   });

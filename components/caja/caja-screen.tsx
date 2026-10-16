@@ -5,6 +5,7 @@ import { RoleGate, SessionButton } from "@/components/access/role-gate";
 import { RestaurantMark, PlatterioLogo } from "@/components/brand/logos";
 import { CashPanel } from "./cash-panel";
 import { OrdersHistory } from "@/components/admin/orders-history";
+import { InventoryPanel } from "@/components/inventory/inventory-panel";
 import { CreditTab } from "./credit-accounts";
 import { ReservationsBoard } from "./reservations-board";
 import { DeliveryBoard, useDeliveryArrivalNotice, useNewDeliveryCount } from "./delivery-board";
@@ -26,7 +27,15 @@ import { formatTime, plural } from "@/lib/domain/format";
 const SALON_TABS: Tab[] = ["salon", "caja", "credito", "mesas"];
 
 type Tab =
-  "salon" | "domicilios" | "reservas" | "caja" | "credito" | "pedidos" | "mesas" | "equipo";
+  | "salon"
+  | "domicilios"
+  | "reservas"
+  | "caja"
+  | "credito"
+  | "pedidos"
+  | "inventario"
+  | "mesas"
+  | "equipo";
 
 /**
  * Caja: para el encargado (y el administrador). Ve y opera todo el salón y administra al
@@ -46,6 +55,7 @@ export function CajaScreen() {
 function Caja() {
   const restaurant = useRestaurant();
   const hasSalon = useFeature("salon");
+  const hasInventory = useFeature("inventario");
   const now = useNow(1000);
   const [chosen, setTab] = useState<Tab>("salon");
   const tab: Tab = !hasSalon && SALON_TABS.includes(chosen) ? "domicilios" : chosen;
@@ -92,6 +102,7 @@ function Caja() {
                 ]
               : []),
             { value: "pedidos", label: "Pedidos" },
+            ...(hasInventory ? [{ value: "inventario" as Tab, label: "Inventario" }] : []),
             { value: "equipo", label: "Equipo" },
           ]}
         />
@@ -117,6 +128,11 @@ function Caja() {
       {tab === "pedidos" && (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
           <OrdersHistory />
+        </main>
+      )}
+      {tab === "inventario" && (
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
+          <InventoryPanel />
         </main>
       )}
       {tab === "mesas" && (

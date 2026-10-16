@@ -9,6 +9,8 @@ import type {
   CreditPayment,
   Dish,
   DishRating,
+  InventoryItem,
+  InventoryMove,
   Order,
   Payment,
   Reservation,
@@ -20,10 +22,19 @@ import type {
   TimeSlot,
   Waiter,
 } from "@/lib/domain/types";
-import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
+import {
+  CATEGORIES,
+  DISHES,
+  INVENTORY,
+  RESTAURANT,
+  STAFF,
+  TABLES,
+  TIME_SLOTS,
+  WAITERS,
+} from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 7;
+export const DATA_VERSION = 8;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -64,6 +75,10 @@ export interface AppData {
   creditPayments: CreditPayment[];
   /** Registro de acciones del personal: quién hizo qué y quién lo autorizó. */
   audit: AuditEntry[];
+  /** Productos con existencias (bebidas y productos terminados). */
+  inventory: InventoryItem[];
+  /** Movimientos de inventario: entradas, salidas, ajustes y ventas. */
+  inventoryMoves: InventoryMove[];
   demo: DemoSettings;
 }
 
@@ -102,6 +117,8 @@ export function createSeedState(now: number): AppData {
     creditAccounts: [],
     creditPayments: [],
     audit: [],
+    inventory: clone(INVENTORY),
+    inventoryMoves: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };
 }

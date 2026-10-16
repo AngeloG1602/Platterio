@@ -42,7 +42,7 @@ describe("registro de acciones", () => {
   it("cada acción tiene su texto y su área", () => {
     for (const a of Object.values(AUDIT_ACTIONS)) {
       expect(a.label.length).toBeGreaterThan(3);
-      expect(["Pedidos", "Cocina", "Mesas", "Caja", "Equipo"]).toContain(a.area);
+      expect(["Pedidos", "Cocina", "Mesas", "Caja", "Inventario", "Equipo"]).toContain(a.area);
     }
   });
 });

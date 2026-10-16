@@ -7,6 +7,7 @@ import { formatRating } from "@/components/ui/stars";
 import { useAnalyticsData, useHydrated, useNow } from "@/lib/data";
 import { ordersByHour, periodRange, ratingSummary, salesSummary } from "@/lib/domain/analytics";
 import { formatMoney, formatDay, plural } from "@/lib/domain/format";
+import { LowStockNotice } from "@/components/inventory/low-stock-notice";
 import { AlertsPanel } from "./alerts-panel";
 import { PublicLinksPanel } from "./public-links-panel";
 import { ColumnChart } from "./ui/charts";
@@ -77,6 +78,7 @@ function OverviewBody({ now }: { now: number }) {
       </div>
 
       <AlertsPanel />
+      <LowStockNotice />
 
       <Panel
         title="Pedidos por hora"
