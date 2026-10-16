@@ -5,6 +5,8 @@ import type {
   Alert,
   CashShift,
   Category,
+  CreditAccount,
+  CreditPayment,
   Dish,
   DishRating,
   Order,
@@ -56,6 +58,10 @@ export interface AppData {
   dishRatings: DishRating[];
   serviceRatings: ServiceRating[];
   alerts: Alert[];
+  /** Personas con cuenta a crédito. */
+  creditAccounts: CreditAccount[];
+  /** Abonos a las deudas de esas personas. */
+  creditPayments: CreditPayment[];
   /** Registro de acciones del personal: quién hizo qué y quién lo autorizó. */
   audit: AuditEntry[];
   demo: DemoSettings;
@@ -93,6 +99,8 @@ export function createSeedState(now: number): AppData {
     dishRatings: [],
     serviceRatings: [],
     alerts: seedAlerts(history, WAITERS),
+    creditAccounts: [],
+    creditPayments: [],
     audit: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };

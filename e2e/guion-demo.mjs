@@ -1311,15 +1311,116 @@ await admin.goto(`${BASE}/admin/auditoria`);
 check(
   "27. Queda registrado quién pasó la mesa, de cuál a cuál",
   await visible(
-    admin
-      .getByRole("table", { name: "Acciones registradas" })
-      .getByRole("row", {
-        name: new RegExp(`Daniela.*Pasó una mesa a otra.*Mesa 6 → Mesa ${nuevaMesa}`),
-      }),
+    admin.getByRole("table", { name: "Acciones registradas" }).getByRole("row", {
+      name: new RegExp(`Daniela.*Pasó una mesa a otra.*Mesa 6 → Mesa ${nuevaMesa}`),
+    }),
   ),
 );
 await visitante.close();
 await hugo.close();
+
+// 28. Crédito y cortesía: la cuenta se cierra a nombre de una persona, con quién autorizó
+const ines = await tab("Inés");
+await joinTable(ines, 6, "Inés");
+await addDish(ines, 6, "pollo-crispy");
+await ines.goto(`${BASE}/mesa/6/carrito`);
+await ines.getByRole("button", { name: "Enviar pedido" }).click();
+await ines.getByRole("button", { name: /Sí, enviar/ }).click();
+await ines.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 6 · Ronda \d+/ })
+  .last()
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+await cocina
+  .locator('article[aria-label^="Mesa 6, ronda"]')
+  .last()
+  .getByRole("button", { name: "Listo", exact: true })
+  .click();
+await daniela
+  .locator("article")
+  .filter({ hasText: /Mesa 6/ })
+  .getByRole("button", { name: "Marcar entregado" })
+  .last()
+  .click();
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+if (await visible(caja.getByRole("button", { name: "Abrir caja" }), 1500))
+  await caja.getByRole("button", { name: "Abrir caja" }).click();
+await caja.getByRole("button", { name: /Cobrar.*Mesa 6/ }).click();
+await caja.getByRole("radio", { name: "A crédito" }).click();
+await caja.getByRole("button", { name: "Cerrar a crédito" }).click();
+check(
+  "28. A crédito exige elegir a la persona",
+  await visible(caja.getByText("Elige a la persona a cuyo nombre queda el crédito")),
+);
+await caja.getByRole("button", { name: "Agregar persona" }).first().click();
+await caja.getByLabel("Nombre completo").fill("María Pérez");
+await caja.getByLabel(/^Cédula/).fill("1020304050");
+await caja.getByRole("button", { name: "Guardar" }).click();
+check(
+  "28. Se agrega a la persona y queda elegida",
+  await visible(caja.getByRole("combobox", { name: "Persona" }).filter({ hasText: "María Pérez" })),
+);
+await caja.getByLabel(/^Valor/).fill("10000");
+await caja.getByRole("button", { name: "Cerrar a crédito" }).click();
+check(
+  "28. Parte de la cuenta queda a crédito y el resto sigue por cobrar",
+  await visible(caja.getByText(/A crédito · María Pérez/)),
+);
+await caja.getByRole("radio", { name: "Cortesía" }).click();
+await caja.getByRole("button", { name: "Registrar cortesía" }).click();
+check(
+  "28. Con crédito y cortesía la cuenta queda saldada y la mesa se libera sola",
+  await visible(ines.getByText(/La mesa se liberó/)),
+);
+await caja.getByRole("radio", { name: "Crédito", exact: true }).click();
+check(
+  "28. La cuenta de la persona muestra lo que debe",
+  (await visible(caja.getByText("María Pérez"))) &&
+    (await visible(caja.getByText(/Debe\s*\$10\.000/))),
+);
+await caja.getByRole("button", { name: /Ver cuenta de María Pérez/ }).click();
+check(
+  "28. El estado de cuenta muestra el crédito con quién lo autorizó",
+  (await visible(caja.getByText(/Crédito · Mesa 6/).first())) &&
+    (await visible(caja.getByText(/autorizó Julián/).first())),
+);
+await caja.getByLabel("Forma de pago del abono").selectOption("nomina");
+await caja.getByRole("button", { name: "Registrar pago" }).click();
+check(
+  "28. El abono por descuento de nómina deja la deuda en cero",
+  (await visible(caja.getByText(/Abono · Descuento de nómina/))) &&
+    (await caja.getByRole("button", { name: "Registrar pago" }).count()) === 0,
+);
+await admin.goto(`${BASE}/admin/reportes`);
+check(
+  "28. El reporte separa crédito, abonos y cortesías del dinero cobrado",
+  (await visible(admin.getByText("Crédito otorgado"))) &&
+    (await visible(admin.getByText("Cortesías (gasto)"))),
+);
+await admin.goto(`${BASE}/admin/auditoria`);
+const tablaAuditoria = admin.getByRole("table", { name: "Acciones registradas" });
+check(
+  "28. La auditoría registra el crédito con la persona y quién autorizó",
+  await visible(
+    tablaAuditoria.getByRole("row", {
+      name: /Cerró una cuenta a crédito.*María Pérez.*Autorizó: Julián/,
+    }),
+    8000,
+  ),
+);
+check(
+  "28. La auditoría registra la cortesía con su motivo y quién autorizó",
+  await visible(
+    tablaAuditoria.getByRole("row", {
+      name: /Registró una cortesía.*Motivo: Dueño o familia.*Autorizó: Julián/,
+    }),
+    8000,
+  ),
+);
+await ines.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);

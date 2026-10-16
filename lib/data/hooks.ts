@@ -1,5 +1,6 @@
 "use client";
 
+import type { CreditAccount, CreditPayment } from "@/lib/domain/types";
 import { movedTableFor } from "@/lib/domain/tableAccess";
 import type { AuditEntry } from "@/lib/domain/audit";
 import { planAllows, resolvePlan, type Feature } from "@/lib/domain/pricing";
@@ -57,6 +58,13 @@ export function useCurrentStaff() {
   return useAppStore((s) => s.staff.find((u) => u.id === staffId && u.active));
 }
 export const useAlerts = () => useAppStore((s) => s.alerts);
+
+const NO_ACCOUNTS: CreditAccount[] = [];
+const NO_REPAYMENTS: CreditPayment[] = [];
+/** Personas con cuenta a crédito. */
+export const useCreditAccounts = () => useAppStore((s) => s.creditAccounts ?? NO_ACCOUNTS);
+/** Abonos a las deudas de esas personas. */
+export const useCreditPayments = () => useAppStore((s) => s.creditPayments ?? NO_REPAYMENTS);
 
 const NO_AUDIT: AuditEntry[] = [];
 /** Registro de acciones del personal (el más reciente al final). */

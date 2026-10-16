@@ -4,7 +4,16 @@ import { Banknote, Download, ReceiptText, TriangleAlert, Pencil } from "lucide-r
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAllShifts, useAnalyticsData, useHydrated, useTables, useWaiters } from "@/lib/data";
+import {
+  useAllShifts,
+  useAnalyticsData,
+  useCreditAccounts,
+  useCreditPayments,
+  useHydrated,
+  useTables,
+  useWaiters,
+} from "@/lib/data";
+import { creditSummary } from "@/lib/domain/credit";
 import { inPeriod, salesSummary, type Period } from "@/lib/domain/analytics";
 import {
   changeRows,
@@ -74,7 +83,16 @@ function Body({ period }: { period: Period }) {
   const tables = useTables();
 
   const summary = useMemo(() => salesSummary(orders, period), [orders, period]);
-  const paid = useMemo(() => paymentsByMethod(payments, period), [payments, period]);
+  const accounts = useCreditAccounts();
+  const repayments = useCreditPayments();
+  const paid = useMemo(
+    () => paymentsByMethod(payments, period, repayments),
+    [payments, period, repayments],
+  );
+  const credit = useMemo(
+    () => creditSummary(accounts, payments, repayments, period),
+    [accounts, payments, repayments, period],
+  );
   const byWaiter = useMemo(() => salesByWaiter(orders, waiters, period), [orders, waiters, period]);
   const changes = useMemo(() => changeRows(orders, tables, period), [orders, tables, period]);
   const unpaid = useMemo(
@@ -129,6 +147,35 @@ function Body({ period }: { period: Period }) {
           note="en rondas ya tomadas"
         />
       </div>
+
+      <Panel
+        title="Crédito y cortesías"
+        description="No cuentan como dinero cobrado: el crédito se cobra después y la cortesía es un gasto."
+      >
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile
+            label="Crédito otorgado"
+            value={formatMoney(credit.credited)}
+            note="en el periodo"
+          />
+          <StatTile
+            label="Abonos recibidos"
+            value={formatMoney(credit.repaid)}
+            note="en el periodo"
+          />
+          <StatTile
+            label="Cortesías (gasto)"
+            value={formatMoney(credit.courtesies)}
+            note={plural(credit.courtesyCount, "cortesía", "cortesías")}
+          />
+          <StatTile
+            label="Se debe hoy"
+            tone={credit.outstanding > 0 ? "danger" : "neutral"}
+            value={formatMoney(credit.outstanding)}
+            note={plural(credit.debtors, "persona con deuda", "personas con deuda")}
+          />
+        </div>
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel

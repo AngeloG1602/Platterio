@@ -4,6 +4,7 @@ import { useState } from "react";
 import { RoleGate, SessionButton } from "@/components/access/role-gate";
 import { RestaurantMark, PlatterioLogo } from "@/components/brand/logos";
 import { CashPanel } from "./cash-panel";
+import { CreditTab } from "./credit-accounts";
 import { ReservationsBoard } from "./reservations-board";
 import { DeliveryBoard, useDeliveryArrivalNotice, useNewDeliveryCount } from "./delivery-board";
 import { DemoPanel } from "@/components/demo/demo-panel";
@@ -21,9 +22,9 @@ import {
 } from "@/lib/data";
 import { formatTime, plural } from "@/lib/domain/format";
 
-const SALON_TABS: Tab[] = ["salon", "caja", "mesas"];
+const SALON_TABS: Tab[] = ["salon", "caja", "credito", "mesas"];
 
-type Tab = "salon" | "domicilios" | "reservas" | "caja" | "mesas" | "equipo";
+type Tab = "salon" | "domicilios" | "reservas" | "caja" | "credito" | "mesas" | "equipo";
 
 /**
  * Caja: para el encargado (y el administrador). Ve y opera todo el salón y administra al
@@ -84,6 +85,7 @@ function Caja() {
             ...(hasSalon
               ? [
                   { value: "caja" as Tab, label: "Caja" },
+                  { value: "credito" as Tab, label: "Crédito" },
                   { value: "mesas" as Tab, label: "Mesas y meseros" },
                 ]
               : []),
@@ -108,6 +110,7 @@ function Caja() {
       {tab === "domicilios" && <DeliveryBoard />}
       {tab === "reservas" && <ReservationsBoard />}
       {tab === "caja" && <CashPanel />}
+      {tab === "credito" && <CreditTab />}
       {tab === "mesas" && (
         <main className="mx-auto max-w-6xl px-4 pt-5 pb-16 sm:px-6">
           <TableAssignments onTeam={() => setTab("equipo")} />

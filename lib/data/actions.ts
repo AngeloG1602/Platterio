@@ -4,6 +4,19 @@ import { releasePaidTables } from "./alert-watcher";
 import { recordAudit, tableName } from "./audit";
 import { ROLE_LABEL } from "@/lib/domain/access";
 import { METHOD_LABEL } from "@/lib/domain/cash";
+import {
+  accountBalance,
+  buildAccount,
+  CREDIT_KIND_LABEL,
+  registerCourtesy,
+  registerCredit,
+  registerRepayment,
+  REPAYMENT_LABEL,
+  validateAccount,
+  type AccountDraft,
+  type AccountErrors,
+  type RepaymentMethod,
+} from "@/lib/domain/credit";
 import type { AuditAction } from "@/lib/domain/audit";
 import { canAddUser, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
@@ -1059,6 +1072,71 @@ export const cashActions = {
     releasePaidTables();
     return { ok: true };
   },
+  /** Cierra (todo o parte de) la cuenta a crédito, a nombre de una persona de la lista. */
+  credit(sessionId: string, accountId: string, amount: number): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const session = state.sessions.find((x) => x.id === sessionId);
+    if (!session || (session.closedAt && !session.delivery))
+      return { ok: false, error: "La mesa ya no está abierta" };
+    const account = (state.creditAccounts ?? []).find((a) => a.id === accountId);
+    const r = registerCredit({
+      shift: state.shifts.find((x) => !x.closedAt),
+      session,
+      orders: state.orders,
+      payments: state.payments,
+      creditPayments: state.creditPayments ?? [],
+      account,
+      amount,
+      now: nowIso(),
+      id: newId("pago"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
+    if (!session.closedAt) replaceSession(session, {});
+    recordAudit("credito.cargar", sessionPlace(session), {
+      detail: `${formatMoney(amount)} a nombre de ${account!.name}`,
+      authorizedBy: allowed.actor!.name,
+    });
+    releasePaidTables();
+    return { ok: true };
+  },
+  /** Cierra (todo o parte de) la cuenta como cortesía: no se cobra y queda como gasto. */
+  courtesy(sessionId: string, amount: number, reason: string, accountId?: string): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const session = state.sessions.find((x) => x.id === sessionId);
+    if (!session || (session.closedAt && !session.delivery))
+      return { ok: false, error: "La mesa ya no está abierta" };
+    const account = accountId
+      ? (state.creditAccounts ?? []).find((a) => a.id === accountId)
+      : undefined;
+    const r = registerCourtesy({
+      shift: state.shifts.find((x) => !x.closedAt),
+      session,
+      orders: state.orders,
+      payments: state.payments,
+      amount,
+      reason,
+      account,
+      now: nowIso(),
+      id: newId("pago"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
+    if (!session.closedAt) replaceSession(session, {});
+    recordAudit("cortesia.registrar", sessionPlace(session), {
+      detail: `${formatMoney(amount)}${account ? ` · ${account.name}` : ""}`,
+      reason,
+      authorizedBy: allowed.actor!.name,
+    });
+    releasePaidTables();
+    return { ok: true };
+  },
   closeShift(countedCash: number, note?: string): ActionResult {
     const allowed = requirePermission("cobrar");
     if (!allowed.ok) return allowed;
@@ -1068,6 +1146,7 @@ export const cashActions = {
     const r = closeShift({
       shift,
       payments: state.payments,
+      creditPayments: state.creditPayments ?? [],
       countedCash,
       note,
       now: nowIso(),
@@ -1087,6 +1166,83 @@ export const cashActions = {
 };
 
 /* ——— Calificaciones (US-30, US-31, US-34) ——— */
+
+/* ——— Crédito y cortesías ——— */
+
+/** Nombre del lugar de una cuenta: "Mesa 3" o "Domicilio D-XXXX". */
+function sessionPlace(session: { tableId: string; delivery?: { type: string; code: string } }) {
+  return session.delivery
+    ? `${session.delivery.type === "recoger" ? "Recoger" : "Domicilio"} ${session.delivery.code}`
+    : tableName(session.tableId);
+}
+
+export const creditActions = {
+  /** Agrega o edita a una persona con cuenta a crédito. La administran caja y el administrador. */
+  saveAccount(
+    draft: AccountDraft,
+    editingId?: string,
+  ): { ok: true; id: string } | { ok: false; errors: AccountErrors } {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return { ok: false, errors: { name: allowed.error } };
+    const state = useAppStore.getState();
+    const accounts = state.creditAccounts ?? [];
+    const errors = validateAccount(draft, accounts, editingId);
+    if (Object.keys(errors).length > 0) return { ok: false, errors };
+    const built = buildAccount(draft, { id: editingId ?? newId("cuenta"), now: nowIso() });
+    const previous = accounts.find((a) => a.id === editingId);
+    const account = previous
+      ? { ...built, active: previous.active, createdAt: previous.createdAt }
+      : built;
+    useAppStore.setState((s) => ({
+      creditAccounts: previous
+        ? (s.creditAccounts ?? []).map((a) => (a.id === account.id ? account : a))
+        : [...(s.creditAccounts ?? []), account],
+    }));
+    recordAudit(previous ? "credito.persona_editar" : "credito.persona_crear", account.name, {
+      detail: CREDIT_KIND_LABEL[account.kind],
+    });
+    return { ok: true, id: account.id };
+  },
+  /** Una persona desactivada no puede recibir más crédito, pero conserva su historial. */
+  setAccountActive(accountId: string, active: boolean): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const account = (useAppStore.getState().creditAccounts ?? []).find((a) => a.id === accountId);
+    if (!account) return { ok: false, error: "No encontramos a esa persona" };
+    useAppStore.setState((s) => ({
+      creditAccounts: (s.creditAccounts ?? []).map((a) =>
+        a.id === accountId ? { ...a, active } : a,
+      ),
+    }));
+    recordAudit("credito.persona_editar", account.name, {
+      detail: active ? "La activó" : "La desactivó",
+    });
+    return { ok: true };
+  },
+  /** Recibe un abono a la deuda de una persona (en caja o por descuento de nómina). */
+  repay(accountId: string, amount: number, method: RepaymentMethod): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const account = (state.creditAccounts ?? []).find((a) => a.id === accountId);
+    const r = registerRepayment({
+      account,
+      shift: state.shifts.find((x) => !x.closedAt),
+      debt: account ? accountBalance(account.id, state.payments, state.creditPayments ?? []) : 0,
+      amount,
+      method,
+      now: nowIso(),
+      id: newId("abono"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ creditPayments: [...(s.creditPayments ?? []), r.value] }));
+    recordAudit("credito.abonar", account!.name, {
+      detail: `${formatMoney(amount)} · ${REPAYMENT_LABEL[method].toLowerCase()}`,
+    });
+    return { ok: true };
+  },
+};
 
 export const feedbackActions = {
   rateDishes(

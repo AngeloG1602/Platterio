@@ -11,6 +11,8 @@ export interface AuditExtra {
   detail?: string;
   reason?: string;
   authorizedBy?: string;
+  /** Id fijo, para que una acción automática hecha desde varias pestañas quede una sola vez. */
+  id?: string;
   /** La acción la hizo el sistema (cierres y liberaciones automáticas), no una persona. */
   system?: boolean;
 }
@@ -26,17 +28,20 @@ export function recordAudit(action: AuditAction, target: string, extra: AuditExt
   const person = extra.system ? undefined : state.staff.find((u) => u.id === staffId);
   const at = new Date(virtualNow(state.demo.clock, Date.now())).toISOString();
   useAppStore.setState((s) => ({
-    audit: appendAudit(s.audit ?? [], {
-      id: newId("aud"),
-      at,
-      by: person?.name ?? AUDIT_SYSTEM,
-      ...(person ? { role: ROLE_LABEL[person.role] } : {}),
-      action,
-      target,
-      ...(extra.detail ? { detail: extra.detail } : {}),
-      ...(extra.reason?.trim() ? { reason: extra.reason.trim() } : {}),
-      ...(extra.authorizedBy ? { authorizedBy: extra.authorizedBy } : {}),
-    }),
+    audit: appendAudit(
+      (s.audit ?? []).filter((e) => e.id !== extra.id),
+      {
+        id: extra.id ?? newId("aud"),
+        at,
+        by: person?.name ?? AUDIT_SYSTEM,
+        ...(person ? { role: ROLE_LABEL[person.role] } : {}),
+        action,
+        target,
+        ...(extra.detail ? { detail: extra.detail } : {}),
+        ...(extra.reason?.trim() ? { reason: extra.reason.trim() } : {}),
+        ...(extra.authorizedBy ? { authorizedBy: extra.authorizedBy } : {}),
+      },
+    ),
   }));
 }
 

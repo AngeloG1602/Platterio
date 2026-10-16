@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/toaster";
 import {
   cashActions,
   useAllShifts,
+  useCreditPayments,
   useLivePayments,
   useOpenShift,
   useOrders,
@@ -132,7 +133,8 @@ function OpenShift() {
   const tables = useTables();
   const [paying, setPaying] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
-  const totals = shiftTotals(shift, payments);
+  const repayments = useCreditPayments();
+  const totals = shiftTotals(shift, payments, repayments);
   const owing = openTablesWithBalance(sessions, orders, payments, tables);
   const target = owing.find((x) => x.session.id === paying);
 

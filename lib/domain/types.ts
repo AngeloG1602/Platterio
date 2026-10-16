@@ -345,6 +345,46 @@ export interface Payment {
   at: string;
   /** Nombre de quien registró el pago. */
   by: string;
+  /**
+   * Si no es un cobro sino una cuenta que se cierra a crédito (queda debiendo una persona) o como
+   * cortesía (no se cobra, es un gasto). Sin esto, es dinero que entró a la caja.
+   */
+  kind?: "credito" | "cortesia";
+  /** Persona de la lista a cuyo nombre queda el crédito (o la cortesía, si se indicó). */
+  accountId?: string;
+  /** Quién autorizó el crédito o la cortesía. */
+  authorizedBy?: string;
+  /** Motivo de la cortesía. */
+  reason?: string;
+}
+
+/** Tipo de persona a la que se le fía. */
+export type CreditKind = "empleado" | "familia" | "cliente";
+
+/** Persona con cuenta: a su nombre quedan los consumos a crédito, para cobrarlos después. */
+export interface CreditAccount {
+  id: string;
+  name: string;
+  kind: CreditKind;
+  /** Cédula o NIT, para que la cuenta (y la factura) salgan a su nombre. */
+  document?: string;
+  phone?: string;
+  /** Tope de lo que puede deber, en pesos; sin tope si no se pone. */
+  limit?: number;
+  active: boolean;
+  createdAt: string;
+}
+
+/** Abono a la deuda de una persona. "nomina" es descuento de nómina: no mueve la caja. */
+export interface CreditPayment {
+  id: string;
+  accountId: string;
+  amount: number;
+  method: PaymentMethod | "nomina";
+  at: string;
+  by: string;
+  /** Turno de caja al que entró (solo si el abono fue dinero que entró a la caja). */
+  shiftId?: string;
 }
 
 /** Resumen congelado al cerrar el turno de caja. */

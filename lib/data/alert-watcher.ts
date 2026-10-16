@@ -21,7 +21,11 @@ export function releasePaidTables() {
   });
   for (const id of ids) {
     const closed = s.sessions.find((x) => x.id === id);
-    if (closed) recordAudit("mesa.liberar_al_pagar", tableName(closed.tableId), { system: true });
+    if (closed)
+      recordAudit("mesa.liberar_al_pagar", tableName(closed.tableId), {
+        system: true,
+        id: `aud-pagada-${id}`,
+      });
   }
 }
 
@@ -47,7 +51,11 @@ function autoCloseTables() {
   });
   for (const id of ids) {
     const closed = s.sessions.find((x) => x.id === id);
-    if (closed) recordAudit("mesa.cerrar_inactividad", tableName(closed.tableId), { system: true });
+    if (closed)
+      recordAudit("mesa.cerrar_inactividad", tableName(closed.tableId), {
+        system: true,
+        id: `aud-inactividad-${id}`,
+      });
   }
 }
 

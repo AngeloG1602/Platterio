@@ -674,3 +674,28 @@ pueden cambiar sin rehacer pantallas.
       registra "Pasó una mesa a otra" con "Mesa 1 → Mesa 2". No pide motivo, solo queda quién
       lo hizo. (d) Corrección de la hoja "Liberar mesa": ya no dice que se puede cerrar con saldo
       (decisión 146); con saldo muestra cuánto falta y deshabilita la confirmación.
+149.  **Crédito y cortesías (bloque 5 de las mejoras de la entrevista).** (a) **Personas con
+      cuenta** (`CreditAccount`): nombre completo (único, sin distinguir tildes), tipo (empleado,
+      dueño o familia, cliente especial), cédula o NIT y celular opcionales, y un tope opcional
+      de lo que pueden deber. Se administran en Caja → Crédito; se pueden desactivar (no recibir
+      más crédito) pero no borrar, para conservar el historial. La cédula es para que la cuenta,
+      y luego la factura, salgan a su nombre. (b) **Cerrar una cuenta a crédito o como cortesía**
+      se hace en la hoja de cobro ("Cobrar / A crédito / Cortesía"). Se guardan como un `Payment`
+      con `kind`, así el saldo de la mesa baja, se puede repartir (una parte pagada, otra a
+      crédito, otra cortesía) y la mesa se libera sola igual que si hubiera pagado (decisión 146).
+      No cuentan como dinero cobrado: `isCashPayment` los deja fuera del turno y del reporte
+      de cobros. Exigen permiso de cobrar (encargado y administrador, no el mesero), turno
+      abierto y que el valor no pase lo que falta; el crédito exige una persona activa y respeta
+      su tope; la cortesía exige un motivo (dueño o familia, atención al cliente, error del
+      servicio, otro) y puede ir a nombre de una persona. Quien lo registra es quien lo autoriza
+      y queda en el registro y en la auditoría ("Autorizó"). (c) **Abonos** (`CreditPayment`):
+      se paga todo o una parte, en efectivo, tarjeta, transferencia u "Descuento de nómina". Los
+      tres primeros exigen caja abierta y entran al turno; el descuento de nómina no mueve la
+      caja. Cada persona tiene su estado de cuenta (créditos con mesa, fecha y quién autorizó, y
+      abonos) con descarga en CSV. (d) **Reportes:** el panel "Crédito y cortesías" muestra
+      crédito otorgado, abonos, cortesías (gasto) y lo que se debe hoy, aparte del dinero
+      cobrado. (e) **Sincronización:** los cobros, los abonos y la auditoría solo crecen, así que
+      al llegar el estado de otra pestaña se mezclan por `id` (`unionById`) en lugar de
+      reemplazarse: una pestaña con datos viejos ya no borra un registro recién agregado
+      (se vio en el e2e con la auditoría). Las liberaciones y cierres automáticos usan un `id`
+      fijo en la auditoría para no repetirse si varias pestañas los hacen a la vez.
