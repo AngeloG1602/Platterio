@@ -122,7 +122,7 @@ check(
 );
 await carlos.getByRole("button", { name: /Confirmar y enviar a cocina/ }).click();
 
-// 5. Pestaña D: cocina; en preparación y listo; mesero entrega
+// 5. Pestaña D: cocina (cola única, un solo botón); mesero entrega
 const cocina = await tab("Cocina", 1280, 800);
 await cocina.goto(`${BASE}/cocina`);
 await entrarComo(cocina, "Cocina");
@@ -132,13 +132,17 @@ check(
     getComputedStyle(document.documentElement).getPropertyValue("--bg").trim().toLowerCase(),
   )) === "#0e0d0c",
 );
-await cocina.getByRole("button", { name: "Empezar a preparar" }).click();
+check(
+  "5. Cocina no tiene paso de empezar: solo el botón Listo",
+  (await cocina.getByRole("button", { name: /Empezar a preparar/ }).count()) === 0 &&
+    (await visible(cocina.getByRole("button", { name: "Listo", exact: true }))),
+);
 await ana.waitForTimeout(300);
 check(
-  "5. La línea de tiempo avanza a En preparación",
+  "5. Al confirmar el mesero, el cliente ya ve En preparación",
   (await ana.locator('[aria-current="step"]').innerText()).startsWith("En preparación"),
 );
-await cocina.getByRole("button", { name: "Marcar listo" }).click();
+await cocina.getByRole("button", { name: "Listo", exact: true }).click();
 await carlos.waitForTimeout(300);
 check(
   "5. El mesero recibe el aviso de listo",
@@ -518,8 +522,7 @@ await caja.getByRole("button", { name: "Confirmar" }).click();
 check("14. El cliente ve el pedido confirmado", await visible(casa.getByText(/está confirmado/)));
 const dom = cocina.locator('article[aria-label^="Domicilio D-"]');
 check("14. Cocina recibe el domicilio con su código", await visible(dom));
-await dom.getByRole("button", { name: /Empezar a preparar/ }).click();
-await dom.getByRole("button", { name: /Marcar listo/ }).click();
+await dom.getByRole("button", { name: "Listo", exact: true }).click();
 await caja.getByRole("button", { name: "Agregar domiciliario" }).click();
 await caja.getByLabel("Nombre del nuevo domiciliario").fill("Mateo");
 await caja.getByLabel("Celular del nuevo domiciliario").fill("300 777 8899");
@@ -1113,6 +1116,64 @@ check(
   "23. En el plan Completo el panel sí muestra Calificaciones",
   await visible(admin.getByRole("link", { name: "Calificaciones" })),
 );
+
+// 24. Cocina ágil: cola única, adicional en rojo y vista de hechos
+const elena = await tab("Elena");
+await joinTable(elena, 4, "Elena");
+await addDish(elena, 4, "pollo-crispy");
+await elena.goto(`${BASE}/mesa/4/carrito`);
+await elena.getByRole("button", { name: "Enviar pedido" }).click();
+await elena.getByRole("button", { name: /Sí, enviar/ }).click();
+await elena.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 4 · Ronda 1/ })
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+const r1 = cocina.locator('article[aria-label="Mesa 4, ronda 1"]');
+check("24. El pedido confirmado entra a la cola de cocina sin adicional", await visible(r1));
+await addDish(elena, 4, "aros-de-cebolla");
+await elena.goto(`${BASE}/mesa/4/carrito`);
+await elena.getByRole("button", { name: "Enviar pedido" }).click();
+await elena.getByRole("button", { name: /Sí, enviar/ }).click();
+await elena.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 4 · Ronda 2/ })
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+const r2 = cocina.locator('article[aria-label="Mesa 4, ronda 2, adicional"]');
+check("24. La ronda adicional de una mesa con pedidos se marca como adicional", await visible(r2));
+check(
+  "24. El adicional lleva el aviso en rojo con su etiqueta",
+  await visible(r2.getByText(/Adicional/)),
+);
+check(
+  "24. El adicional no salta la fila: va después de la primera ronda",
+  (
+    await cocina
+      .locator("main ol > li")
+      .evaluateAll((lis) =>
+        lis.map((li) => li.querySelector("article")?.getAttribute("aria-label") ?? ""),
+      )
+  ).findIndex((l) => l.startsWith("Mesa 4, ronda 2")) >
+    (
+      await cocina
+        .locator("main ol > li")
+        .evaluateAll((lis) =>
+          lis.map((li) => li.querySelector("article")?.getAttribute("aria-label") ?? ""),
+        )
+    ).findIndex((l) => l.startsWith("Mesa 4, ronda 1")),
+);
+await r1.getByRole("button", { name: "Listo", exact: true }).click();
+await cocina.getByRole("radio", { name: /^Hechos/ }).click();
+check(
+  "24. Lo marcado como listo pasa a la vista de hechos",
+  await visible(cocina.getByRole("main", { name: "Pedidos ya hechos" }).getByText("Mesa 4")),
+);
+await cocina.getByRole("radio", { name: /^Por hacer/ }).click();
+check("24. Se vuelve a la cola de por hacer", await visible(r2));
+await elena.close();
 
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);

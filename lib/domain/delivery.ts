@@ -352,7 +352,7 @@ export function stageMessage(stage: DeliveryStage, info: DeliveryInfo): string {
     case "confirmado":
       return t("Tu pedido está confirmado y pasa a la cocina.");
     case "preparando":
-      return t("Lo estamos preparando.");
+      return t("Tu pedido está confirmado y lo estamos preparando.");
     case "listo":
       return pickup
         ? t("Tu pedido está listo. Puedes pasar a recogerlo.")

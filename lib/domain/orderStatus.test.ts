@@ -27,7 +27,6 @@ describe("máquina de estados del pedido", () => {
     let order = base;
     const steps = [
       ["confirmado", "mesero"],
-      ["en_preparacion", "cocina"],
       ["listo", "cocina"],
       ["entregado", "mesero"],
     ] as const;
@@ -42,6 +41,22 @@ describe("máquina de estados del pedido", () => {
     expect(order.readyAt).toBe(AT);
     expect(order.deliveredAt).toBe(AT);
     expect(isFinal(order.status)).toBe(true);
+  });
+
+  it("confirmar deja la ronda directo en preparación, sin paso intermedio para la cocina", () => {
+    const r = transitionOrder(base, "confirmado", "mesero", AT);
+    expect(r.ok && r.order).toMatchObject({
+      status: "en_preparacion",
+      confirmedAt: AT,
+      preparingAt: AT,
+    });
+    expect(allowedTransitions("en_preparacion", "cocina")).toEqual(["listo"]);
+  });
+
+  it("un pedido guardado como confirmado se puede dar por listo", () => {
+    const legacy: Order = { ...base, status: "confirmado", confirmedAt: AT };
+    const r = transitionOrder(legacy, "listo", "cocina", AT);
+    expect(r.ok && r.order.status).toBe("listo");
   });
 
   it("ningún pedido llega a cocina sin confirmación del mesero", () => {

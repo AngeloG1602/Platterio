@@ -148,7 +148,8 @@ export const EN: Record<string, string> = {
   "Ronda {n}: {msg}": "Round {n}: {msg}",
   "Enviado — esperando confirmación del mesero": "Sent — waiting for your server to confirm",
   "El mesero confirmó tu pedido": "Your server confirmed your order",
-  "Tu pedido está en la cocina": "Your order is in the kitchen",
+  "El mesero confirmó tu pedido y ya está en la cocina":
+    "The waiter confirmed your order and it is in the kitchen",
   "¡Listo! Ya te lo llevan a la mesa": "Ready! It's on its way to your table",
   "Entregado. ¡Buen provecho!": "Delivered. Enjoy!",
   "El mesero no pudo aceptar este pedido": "Your server couldn't accept this order",
@@ -334,7 +335,8 @@ export const EN: Record<string, string> = {
     "We got your order. We'll confirm it in a moment.",
   "Tu pedido está confirmado y pasa a la cocina.":
     "Your order is confirmed and goes to the kitchen.",
-  "Lo estamos preparando.": "We're preparing it.",
+  "Tu pedido está confirmado y lo estamos preparando.":
+    "Your order is confirmed and we're preparing it.",
   "Tu pedido está listo. Puedes pasar a recogerlo.":
     "Your order is ready. You can come pick it up.",
   "Tu pedido está listo y esperando al domiciliario.":

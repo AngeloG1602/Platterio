@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  isAdditionalRound,
+  KITCHEN_DONE_LIMIT,
   kitchenBoard,
+  kitchenLayout,
   kitchenNextStatus,
   kitchenTimeLevel,
   orderTimeline,
@@ -49,25 +52,66 @@ function order(
   };
 }
 
-describe("tablero de cocina", () => {
-  const board = kitchenBoard([
+describe("cola de cocina", () => {
+  const view = kitchenBoard([
     order("p", "pendiente"),
-    order("c2", "confirmado", 5),
-    order("c1", "confirmado", 2),
-    order("e", "en_preparacion", 1),
-    order("l", "listo", 0),
-    order("x", "entregado", 0),
-    order("r", "rechazado"),
+    order("c2", "confirmado", 5, { sessionId: "s2" }),
+    order("c1", "confirmado", 2, { sessionId: "s1" }),
+    order("e", "en_preparacion", 1, { sessionId: "s3" }),
+    order("l", "listo", 0, { sessionId: "s4", readyAt: iso(3) }),
+    order("l2", "listo", 0, { sessionId: "s5", readyAt: iso(8) }),
+    order("x", "entregado", 0, { sessionId: "s6" }),
+    order("r", "rechazado", undefined, { sessionId: "s7" }),
   ]);
 
-  it("solo muestra lo confirmado por el mesero, por columna", () => {
-    expect(board.confirmado.map((o) => o.id)).toEqual(["c1", "c2"]);
-    expect(board.en_preparacion.map((o) => o.id)).toEqual(["e"]);
-    expect(board.listo.map((o) => o.id)).toEqual(["l"]);
+  it("es una sola cola en orden de llegada, solo con lo confirmado por el mesero", () => {
+    expect(view.queue.map((t) => t.order.id)).toEqual(["e", "c1", "c2"]);
+  });
+
+  it("lo ya listo va aparte, lo más reciente primero", () => {
+    expect(view.done.map((o) => o.id)).toEqual(["l2", "l"]);
   });
 
   it("oculta los ítems que quitó el mesero", () => {
-    expect(board.confirmado[0]!.items.map((i) => i.dishId)).toEqual(["clasica-27"]);
+    expect(view.queue[1]!.order.items.map((i) => i.dishId)).toEqual(["clasica-27"]);
+  });
+
+  it("marca como adicional la ronda de una mesa que ya había mandado otra a la cocina", () => {
+    const v = kitchenBoard([
+      order("a1", "en_preparacion", 0, { sessionId: "m1", round: 1 }),
+      order("b1", "en_preparacion", 1, { sessionId: "m2", round: 1 }),
+      order("a2", "en_preparacion", 5, { sessionId: "m1", round: 2 }),
+    ]);
+    expect(v.queue.map((t) => [t.order.id, t.additional])).toEqual([
+      ["a1", false],
+      ["b1", false],
+      ["a2", true],
+    ]);
+  });
+
+  it("el adicional no salta la fila ni cuenta si la ronda anterior no llegó a la cocina", () => {
+    const v = kitchenBoard([
+      order("a1", "rechazado", undefined, { sessionId: "m1", round: 1 }),
+      order("a2", "en_preparacion", 1, { sessionId: "m1", round: 2 }),
+      order("c1", "en_preparacion", 2, { sessionId: "m2", round: 1 }),
+    ]);
+    expect(v.queue.map((t) => [t.order.id, t.additional])).toEqual([
+      ["a2", false],
+      ["c1", false],
+    ]);
+    // Una ronda anterior ya entregada también hace adicional a la siguiente.
+    expect(
+      isAdditionalRound(order("n", "en_preparacion", 0, { sessionId: "m", round: 2 }), [
+        order("v", "entregado", 0, { sessionId: "m", round: 1 }),
+      ]),
+    ).toBe(true);
+  });
+
+  it("limita lo hecho para consultar", () => {
+    const many = Array.from({ length: 40 }, (_, i) =>
+      order(`l${i}`, "listo", 0, { sessionId: `s${i}`, readyAt: iso(i) }),
+    );
+    expect(kitchenBoard(many).done).toHaveLength(KITCHEN_DONE_LIMIT);
   });
 
   it("cambia de color según el tiempo desde la confirmación", () => {
@@ -77,11 +121,22 @@ describe("tablero de cocina", () => {
     expect(kitchenTimeLevel(o, T0 + 20 * 60_000)).toBe("atrasado");
   });
 
-  it("un toque avanza confirmado → en preparación → listo", () => {
-    expect(kitchenNextStatus("confirmado")).toBe("en_preparacion");
+  it("el único paso de la cocina es marcar listo", () => {
     expect(kitchenNextStatus("en_preparacion")).toBe("listo");
+    expect(kitchenNextStatus("confirmado")).toBe("listo");
     expect(kitchenNextStatus("listo")).toBeNull();
     expect(kitchenNextStatus("pendiente")).toBeNull();
+  });
+});
+
+describe("distribución de la cola", () => {
+  it("usa letra grande con pocos pedidos y tarjetas más densas con muchos", () => {
+    expect(kitchenLayout(1)).toEqual({ density: "grande", columns: 1 });
+    expect(kitchenLayout(3)).toEqual({ density: "grande", columns: 3 });
+    expect(kitchenLayout(6)).toEqual({ density: "media", columns: 3 });
+    expect(kitchenLayout(12)).toEqual({ density: "compacta", columns: 4 });
+    expect(kitchenLayout(13)).toEqual({ density: "minima", columns: 5 });
+    expect(kitchenLayout(0).columns).toBe(1);
   });
 });
 

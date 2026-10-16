@@ -192,19 +192,18 @@ await paso("cocina", async () => {
   await shot(cocina, "w-cocina", {
     boxes: {
       tarjeta: cocina.locator("article").first(),
-      empezar: cocina.getByRole("button", { name: "Empezar a preparar" }),
+      listo: cocina.getByRole("button", { name: "Listo", exact: true }).first(),
     },
   });
-  await cocina.getByRole("button", { name: "Empezar a preparar" }).click();
   await shot(cocina, "w-cocina-preparando", {
     boxes: {
       tarjeta: cocina.locator("article").first(),
-      listo: cocina.getByRole("button", { name: "Marcar listo" }),
+      listo: cocina.getByRole("button", { name: "Listo", exact: true }),
     },
   });
   await ana.waitForTimeout(400);
   await shot(ana, "p-pedido-preparando");
-  await cocina.getByRole("button", { name: "Marcar listo" }).click();
+  await cocina.getByRole("button", { name: "Listo", exact: true }).click();
   await shot(cocina, "w-cocina-listo", { boxes: { tarjeta: cocina.locator("article").first() } });
 });
 await paso("mesero-listo", async () => {
@@ -334,9 +333,8 @@ await paso("domicilios", async () => {
   });
   await caja.getByRole("button", { name: "Confirmar" }).click();
   const dom = cocina.locator('article[aria-label^="Domicilio D-"]');
-  await dom.getByRole("button", { name: /Empezar a preparar/ }).click();
   await shot(cocina, "w-cocina-domicilio");
-  await dom.getByRole("button", { name: /Marcar listo/ }).click();
+  await dom.getByRole("button", { name: "Listo", exact: true }).click();
   await caja.getByRole("button", { name: "Agregar domiciliario" }).click();
   await caja.getByLabel("Nombre del nuevo domiciliario").fill("Mateo");
   await caja.getByLabel("Celular del nuevo domiciliario").fill("300 777 8899");

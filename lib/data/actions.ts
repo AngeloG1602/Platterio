@@ -749,7 +749,6 @@ export const waiterActions = {
 };
 
 export const kitchenActions = {
-  start: (orderId: string) => moveOrder(orderId, "en_preparacion", "cocina"),
   ready: (orderId: string) => moveOrder(orderId, "listo", "cocina"),
   /** La cocina vio los cambios que hizo el personal en la ronda. */
   acknowledgeChanges(orderId: string): ActionResult {

@@ -1,7 +1,7 @@
 // Escaneo de accesibilidad (axe-core, WCAG 2.1 A/AA) de todas las vistas con datos reales.
 // Uso: con la app corriendo, `npm run e2e:a11y` (E2E_URL para otra dirección).
 import AxeBuilder from "@axe-core/playwright";
-import { addDish, asegurarSesion, BASE, joinTable, launch, watch } from "./helpers.mjs";
+import { addDish, asegurarSesion, BASE, entrarComo, joinTable, launch, watch } from "./helpers.mjs";
 
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-CO" });
@@ -15,6 +15,24 @@ await page.goto(`${BASE}/mesa/3/carrito`);
 await page.getByRole("button", { name: "Enviar pedido" }).click();
 await page.getByRole("button", { name: /Sí, enviar/ }).click();
 await page.waitForURL("**/pedido");
+
+// La cocina con una cola real: dos rondas de la mesa 3, la segunda marcada como adicional.
+const mesero = watch(await ctx.newPage(), "mesero", errors);
+await mesero.setViewportSize({ width: 900, height: 900 });
+await mesero.goto(`${BASE}/mesero`);
+await entrarComo(mesero, "Carlos");
+const confirmar = (ronda) =>
+  mesero
+    .getByRole("article", { name: new RegExp(`Mesa 3 · Ronda ${ronda}`) })
+    .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+    .click();
+await confirmar(1);
+await addDish(page, 3, "aros-de-cebolla");
+await page.goto(`${BASE}/mesa/3/carrito`);
+await page.getByRole("button", { name: "Enviar pedido" }).click();
+await page.getByRole("button", { name: /Sí, enviar/ }).click();
+await page.waitForURL("**/pedido");
+await confirmar(2);
 
 // Un plato en el carrito de domicilios, para escanear el formulario completo.
 await page.goto(`${BASE}/domicilio`);

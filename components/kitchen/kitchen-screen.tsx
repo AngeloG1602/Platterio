@@ -1,12 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BellRing, ChefHat, CircleCheck, Clock, Flame, PackageCheck, Timer } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { BellRing, ChefHat, ChevronsDown, CircleAlert, PackageCheck, Timer } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { PlatterioMark, RestaurantMark } from "@/components/brand/logos";
 import { RoleGate, SessionButton } from "@/components/access/role-gate";
 import { DemoPanel } from "@/components/demo/demo-panel";
+import { Segmented } from "@/components/ui/segmented";
 import { toast } from "@/components/ui/toaster";
 import {
   kitchenActions,
@@ -18,37 +18,71 @@ import {
   useTables,
 } from "@/lib/data";
 import { formatElapsed, formatTime, plural } from "@/lib/domain/format";
-import { KITCHEN_COLUMNS, kitchenTimeLevel, type KitchenColumn } from "@/lib/domain/kitchen";
+import {
+  kitchenLayout,
+  kitchenTimeLevel,
+  type KitchenDensity,
+  type KitchenTicket,
+} from "@/lib/domain/kitchen";
 import { unseenChanges } from "@/lib/domain/staffOrders";
 import { placeLabel } from "@/lib/domain/delivery";
 import type { Dish, Order, Table, TableSession } from "@/lib/domain/types";
 import { cn } from "@/lib/cn";
 
-const COLUMN: Record<
-  KitchenColumn,
-  { title: string; icon: LucideIcon; empty: string; hint: string }
+type View = "por_hacer" | "hechos";
+
+/** Tamaños de la tarjeta según la densidad de la cola (más pedidos, más compacta). */
+const SIZE: Record<
+  KitchenDensity,
+  {
+    place: string;
+    item: string;
+    sub: string;
+    pad: string;
+    gap: string;
+    button: string;
+    timer: string;
+  }
 > = {
-  confirmado: {
-    title: "Confirmados",
-    icon: Clock,
-    empty: "Sin pedidos nuevos",
-    hint: "Cuando el mesero confirme uno, aparece aquí.",
+  grande: {
+    place: "text-[34px]",
+    item: "text-[21px]",
+    sub: "text-[17px]",
+    pad: "p-4",
+    gap: "gap-3",
+    button: "h-15 text-lg",
+    timer: "text-xl",
   },
-  en_preparacion: {
-    title: "En preparación",
-    icon: Flame,
-    empty: "Nada en el fogón",
-    hint: "Toca “Empezar a preparar” en un pedido confirmado.",
+  media: {
+    place: "text-[28px]",
+    item: "text-[18px]",
+    sub: "text-[15px]",
+    pad: "p-3.5",
+    gap: "gap-2.5",
+    button: "h-13 text-[17px]",
+    timer: "text-lg",
   },
-  listo: {
-    title: "Listos",
-    icon: PackageCheck,
-    empty: "Nada esperando",
-    hint: "Lo que marques como listo le avisa al mesero.",
+  compacta: {
+    place: "text-[22px]",
+    item: "text-[16px]",
+    sub: "text-[14px]",
+    pad: "p-3",
+    gap: "gap-2",
+    button: "h-11 text-[16px]",
+    timer: "text-base",
+  },
+  minima: {
+    place: "text-[19px]",
+    item: "text-[14px]",
+    sub: "text-[13px]",
+    pad: "p-2.5",
+    gap: "gap-1.5",
+    button: "h-10 text-[15px]",
+    timer: "text-[15px]",
   },
 };
 
-/** Tablero de cocina (US-28): modo oscuro, letra grande y un toque para avanzar. */
+/** Cola de cocina (US-28): modo oscuro, letra grande y un solo toque, "Listo". */
 export function KitchenScreen() {
   // Tema oscuro en toda la página (incluidos los toasts) mientras la cocina esté abierta.
   useEffect(() => {
@@ -116,110 +150,234 @@ function useChangeNotice(
   }, [orders, tables, sessions]);
 }
 
+/** ¿Hay contenido fuera de la vista? Para avisar que quedan pedidos más abajo. */
+function useHiddenBelow(ref: React.RefObject<HTMLElement | null>, count: number) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setHidden(el.scrollHeight - el.scrollTop - el.clientHeight > 24);
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    for (const child of Array.from(el.children)) observer.observe(child);
+    el.addEventListener("scroll", check, { passive: true });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", check);
+    };
+  }, [ref, count]);
+  return hidden;
+}
+
 function Board() {
-  const board = useKitchenBoard();
+  const { queue, done } = useKitchenBoard();
   const tables = useTables();
   const dishes = useDishes();
   const restaurant = useRestaurant();
   const now = useNow(1000);
   const sessions = useSessions();
-  useNewOrderNotice(board.confirmado, tables, sessions);
-  useChangeNotice([...board.confirmado, ...board.en_preparacion, ...board.listo], tables, sessions);
-  const total = board.confirmado.length + board.en_preparacion.length;
+  const [view, setView] = useState<View>("por_hacer");
+  const orders = queue.map((t) => t.order);
+  useNewOrderNotice(orders, tables, sessions);
+  useChangeNotice([...orders, ...done], tables, sessions);
 
   return (
     <>
-      <header className="border-line flex items-center gap-4 border-b px-5 py-3 lg:px-8">
+      <header className="border-line flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-5 py-3 lg:px-8">
         <RestaurantMark name={restaurant.name} className="text-[15px]" />
         <span className="text-muted text-lg font-semibold">Cocina</span>
-        <span className="text-muted ml-auto flex items-center gap-2 text-[15px]">
-          {plural(total, "pedido activo", "pedidos activos")}
-        </span>
-        <span className="font-display text-2xl font-semibold tabular-nums">
+        <Segmented
+          label="Vista de la cocina"
+          value={view}
+          onChange={setView}
+          className="min-w-72"
+          options={[
+            { value: "por_hacer", label: `Por hacer (${queue.length})` },
+            { value: "hechos", label: `Hechos (${done.length})` },
+          ]}
+        />
+        <span className="font-display ml-auto text-2xl font-semibold tabular-nums">
           {formatTime(new Date(now))}
         </span>
         <SessionButton />
       </header>
 
-      <main className="grid gap-4 p-4 lg:h-[calc(100dvh-65px)] lg:grid-cols-3 lg:gap-5 lg:p-6">
-        {KITCHEN_COLUMNS.map((col) => {
-          const meta = COLUMN[col];
-          const orders = board[col];
-          return (
-            <section
-              key={col}
-              aria-labelledby={`col-${col}`}
-              className="bg-surface-2/60 flex min-h-0 flex-col rounded-2xl p-3 lg:p-4"
-            >
-              <h2
-                id={`col-${col}`}
-                className="mb-3 flex items-center gap-2.5 px-1 text-xl font-semibold"
-              >
-                <meta.icon
-                  className={cn("size-6", col === "listo" ? "text-success" : "text-accent")}
-                  aria-hidden
-                />
-                {meta.title}
-                <span className="bg-surface ml-auto flex h-8 min-w-8 items-center justify-center rounded-full px-2.5 text-lg tabular-nums">
-                  {orders.length}
-                </span>
-              </h2>
-              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-0.5">
-                {orders.length === 0 ? (
-                  <div className="border-line-strong flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center">
-                    <PlatterioMark className="text-line-strong size-10" />
-                    <p className="text-ink-soft mt-4 text-xl font-semibold">{meta.empty}</p>
-                    <p className="text-muted mt-1 text-[15px]">{meta.hint}</p>
-                  </div>
-                ) : (
-                  <AnimatePresence initial={false}>
-                    {orders.map((o) => (
-                      <KitchenCard
-                        key={o.id}
-                        order={o}
-                        place={placeLabel(o, tables, sessions)}
-                        dishes={dishes}
-                        now={now}
-                      />
-                    ))}
-                  </AnimatePresence>
-                )}
-              </div>
-            </section>
-          );
-        })}
-      </main>
+      {view === "por_hacer" ? (
+        <Queue queue={queue} tables={tables} sessions={sessions} dishes={dishes} now={now} />
+      ) : (
+        <DoneList done={done} tables={tables} sessions={sessions} dishes={dishes} now={now} />
+      )}
     </>
   );
 }
 
-function KitchenCard({
-  order,
-  place,
+function Queue({
+  queue,
+  tables,
+  sessions,
   dishes,
   now,
 }: {
-  order: Order;
-  place: string;
+  queue: KitchenTicket[];
+  tables: readonly Table[];
+  sessions: readonly TableSession[];
   dishes: readonly Dish[];
   now: number;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  const hidden = useHiddenBelow(ref, queue.length);
+  const { density, columns } = kitchenLayout(queue.length);
+
+  if (queue.length === 0) {
+    return (
+      <main className="grid h-[calc(100dvh-65px)] place-items-center p-6">
+        <div className="border-line-strong flex w-full max-w-xl flex-col items-center rounded-2xl border border-dashed px-8 py-16 text-center">
+          <PlatterioMark className="text-line-strong size-12" />
+          <p className="text-ink-soft mt-5 text-2xl font-semibold">Nada por hacer</p>
+          <p className="text-muted mt-1 text-[17px]">
+            Cuando el mesero confirme un pedido, aparece aquí.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main
+      ref={ref}
+      aria-label="Pedidos por hacer, en orden de llegada"
+      className="relative h-[calc(100dvh-65px)] overflow-y-auto p-3 lg:p-4"
+    >
+      <ol
+        style={{ "--cols": columns } as React.CSSProperties}
+        className={cn(
+          "grid list-none grid-cols-1 content-start items-start sm:grid-cols-2 lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))]",
+          density === "grande" ? "gap-4" : "gap-3",
+        )}
+      >
+        <AnimatePresence initial={false}>
+          {queue.map((ticket, i) => (
+            <li key={ticket.order.id} className="min-w-0">
+              <KitchenCard
+                ticket={ticket}
+                position={i + 1}
+                place={placeLabel(ticket.order, tables, sessions)}
+                dishes={dishes}
+                now={now}
+                density={density}
+              />
+            </li>
+          ))}
+        </AnimatePresence>
+      </ol>
+      {hidden && (
+        <div className="pointer-events-none sticky bottom-2 flex justify-center">
+          <span
+            role="status"
+            className="bg-warning flex items-center gap-2 rounded-full px-5 py-2.5 text-[16px] font-bold text-[#0e0d0c] shadow-lg"
+          >
+            <ChevronsDown className="size-5" aria-hidden /> Hay más pedidos abajo
+          </span>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function DoneList({
+  done,
+  tables,
+  sessions,
+  dishes,
+  now,
+}: {
+  done: Order[];
+  tables: readonly Table[];
+  sessions: readonly TableSession[];
+  dishes: readonly Dish[];
+  now: number;
+}) {
+  if (done.length === 0) {
+    return (
+      <main className="grid h-[calc(100dvh-65px)] place-items-center p-6">
+        <p className="text-muted text-xl">Todavía no hay pedidos hechos.</p>
+      </main>
+    );
+  }
+  return (
+    <main
+      aria-label="Pedidos ya hechos"
+      className="h-[calc(100dvh-65px)] overflow-y-auto p-3 lg:p-5"
+    >
+      <p className="text-muted mb-3 px-1 text-[15px]">
+        Los últimos pedidos que marcaste como listos, para consultar si faltó algo.
+      </p>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {done.map((o) => (
+          <li key={o.id} className="bg-surface border-success/40 rounded-xl border-2 p-3.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="font-display text-[22px] font-semibold">
+                {placeLabel(o, tables, sessions)}
+              </p>
+              <p className="text-success-ink flex items-center gap-1.5 text-[15px] font-semibold">
+                <PackageCheck className="size-4" aria-hidden />
+                Listo a las {formatTime(new Date(o.readyAt ?? o.createdAt))}
+              </p>
+            </div>
+            <p className="text-muted text-[14px]">
+              Ronda {o.round} · hace {formatElapsed(now - Date.parse(o.readyAt ?? o.createdAt))}
+            </p>
+            <ul className="border-line mt-2.5 flex flex-col gap-1 border-t pt-2.5">
+              {o.items.map((item) => {
+                const dish = dishes.find((d) => d.id === item.dishId);
+                const variant = dish?.variants.find((v) => v.id === item.variantId);
+                return (
+                  <li key={item.id} className="text-[16px] leading-snug">
+                    <span className="text-accent font-semibold tabular-nums">{item.qty}×</span>{" "}
+                    {dish?.name ?? "Plato"}
+                    {dish && dish.variants.length > 1 && variant ? ` · ${variant.name}` : ""}
+                    {item.custom && item.custom.kitchen.length > 0 && (
+                      <span className="text-ink-soft"> ({item.custom.kitchen.join(", ")})</span>
+                    )}
+                    {item.note && <span className="text-warning-ink"> — {item.note}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+
+function KitchenCard({
+  ticket,
+  position,
+  place,
+  dishes,
+  now,
+  density,
+}: {
+  ticket: KitchenTicket;
+  position: number;
+  place: string;
+  dishes: readonly Dish[];
+  now: number;
+  density: KitchenDensity;
+}) {
+  const { order, additional } = ticket;
+  const size = SIZE[density];
+  const compact = density === "compacta" || density === "minima";
   const level = kitchenTimeLevel(order, now);
-  const ready = order.status === "listo";
-  const elapsed =
-    now -
-    Date.parse(ready ? (order.readyAt ?? order.createdAt) : (order.confirmedAt ?? order.createdAt));
-  const label = place;
+  const elapsed = now - Date.parse(order.confirmedAt ?? order.createdAt);
   const changes = unseenChanges(order);
 
-  function advance() {
-    const r =
-      order.status === "confirmado"
-        ? kitchenActions.start(order.id)
-        : kitchenActions.ready(order.id);
-    if (!r.ok) toast.error("No se pudo avanzar", { description: r.error });
-    else if (order.status === "en_preparacion")
-      toast.success(`${label} lista`, { description: "Le avisamos al mesero." });
+  function done() {
+    const r = kitchenActions.ready(order.id);
+    if (!r.ok) toast.error("No se pudo marcar", { description: r.error });
+    else toast.success(`${place} lista`, { description: "Le avisamos al mesero." });
   }
 
   return (
@@ -229,145 +387,146 @@ function KitchenCard({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.22 }}
-      aria-label={`${label}, ronda ${order.round}`}
+      aria-label={`${place}, ronda ${order.round}${additional ? ", adicional" : ""}`}
       className={cn(
-        "bg-surface rounded-xl border-2 p-4",
-        ready
-          ? "border-success/40 opacity-80"
+        "bg-surface flex flex-col overflow-hidden rounded-xl border-2",
+        additional
+          ? "border-danger"
           : level === "atrasado"
-            ? "border-danger"
+            ? "border-warning"
             : level === "lento"
-              ? "border-warning"
+              ? "border-warning/50"
               : "border-line",
       )}
     >
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-display text-[34px] leading-tight font-semibold">{label}</p>
-          <p className="text-muted mt-1 text-[15px]">Ronda {order.round}</p>
-        </div>
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xl font-semibold tabular-nums",
-            ready
-              ? "text-success-ink"
-              : level === "atrasado"
-                ? "bg-danger-soft text-danger-ink"
+      {additional && (
+        <p className="bg-danger flex items-center gap-2 px-3 py-1.5 text-[15px] font-bold tracking-wide text-[#0e0d0c] uppercase">
+          <CircleAlert className="size-4 shrink-0" aria-hidden />
+          {compact ? "Adicional" : `Adicional · ${place} ya tiene pedidos`}
+        </p>
+      )}
+      <div className={cn("flex flex-1 flex-col", size.pad, size.gap)}>
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className={cn("font-display leading-tight font-semibold", size.place)}>
+              <span className="text-muted mr-2 text-[0.55em] tabular-nums">#{position}</span>
+              {place}
+              {compact && (
+                <span className={cn("text-muted ml-2 font-sans font-normal", size.sub)}>
+                  · Ronda {order.round}
+                </span>
+              )}
+            </p>
+            {!compact && <p className={cn("text-muted", size.sub)}>Ronda {order.round}</p>}
+          </div>
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-0.5 font-semibold tabular-nums",
+              size.timer,
+              level === "atrasado"
+                ? "bg-warning text-[#0e0d0c]"
                 : level === "lento"
                   ? "bg-warning-soft text-warning-ink"
                   : "text-ink-soft",
-          )}
-          aria-label={`${ready ? "Lista hace" : "Lleva"} ${formatElapsed(elapsed)}`}
-        >
-          <Timer className="size-5" aria-hidden />
-          {formatElapsed(elapsed)}
-        </span>
-      </header>
-
-      {changes.length > 0 && (
-        <section
-          aria-label="Cambios del mesero"
-          className="bg-warning-soft text-warning-ink mt-4 rounded-lg p-3"
-        >
-          <p className="flex items-center gap-2 text-[17px] font-semibold">
-            <BellRing className="size-5" aria-hidden /> Cambios del mesero
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-1 text-[16px]">
-            {changes.map((c) => (
-              <li key={c.id}>
-                <span className="font-semibold">{c.dishName}</span> · {c.detail}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            onClick={() => kitchenActions.acknowledgeChanges(order.id)}
-            className="bg-warning-ink mt-2.5 h-11 w-full rounded-lg text-[16px] font-semibold text-white"
+            )}
+            aria-label={`Lleva ${formatElapsed(elapsed)}${level === "atrasado" ? ", atrasado" : ""}`}
           >
-            Visto
-          </button>
-        </section>
-      )}
+            <Timer className="size-[1em]" aria-hidden />
+            {formatElapsed(elapsed)}
+            {level === "atrasado" && <span className="text-[0.8em] uppercase">Atrasado</span>}
+          </span>
+        </header>
 
-      <ul className="border-line mt-4 flex flex-col gap-3 border-t pt-3">
-        {order.items.map((item) => {
-          const dish = dishes.find((d) => d.id === item.dishId);
-          const variant = dish?.variants.find((v) => v.id === item.variantId);
-          return (
-            <li key={item.id} className={item.removed ? "opacity-60" : undefined}>
-              {item.removed && (
-                <p className="text-danger-ink text-[15px] font-semibold uppercase">Quitado</p>
-              )}
-              {item.addedByStaff && !item.removed && (
-                <p className="text-warning-ink text-[15px] font-semibold uppercase">Nuevo</p>
-              )}
-              <p
-                className={cn(
-                  "text-[21px] leading-snug font-semibold",
-                  item.removed && "line-through",
+        {changes.length > 0 && (
+          <section
+            aria-label="Cambios del mesero"
+            className="bg-warning-soft text-warning-ink rounded-lg p-2.5"
+          >
+            <p className={cn("flex items-center gap-2 font-semibold", size.sub)}>
+              <BellRing className="size-[1.1em]" aria-hidden /> Cambios del mesero
+            </p>
+            <ul className={cn("mt-1 flex flex-col gap-0.5", size.sub)}>
+              {changes.map((c) => (
+                <li key={c.id}>
+                  <span className="font-semibold">{c.dishName}</span> · {c.detail}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => kitchenActions.acknowledgeChanges(order.id)}
+              className="bg-warning-ink mt-2 h-10 w-full rounded-lg text-[15px] font-semibold text-white"
+            >
+              Visto
+            </button>
+          </section>
+        )}
+
+        <ul className={cn("border-line flex flex-1 flex-col border-t pt-2.5", size.gap)}>
+          {order.items.map((item) => {
+            const dish = dishes.find((d) => d.id === item.dishId);
+            const variant = dish?.variants.find((v) => v.id === item.variantId);
+            return (
+              <li key={item.id} className={item.removed ? "opacity-60" : undefined}>
+                {item.addedByStaff && !item.removed && (
+                  <p className="text-warning-ink text-[13px] font-semibold uppercase">Nuevo</p>
                 )}
-              >
-                <span className="text-accent tabular-nums">{item.qty}×</span>{" "}
-                {dish?.name ?? "Plato"}
-              </p>
-              {dish && dish.variants.length > 1 && variant && (
-                <p className="text-ink-soft text-[17px]">{variant.name}</p>
-              )}
-              {item.custom && !item.removed && (
-                <ul className="mt-1.5 flex flex-col gap-1" aria-label="Personalización">
-                  {item.custom.kitchen.map((line) => (
-                    <li
-                      key={line}
-                      className={cn(
-                        "inline-block w-fit rounded-md px-2.5 py-0.5 text-[17px] font-bold",
-                        line.startsWith("SIN")
-                          ? "bg-danger-soft text-danger-ink"
-                          : line.startsWith("EXTRA") || line.startsWith("AGREGAR")
-                            ? "bg-success-soft text-success-ink"
-                            : "bg-accent-soft text-accent-strong",
-                      )}
-                    >
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {item.note && (
-                <p className="bg-warning-soft text-warning-ink mt-1.5 inline-block rounded-md px-2.5 py-1 text-[17px] font-semibold">
-                  Nota: {item.note}
+                <p className={cn("leading-snug font-semibold", size.item)}>
+                  <span className="text-accent tabular-nums">{item.qty}×</span>{" "}
+                  {dish?.name ?? "Plato"}
+                  {dish && dish.variants.length > 1 && variant && (
+                    <span className={cn("text-ink-soft font-normal", size.sub)}>
+                      {" "}
+                      · {variant.name}
+                    </span>
+                  )}
                 </p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                {item.custom && (
+                  <ul className="mt-1 flex flex-wrap gap-1" aria-label="Personalización">
+                    {item.custom.kitchen.map((line) => (
+                      <li
+                        key={line}
+                        className={cn(
+                          "w-fit rounded-md px-2 py-0.5 font-bold",
+                          size.sub,
+                          line.startsWith("SIN")
+                            ? "bg-danger-soft text-danger-ink"
+                            : line.startsWith("EXTRA") || line.startsWith("AGREGAR")
+                              ? "bg-success-soft text-success-ink"
+                              : "bg-accent-soft text-accent-strong",
+                        )}
+                      >
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {item.note && (
+                  <p
+                    className={cn(
+                      "bg-warning-soft text-warning-ink mt-1 inline-block rounded-md px-2 py-0.5 font-semibold",
+                      size.sub,
+                    )}
+                  >
+                    Nota: {item.note}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
 
-      {ready ? (
-        <p className="text-success-ink mt-4 flex items-center gap-2 text-[17px] font-medium">
-          <CircleCheck className="size-5" aria-hidden /> Esperando al mesero
-        </p>
-      ) : (
         <button
           type="button"
-          onClick={advance}
+          onClick={done}
           className={cn(
-            "mt-4 flex h-15 w-full items-center justify-center gap-2.5 rounded-xl text-lg font-semibold transition active:scale-[0.98]",
-            order.status === "confirmado"
-              ? "bg-accent-strong text-white"
-              : "bg-success text-[#0e0d0c]",
+            "bg-success flex w-full items-center justify-center gap-2.5 rounded-xl font-semibold text-[#0e0d0c] transition active:scale-[0.98]",
+            size.button,
           )}
         >
-          {order.status === "confirmado" ? (
-            <>
-              <Flame className="size-6" aria-hidden /> Empezar a preparar
-            </>
-          ) : (
-            <>
-              <PackageCheck className="size-6" aria-hidden /> Marcar listo
-            </>
-          )}
+          <PackageCheck className="size-[1.3em]" aria-hidden /> Listo
         </button>
-      )}
+      </div>
     </motion.article>
   );
 }

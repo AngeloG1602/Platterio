@@ -616,3 +616,20 @@ pueden cambiar sin rehacer pantallas.
       precios ni cifras prometidas; menciona la prueba de 7 días y los dos planes. La voz neuronal
       colombiana de Microsoft sonaría más natural, pero la red del entorno la bloquea. La dirección
       del cierre (`sitio` en `video/guion.json`) debe confirmarse antes de publicar.
+145.  **Cocina ágil (bloque 1 de las mejoras de la entrevista; reemplaza las decisiones 45, 46 y 47).**
+      (a) Confirmar el mesero ya manda la ronda a la cocina **en preparación**: `transitionOrder`
+      sella `confirmedAt` y `preparingAt` con la misma hora y la cocina no marca un paso intermedio.
+      El cliente sigue viendo "Confirmado" y "En preparación" en su línea de tiempo, sin tiempos
+      estimados. El estado `confirmado` se conserva solo para pedidos guardados antes del cambio
+      (la cocina los puede dar por listos), así que no hubo que subir la versión de los datos.
+      (b) La cocina es **una sola cola** en orden de llegada, a pantalla completa, con un único
+      botón "Listo". Una segunda vista, "Hechos", lista lo último que se marcó listo (máx. 30)
+      para consultar si faltó algo. (c) Una ronda es **adicional** si su mesa ya mandó otra ronda
+      anterior a la cocina (aunque ya esté entregada): se marca en rojo con la etiqueta "Adicional"
+      y no cambia su lugar en la cola. El retraso (20 min) pasó de rojo a ámbar con la palabra
+      "Atrasado", para que el rojo signifique una sola cosa; ningún color va sin texto.
+      (d) `kitchenLayout` reparte los pedidos en columnas y baja el tamaño de la letra según
+      cuántos hay (1-3 grande, 4-6 media, 7-12 compacta, más de 12 mínima): 12 pedidos caben
+      en 1280 por 800 sin desplazarse (`npm run e2e:cocina`); si aun así hay más, un aviso dice
+      que quedan pedidos más abajo. (e) Los domicilios confirmados por caja también pasan directo
+      a "Preparando" y el cliente lee "Tu pedido está confirmado y lo estamos preparando".
