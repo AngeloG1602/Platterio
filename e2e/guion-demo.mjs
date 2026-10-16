@@ -1237,6 +1237,49 @@ check(
 );
 await gael.close();
 
+// 26. Auditoría: quién hizo qué, y quién lo autorizó
+await admin.goto(`${BASE}/admin/auditoria`);
+const audit = admin.getByRole("table", { name: "Acciones registradas" });
+check(
+  "26. La auditoría muestra quién confirmó un pedido",
+  await visible(audit.getByRole("row", { name: /Carlos.*Confirmó un pedido/ })),
+);
+check(
+  "26. La auditoría muestra al cocinero que marcó un pedido listo",
+  await visible(audit.getByRole("row", { name: /Cocina.*Marcó un pedido listo/ })),
+);
+check(
+  "26. La auditoría muestra el cobro con su valor y forma de pago",
+  await visible(audit.getByRole("row", { name: /Julián.*Registró un cobro.*efectivo/ })),
+);
+check(
+  "26. Las mesas liberadas al pagar quedan a nombre del Sistema",
+  await visible(audit.getByRole("row", { name: /Sistema.*La mesa se liberó al pagarse/ })),
+);
+check(
+  "26. La apertura y el cierre de caja quedan registrados",
+  (await visible(audit.getByRole("row", { name: /Abrió la caja/ }))) &&
+    (await visible(audit.getByRole("row", { name: /Cerró la caja/ }))),
+);
+await admin.getByLabel(/^Área/).selectOption("Caja");
+check(
+  "26. Filtrar por área deja solo esas acciones",
+  (await audit.getByRole("row", { name: /Confirmó un pedido/ }).count()) === 0 &&
+    (await visible(audit.getByRole("row", { name: /Registró un cobro/ }))),
+);
+await admin.getByLabel(/^Área/).selectOption("");
+await admin.getByLabel("Buscar").fill("mesa 6");
+check(
+  "26. La búsqueda encuentra las acciones de una mesa",
+  (await visible(audit.getByRole("row", { name: /Mesa 6/ }))) &&
+    (await audit.getByRole("row", { name: /Mesa 3/ }).count()) === 0,
+);
+check(
+  "26. Es de solo lectura: no hay botones para editar ni borrar",
+  (await admin.getByRole("button", { name: /Borrar|Eliminar|Editar/ }).count()) === 0,
+);
+await admin.goto(`${BASE}/admin`);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

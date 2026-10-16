@@ -649,3 +649,15 @@ pueden cambiar sin rehacer pantallas.
       por cobrar se permite y esas mesas siguen por cobrar en el turno siguiente. El mesero que
       entrega con la caja cerrada recibe el aviso "queda por cobrar". (d) El reporte muestra
       "Por cobrar" = mesas abiertas con saldo + mesas cerradas sin cobro (las antiguas).
+147.  **Auditoría (bloque 3 de las mejoras de la entrevista).** Registro único de acciones
+      (`lib/domain/audit.ts`, guardado en el estado como `audit`): persona, rol, acción, sobre qué,
+      detalle, motivo y quién autorizó. Se registra desde la capa de acciones, después de que la
+      acción se aplicó (una acción rechazada no deja registro): confirmar, rechazar, entregar,
+      tomar, ajustar y editar pedidos; marcar listo en cocina; abrir, cancelar y liberar mesas;
+      despachar domicilios; abrir y cerrar caja y cada cobro; y crear, editar, activar y desactivar
+      usuarios. Lo automático (mesa liberada al pagarse, cierre por inactividad) queda a nombre de
+      "Sistema". El campo `authorizedBy` ya existe para el cambio de mesa, el crédito y la
+      cortesía. Solo se agrega (sin edición ni borrado desde la interfaz) y guarda las últimas
+      1.500 entradas. Se consulta en Admin → Auditoría, solo para el administrador (el panel ya
+      lo exige), con periodo, área, persona y búsqueda sin tildes, y descarga CSV. No hizo falta
+      subir la versión de los datos: los guardados antes no traen el campo y arrancan vacíos.

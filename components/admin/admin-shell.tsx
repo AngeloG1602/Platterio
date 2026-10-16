@@ -8,6 +8,7 @@ import {
   MessageSquareText,
   Settings2,
   Sparkles,
+  ScrollText,
   Users,
   UtensilsCrossed,
 } from "lucide-react";
@@ -50,6 +51,7 @@ const NAV: NavItem[] = [
     feature: "reportes-completos",
   },
   { href: "/admin/equipo", label: "Equipo", icon: Users },
+  { href: "/admin/auditoria", label: "Auditoría", icon: ScrollText },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];
 

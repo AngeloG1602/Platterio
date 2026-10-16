@@ -1,5 +1,6 @@
 "use client";
 
+import type { AuditEntry } from "@/lib/domain/audit";
 import { planAllows, resolvePlan, type Feature } from "@/lib/domain/pricing";
 import { deliveryItems } from "@/lib/domain/delivery";
 import { useEffect, useMemo, useState } from "react";
@@ -55,6 +56,10 @@ export function useCurrentStaff() {
   return useAppStore((s) => s.staff.find((u) => u.id === staffId && u.active));
 }
 export const useAlerts = () => useAppStore((s) => s.alerts);
+
+const NO_AUDIT: AuditEntry[] = [];
+/** Registro de acciones del personal (el más reciente al final). */
+export const useAuditLog = () => useAppStore((s) => s.audit ?? NO_AUDIT);
 export const useDemoSettings = () => useAppStore((s) => s.demo);
 export const useDevice = () => useDeviceStore();
 export const useConnectedTabs = () => usePresenceStore((s) => Object.keys(s.peers).length + 1);

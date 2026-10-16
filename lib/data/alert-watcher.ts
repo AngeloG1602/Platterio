@@ -3,6 +3,7 @@
 import { syncUnconfirmedAlerts } from "@/lib/domain/alerts";
 import { virtualNow } from "@/lib/domain/clock";
 import { closeSessions, sessionsPaidInFull, sessionsToAutoClose } from "@/lib/domain/tableAccess";
+import { recordAudit, tableName } from "./audit";
 import { useAppStore } from "./store";
 
 /**
@@ -18,6 +19,10 @@ export function releasePaidTables() {
   useAppStore.setState({
     sessions: closeSessions(s.sessions, ids, new Date(now).toISOString(), "pagada"),
   });
+  for (const id of ids) {
+    const closed = s.sessions.find((x) => x.id === id);
+    if (closed) recordAudit("mesa.liberar_al_pagar", tableName(closed.tableId), { system: true });
+  }
 }
 
 /**
@@ -40,6 +45,10 @@ function autoCloseTables() {
   useAppStore.setState({
     sessions: closeSessions(s.sessions, ids, new Date(now).toISOString(), "inactividad"),
   });
+  for (const id of ids) {
+    const closed = s.sessions.find((x) => x.id === id);
+    if (closed) recordAudit("mesa.cerrar_inactividad", tableName(closed.tableId), { system: true });
+  }
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { AuditEntry } from "@/lib/domain/audit";
 import type { StaffUser } from "@/lib/domain/access";
 import { createClock, type DemoClock } from "@/lib/domain/clock";
 import type {
@@ -55,6 +56,8 @@ export interface AppData {
   dishRatings: DishRating[];
   serviceRatings: ServiceRating[];
   alerts: Alert[];
+  /** Registro de acciones del personal: quién hizo qué y quién lo autorizó. */
+  audit: AuditEntry[];
   demo: DemoSettings;
 }
 
@@ -90,6 +93,7 @@ export function createSeedState(now: number): AppData {
     dishRatings: [],
     serviceRatings: [],
     alerts: seedAlerts(history, WAITERS),
+    audit: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };
 }

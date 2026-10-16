@@ -1,6 +1,10 @@
 "use client";
 
 import { releasePaidTables } from "./alert-watcher";
+import { recordAudit, tableName } from "./audit";
+import { ROLE_LABEL } from "@/lib/domain/access";
+import { METHOD_LABEL } from "@/lib/domain/cash";
+import type { AuditAction } from "@/lib/domain/audit";
 import { canAddUser, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
@@ -39,6 +43,7 @@ import {
   type StaffLine,
 } from "@/lib/domain/staffOrders";
 import type { Order, OrderStatus } from "@/lib/domain/types";
+import { placeLabel } from "@/lib/domain/delivery";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
 import {
@@ -104,7 +109,7 @@ import {
 } from "@/lib/domain/delivery";
 import type { DeliveryConfig } from "@/lib/domain/types";
 import { useDeliveryClient, type DeliveryClientState } from "./delivery-store";
-import { isCurrency } from "@/lib/domain/format";
+import { formatMoney, isCurrency } from "@/lib/domain/format";
 import { enabledLangs } from "@/lib/i18n";
 import { customizationSpecFor } from "./customization-specs";
 import {
@@ -506,6 +511,12 @@ function replaceOrder(order: Order) {
   useAppStore.setState((s) => ({ orders: s.orders.map((o) => (o.id === order.id ? order : o)) }));
 }
 
+/** "Mesa 3 · Ronda 1" o "Domicilio D-XXXX · Ronda 1": sobre qué pedido se hizo algo. */
+function orderTarget(order: Order): string {
+  const s = useAppStore.getState();
+  return `${placeLabel(order, s.tables, s.sessions)} · Ronda ${order.round}`;
+}
+
 /** Única puerta de escritura para cambiar el estado de un pedido (usa la máquina de estados). */
 function moveOrder(orderId: string, to: OrderStatus, actor: Actor, reason?: string): ActionResult {
   const order = useAppStore.getState().orders.find((o) => o.id === orderId);
@@ -513,6 +524,13 @@ function moveOrder(orderId: string, to: OrderStatus, actor: Actor, reason?: stri
   const result = transitionOrder(order, to, actor, nowIso(), reason);
   if (!result.ok) return result;
   replaceOrder(result.order);
+  const action: Partial<Record<OrderStatus, AuditAction>> = {
+    confirmado: "pedido.confirmar",
+    rechazado: "pedido.rechazar",
+    entregado: "pedido.entregar",
+    listo: "cocina.listo",
+  };
+  if (action[to]) recordAudit(action[to]!, orderTarget(order), { reason });
   return { ok: true };
 }
 
@@ -569,14 +587,20 @@ export const teamActions = {
     const r = addStaff(useAppStore.getState(), input, actor.role);
     if (!r.ok) return r;
     useAppStore.setState(r.value);
+    recordAudit("equipo.crear", `${input.name.trim()} (${ROLE_LABEL[input.role].toLowerCase()})`);
     return { ok: true };
   },
   update(userId: string, patch: { name?: string; pin?: string }): ActionResult {
     const actor = currentStaff();
     if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+    const before = useAppStore.getState().staff.find((u) => u.id === userId);
     const r = updateStaff(useAppStore.getState(), userId, patch, actor.role);
     if (!r.ok) return r;
     useAppStore.setState(r.value);
+    const changed = [patch.name !== undefined && "nombre", patch.pin !== undefined && "PIN"].filter(
+      Boolean,
+    );
+    recordAudit("equipo.editar", before?.name ?? "Usuario", { detail: changed.join(" y ") });
     return { ok: true };
   },
   setActive(userId: string, active: boolean): ActionResult & { released?: string[] } {
@@ -585,6 +609,10 @@ export const teamActions = {
     const r = setStaffActive(useAppStore.getState(), userId, active, actor);
     if (!r.ok) return r;
     useAppStore.setState({ staff: r.value.staff, waiters: r.value.waiters });
+    const person = r.value.staff.find((u) => u.id === userId);
+    recordAudit(active ? "equipo.activar" : "equipo.desactivar", person?.name ?? "Usuario", {
+      detail: r.value.released?.length ? "Se liberaron sus mesas" : undefined,
+    });
     return { ok: true, released: r.value.released };
   },
 };
@@ -617,6 +645,10 @@ export const waiterActions = {
       const result = adjustOrderItem(order, itemId, change, reason, dish);
       if (!result.ok) return result;
       replaceOrder(result.order);
+      recordAudit("pedido.ajustar", orderTarget(order), {
+        detail: `${dish?.name ?? "Plato"} · ${change.type}`,
+        reason,
+      });
       return { ok: true };
     });
   },
@@ -666,6 +698,9 @@ export const waiterActions = {
       orders: [...s.orders, r.order],
       calls: openedPin ? resolveCalls(s.calls, tableId) : s.calls,
     }));
+    recordAudit("pedido.crear", orderTarget(r.order), {
+      detail: `${r.order.items.reduce((n, i) => n + i.qty, 0)} platos`,
+    });
     return { ok: true, orderId: r.order.id, openedPin };
   },
   /** Edita una ronda en cualquier estado menos anulada; queda registrado quién, cuándo y por qué. */
@@ -687,6 +722,11 @@ export const waiterActions = {
       });
       if (!r.ok) return r;
       replaceOrder(r.order);
+      const last = r.order.changes?.at(-1);
+      recordAudit("pedido.editar", orderTarget(order), {
+        detail: last ? `${last.dishName} · ${last.detail}` : edit.type,
+        reason,
+      });
       return { ok: true };
     });
   },
@@ -706,6 +746,7 @@ export const waiterActions = {
       sessions: r.value.sessions,
       calls: resolveCalls(state.calls, tableId),
     });
+    recordAudit("mesa.abrir", tableName(tableId));
     return { ok: true, pin: r.value.session.pin };
   },
   /** Cierra la mesa aunque tenga rondas sin entregar, que quedan rechazadas. */
@@ -721,6 +762,10 @@ export const waiterActions = {
       sessions: s.sessions.map((x) => (x.id === session.id ? r.value.session : x)),
       orders: r.value.orders,
     }));
+    recordAudit("mesa.cancelar", tableName(tableId), {
+      detail:
+        r.value.rejected > 0 ? `${r.value.rejected} rondas sin entregar rechazadas` : undefined,
+    });
     return { ok: true, rejected: r.value.rejected };
   },
   /** Minutos sin actividad para que esta mesa se cierre sola (`null`: el del negocio). */
@@ -745,6 +790,7 @@ export const waiterActions = {
     const result = releaseSession(session, state.orders, state.payments, nowIso());
     if (!result.ok) return result;
     replaceSession(session, result.session);
+    recordAudit("mesa.liberar", tableName(tableId));
     return { ok: true };
   },
 };
@@ -898,6 +944,9 @@ export const deliveryActions = {
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === found.session.id ? r.session : x)),
     }));
+    recordAudit("domicilio.despachar", orderTarget(found.order), {
+      detail: `Domiciliario ${driver.trim()}`,
+    });
     return { ok: true };
   },
   /** Entregado al cliente (en su puerta o en el mostrador). */
@@ -944,6 +993,7 @@ export const cashActions = {
     });
     if (!r.ok) return r;
     useAppStore.setState((s) => ({ shifts: [...s.shifts, r.value] }));
+    recordAudit("caja.abrir", "Caja", { detail: `Fondo ${formatMoney(openingFloat)}` });
     return { ok: true };
   },
   /** Registra un pago contra la cuenta de una mesa abierta o de un pedido a domicilio. */
@@ -969,6 +1019,12 @@ export const cashActions = {
     if (!r.ok) return r;
     useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
     if (!session.closedAt) replaceSession(session, {});
+    const place = session.delivery
+      ? `${session.delivery.type === "recoger" ? "Recoger" : "Domicilio"} ${session.delivery.code}`
+      : tableName(session.tableId);
+    recordAudit("caja.cobrar", place, {
+      detail: `${formatMoney(amount)} · ${METHOD_LABEL[method].toLowerCase()}`,
+    });
     // Pagada por completo: la mesa se libera sola, sin esperar al mesero.
     releasePaidTables();
     return { ok: true };
@@ -991,6 +1047,11 @@ export const cashActions = {
     useAppStore.setState((s) => ({
       shifts: s.shifts.map((x) => (x.id === shift.id ? r.value : x)),
     }));
+    const diff = r.value.summary?.difference ?? 0;
+    recordAudit("caja.cerrar", "Caja", {
+      detail: `Contó ${formatMoney(countedCash)}${diff !== 0 ? ` · diferencia ${formatMoney(diff)}` : " · cuadra"}`,
+      reason: note,
+    });
     return { ok: true };
   },
 };
