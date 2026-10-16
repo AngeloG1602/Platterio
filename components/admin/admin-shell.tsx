@@ -8,6 +8,7 @@ import {
   MessageSquareText,
   Settings2,
   Sparkles,
+  ListOrdered,
   ScrollText,
   Users,
   UtensilsCrossed,
@@ -43,6 +44,7 @@ const NAV: NavItem[] = [
     icon: MessageSquareText,
     feature: "calificaciones",
   },
+  { href: "/admin/pedidos", label: "Pedidos", icon: ListOrdered },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
   {
     href: "/admin/reportes",

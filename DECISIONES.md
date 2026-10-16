@@ -699,3 +699,14 @@ pueden cambiar sin rehacer pantallas.
       reemplazarse: una pestaña con datos viejos ya no borra un registro recién agregado
       (se vio en el e2e con la auditoría). Las liberaciones y cierres automáticos usan un `id`
       fijo en la auditoría para no repetirse si varias pestañas los hacen a la vez.
+
+150. **Historial de pedidos y carga de trabajo (mejoras, bloque 6).** (a) Nueva pantalla
+     «Pedidos» en el panel del administrador y como pestaña en Caja: lista cada ronda con
+     número (`M3-R1` o código de domicilio), mesa, mesero, platos, total, estado y estado de la
+     cuenta (por cobrar, cobrado, crédito, cortesía). (b) Filtros de tiempo (RF-38): últimos 10
+     min, última hora, últimas 24 h, por días u otro lapso; días de la semana (lunes = 0) y varias
+     franjas de horas del día (el fin no cuenta; una franja puede cruzar la medianoche). Además
+     mesa, mesero, estado, cuenta y búsqueda por texto; descarga en CSV. (c) «Carga de trabajo»:
+     mapa de calor día × hora medido en pedidos o en ventas, con día, hora y franja más
+     movidos. (d) Toda la lógica está en `lib/domain/orderHistory.ts` (funciones puras con
+     pruebas); la pantalla solo la usa y pagina de 100 en 100.

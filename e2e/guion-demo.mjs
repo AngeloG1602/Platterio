@@ -1422,6 +1422,58 @@ check(
 );
 await ines.close();
 
+// 29. Historial de pedidos y carga de trabajo
+await admin.goto(`${BASE}/admin/pedidos`);
+const tablaPedidos = admin.getByRole("table", { name: "Pedidos" });
+check(
+  "29. El historial lista los pedidos del día con su cuenta",
+  (await visible(tablaPedidos.getByRole("row").nth(1), 8000)) &&
+    (await visible(tablaPedidos.getByText(/Crédito|Cobrado|Cortesía/).first())),
+);
+const filasTodas = await tablaPedidos.getByRole("row").count();
+await admin.getByRole("radio", { name: "Últimos 10 min" }).click();
+check(
+  "29. «Últimos 10 min» muestra solo lo reciente",
+  (await visible(admin.getByText("Últimos 10 minutos"))) &&
+    (await tablaPedidos.getByRole("row").count()) <= filasTodas,
+);
+await admin.getByRole("radio", { name: "Última hora" }).click();
+await admin.getByRole("button", { name: "Agregar franja" }).click();
+await admin.getByRole("button", { name: "Lunes" }).click();
+check(
+  "29. Se pueden elegir días de la semana y franjas de horas",
+  (await admin.getByRole("button", { name: "Lunes" }).getAttribute("aria-pressed")) === "true" &&
+    (await visible(admin.getByRole("button", { name: /Quitar/ }).first())),
+);
+await admin.getByRole("button", { name: "Limpiar filtros" }).click();
+await admin.getByPlaceholder("Pedido, plato, persona…").fill("zzzz-no-existe");
+check(
+  "29. Sin coincidencias avisa que no hay pedidos",
+  await visible(admin.getByText("No hay pedidos con estos filtros.")),
+);
+await admin.getByRole("button", { name: "Limpiar filtros" }).click();
+check(
+  "29. El historial se puede descargar en CSV",
+  await visible(admin.getByRole("button", { name: /CSV/ })),
+);
+await admin.getByRole("radio", { name: "Carga de trabajo" }).click();
+check(
+  "29. La carga de trabajo muestra el día y la hora más movidos",
+  (await visible(admin.getByText("Día más movido"))) &&
+    (await visible(admin.getByText("Hora más movida"))),
+);
+await admin.getByRole("radio", { name: "Ventas" }).click();
+check(
+  "29. La carga de trabajo se puede medir en ventas",
+  await visible(admin.getByText("Total del periodo")),
+);
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Pedidos", exact: true }).click();
+check(
+  "29. Caja también consulta el historial de pedidos",
+  await visible(caja.getByRole("table", { name: "Pedidos" }), 8000),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();
