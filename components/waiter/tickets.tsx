@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "@/components/ui/toaster";
-import { waiterActions } from "@/lib/data";
+import { useOpenShift, waiterActions } from "@/lib/data";
 import { formatElapsed, plural } from "@/lib/domain/format";
 import { lineTotal } from "@/lib/domain/ticket";
 import { confirmLevel } from "@/lib/domain/waiter";
@@ -162,6 +162,7 @@ function TimerBadge({
 /** Ronda lista en cocina (US-28, US-29): el mesero la entrega. */
 export function ReadyTicket({ order, table, diners, dishes, now }: TicketProps) {
   const since = now - Date.parse(order.readyAt ?? order.createdAt);
+  const shiftOpen = Boolean(useOpenShift());
   return (
     <motion.article
       layout
@@ -190,8 +191,13 @@ export function ReadyTicket({ order, table, diners, dishes, now }: TicketProps) 
         className="bg-success mt-4 text-white"
         onClick={() => {
           const r = waiterActions.deliver(order.id);
-          if (r.ok) toast.success(`Mesa ${table.number} · Ronda ${order.round} entregada`);
-          else toast.error(r.error);
+          if (!r.ok) return void toast.error(r.error);
+          toast.success(`Mesa ${table.number} · Ronda ${order.round} entregada`);
+          // La cuenta se cobra siempre en caja; si no hay turno abierto, queda por cobrar.
+          if (!shiftOpen)
+            toast.warning("La caja está cerrada", {
+              description: `La Mesa ${table.number} queda por cobrar hasta que abran la caja.`,
+            });
         }}
       >
         <HandPlatter aria-hidden /> Marcar entregado

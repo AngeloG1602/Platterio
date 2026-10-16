@@ -38,6 +38,56 @@ export function CashPanel() {
 function ClosedShift() {
   const [float, setFloat] = useState("100000");
   const [error, setError] = useState<string>();
+  const payments = useLivePayments();
+  const orders = useOrders();
+  const sessions = useSessions();
+  const tables = useTables();
+  const owing = openTablesWithBalance(sessions, orders, payments, tables);
+  return (
+    <>
+      {owing.length > 0 && (
+        <Panel
+          title="Mesas por cobrar"
+          description="Todo pasa por caja: abre la caja para poder cobrarlas."
+        >
+          <p
+            role="status"
+            className="bg-warning-soft text-warning-ink mb-3 rounded-lg px-3 py-2 text-sm font-medium"
+          >
+            Hay {owing.length === 1 ? "una mesa" : `${owing.length} mesas`} por cobrar y la caja
+            está cerrada. Abre la caja para cobrarlas.
+          </p>
+          <ul className="divide-line divide-y">
+            {owing.map((x) => (
+              <li key={x.session.id} className="flex flex-wrap items-center gap-3 py-3">
+                <span className="flex-1 font-semibold">Mesa {x.table?.number}</span>
+                <span className="text-muted text-sm">
+                  Pagado <Price value={x.paid} />
+                </span>
+                <span className="text-sm">
+                  Falta <Price value={x.pending} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+      <ClosedForm float={float} setFloat={setFloat} error={error} setError={setError} />
+    </>
+  );
+}
+
+function ClosedForm({
+  float,
+  setFloat,
+  error,
+  setError,
+}: {
+  float: string;
+  setFloat: (v: string) => void;
+  error: string | undefined;
+  setError: (v: string | undefined) => void;
+}) {
   return (
     <Panel
       title="La caja está cerrada"
@@ -196,7 +246,7 @@ function CloseDialog({
         {owing > 0 && (
           <p className="bg-warning-soft text-warning-ink rounded-lg px-3 py-2 text-sm font-medium">
             Hay {owing === 1 ? "una mesa" : `${owing} mesas`} con saldo por cobrar. Puedes cerrar
-            igual, pero esos pagos quedarán sin registrar.
+            igual: seguirán por cobrar y se cobrarán cuando abras la caja de nuevo.
           </p>
         )}
         <Field label="Efectivo contado">

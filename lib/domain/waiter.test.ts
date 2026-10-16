@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DISHES } from "@/lib/data/catalog";
 import { syncUnconfirmedAlerts, unconfirmedAlertId } from "./alerts";
 import { adjustOrderItem, confirmLevel, releaseSession, tableOverview } from "./waiter";
-import type { Order, OrderStatus, TableSession } from "./types";
+import type { Order, OrderStatus, Payment, TableSession } from "./types";
 
 const T0 = Date.parse("2026-09-28T12:00:00.000Z");
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -180,9 +180,28 @@ describe("ajustes del mesero", () => {
   });
 });
 
+const PAGO: Payment = {
+  id: "p1",
+  sessionId: "s1",
+  tableId: "mesa-3",
+  shiftId: "t1",
+  amount: 51_300,
+  method: "efectivo",
+  at: iso(T0),
+  by: "Julián",
+};
+
 describe("liberar mesa", () => {
+  it("no libera con saldo por cobrar, y dice cuánto", () => {
+    const r = releaseSession(session, [order("entregado")], [], iso(T0));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/\$51\.300 por cobrar/);
+    expect(
+      releaseSession(session, [order("entregado")], [{ ...PAGO, amount: 51_000 }], iso(T0)).ok,
+    ).toBe(false);
+  });
   it("no libera con rondas sin entregar", () => {
-    expect(releaseSession(session, [order("listo")], iso(T0))).toEqual({
+    expect(releaseSession(session, [order("listo")], [], iso(T0))).toEqual({
       ok: false,
       error: "Hay una ronda sin entregar",
     });
@@ -194,9 +213,10 @@ describe("liberar mesa", () => {
         cart: [{ id: "c", dishId: "gaseosa", variantId: "400ml", qty: 1, dinerId: "x" }],
       },
       [order("entregado"), order("rechazado")],
+      [PAGO],
       iso(T0),
     );
     expect(r.ok && r.session).toMatchObject({ closedAt: iso(T0), cart: [] });
-    if (r.ok) expect(releaseSession(r.session, [], iso(T0)).ok).toBe(false);
+    if (r.ok) expect(releaseSession(r.session, [], [], iso(T0)).ok).toBe(false);
   });
 });

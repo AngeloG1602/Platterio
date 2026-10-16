@@ -14,6 +14,7 @@ import {
   salesByWaiter,
   toCsv,
   unpaidSessions,
+  openTablesWithBalance,
 } from "@/lib/domain/cash";
 import { deliveryStats } from "@/lib/domain/delivery";
 import { formatMoney, formatDay, formatTime, plural } from "@/lib/domain/format";
@@ -91,7 +92,12 @@ function Body({ period }: { period: Period }) {
     () => deliveryStats(sessions, orders, period),
     [sessions, orders, period],
   );
+  const owing = useMemo(
+    () => openTablesWithBalance(sessions, orders, payments, tables),
+    [sessions, orders, payments, tables],
+  );
   const unpaidTotal = unpaid.reduce((s, x) => s + x.pending, 0);
+  const owingTotal = owing.reduce((s, x) => s + x.pending, 0);
 
   return (
     <>
@@ -110,11 +116,11 @@ function Body({ period }: { period: Period }) {
           note={plural(paid.count, "pago", "pagos")}
         />
         <StatTile
-          label="Sin cobro registrado"
+          label="Por cobrar"
           icon={TriangleAlert}
           tone={unpaidTotal > 0 ? "danger" : "neutral"}
-          value={formatMoney(unpaidTotal)}
-          note={plural(unpaid.length, "mesa cerrada", "mesas cerradas")}
+          value={formatMoney(owingTotal + unpaidTotal)}
+          note={`${plural(owing.length, "mesa abierta", "mesas abiertas")} · ${plural(unpaid.length, "cerrada sin cobro", "cerradas sin cobro")}`}
         />
         <StatTile
           label="Cambios del personal"

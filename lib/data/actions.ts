@@ -1,5 +1,6 @@
 "use client";
 
+import { releasePaidTables } from "./alert-watcher";
 import { canAddUser, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
@@ -714,7 +715,7 @@ export const waiterActions = {
     const state = useAppStore.getState();
     const session = findOpenSession(state.sessions, tableId);
     if (!session) return { ok: false, error: "La mesa ya estaba cerrada" };
-    const r = cancelSession(session, state.orders, nowIso());
+    const r = cancelSession(session, state.orders, state.payments, nowIso());
     if (!r.ok) return r;
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === session.id ? r.value.session : x)),
@@ -741,7 +742,7 @@ export const waiterActions = {
     const state = useAppStore.getState();
     const session = findOpenSession(state.sessions, tableId);
     if (!session) return { ok: false, error: "La mesa ya estaba libre" };
-    const result = releaseSession(session, state.orders, nowIso());
+    const result = releaseSession(session, state.orders, state.payments, nowIso());
     if (!result.ok) return result;
     replaceSession(session, result.session);
     return { ok: true };
@@ -968,6 +969,8 @@ export const cashActions = {
     if (!r.ok) return r;
     useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
     if (!session.closedAt) replaceSession(session, {});
+    // Pagada por completo: la mesa se libera sola, sin esperar al mesero.
+    releasePaidTables();
     return { ok: true };
   },
   closeShift(countedCash: number, note?: string): ActionResult {

@@ -1175,6 +1175,68 @@ await cocina.getByRole("radio", { name: /^Por hacer/ }).click();
 check("24. Se vuelve a la cola de por hacer", await visible(r2));
 await elena.close();
 
+// 25. Cobro obligatorio: una mesa con saldo no se libera; al pagarse por completo se libera sola
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+if (await visible(caja.getByRole("button", { name: "Cerrar caja" }), 1500)) {
+  await caja.getByRole("button", { name: "Cerrar caja" }).click();
+  await caja.getByLabel("Efectivo contado").fill("1000");
+  await caja.getByRole("button", { name: "Cerrar caja" }).last().click();
+  await caja.getByLabel("Nota").fill("Cierre para probar el cobro obligatorio");
+  await caja.getByRole("button", { name: "Cerrar caja" }).last().click();
+}
+check("25. La caja está cerrada", await visible(caja.getByText("La caja está cerrada")));
+const gael = await tab("Gael");
+await joinTable(gael, 6, "Gael");
+await addDish(gael, 6, "limonada-de-coco");
+await gael.goto(`${BASE}/mesa/6/carrito`);
+await gael.getByRole("button", { name: "Enviar pedido" }).click();
+await gael.getByRole("button", { name: /Sí, enviar/ }).click();
+await gael.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 6 · Ronda \d+/ })
+  .last()
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+await cocina
+  .locator('article[aria-label^="Mesa 6, ronda"]')
+  .last()
+  .getByRole("button", { name: "Listo", exact: true })
+  .click();
+await daniela
+  .locator("article")
+  .filter({ hasText: /Mesa 6/ })
+  .getByRole("button", { name: "Marcar entregado" })
+  .last()
+  .click();
+check(
+  "25. Al entregar con la caja cerrada, el mesero ve que queda por cobrar",
+  await visible(daniela.getByText(/La Mesa 6 queda por cobrar/)),
+);
+await daniela.getByRole("button", { name: /^Mesa 6:/ }).click();
+await daniela.getByRole("button", { name: "Liberar mesa" }).click();
+await daniela.getByRole("button", { name: "Sí, liberar" }).click();
+check(
+  "25. No se puede liberar una mesa con saldo, y dice cuánto falta",
+  await visible(daniela.getByText(/La mesa tiene \$[\d.]+ por cobrar/)),
+);
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+check(
+  "25. Caja muestra las mesas por cobrar aunque esté cerrada, con el aviso",
+  (await visible(caja.getByText(/mesas? por cobrar y la caja está cerrada/))) &&
+    (await visible(caja.getByText("Mesa 6", { exact: true }))),
+);
+await caja.getByRole("button", { name: "Abrir caja" }).click();
+await caja.getByRole("button", { name: /Cobrar.*Mesa 6/ }).click();
+await caja.getByRole("button", { name: "Registrar pago" }).click();
+check(
+  "25. Al pagarse por completo, la mesa se libera sola",
+  await visible(gael.getByText(/La mesa se liberó/)),
+);
+await gael.close();
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

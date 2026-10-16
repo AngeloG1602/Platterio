@@ -64,6 +64,15 @@ export function sessionBalance(
   return { due, paid, pending: Math.max(0, due - paid) };
 }
 
+/** Lo que falta cobrar de una mesa (0 si no debe nada). Una mesa con saldo no se cierra ni se libera. */
+export function pendingOf(
+  orders: readonly Order[],
+  payments: readonly Payment[],
+  sessionId: string,
+): number {
+  return sessionBalance(orders, payments, sessionId).pending;
+}
+
 /* ——— Turno de caja ——— */
 
 export const openShiftOf = (shifts: readonly CashShift[]) => shifts.find((s) => !s.closedAt);

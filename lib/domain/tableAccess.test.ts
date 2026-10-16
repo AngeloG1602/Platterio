@@ -9,11 +9,12 @@ import {
   openSession,
   requestOpen,
   resolveCalls,
+  sessionsPaidInFull,
   sessionsToAutoClose,
   setIdleClose,
   validateIdleMinutes,
 } from "./tableAccess";
-import type { Order, TableCall, TableSession } from "./types";
+import type { Order, Payment, TableCall, TableSession } from "./types";
 
 let n = 0;
 const newId = (p: string) => `${p}-${++n}`;
@@ -80,7 +81,7 @@ describe("abrir la mesa", () => {
 });
 
 describe("cierre automático", () => {
-  const base = { defaultIdleMin: 30 };
+  const base = { defaultIdleMin: 30, payments: [] as Payment[] };
 
   it("cierra la mesa sin actividad después del tiempo del negocio", () => {
     const sessions = [session()];
@@ -166,7 +167,7 @@ describe("cambiar y cancelar", () => {
       order({ id: "o3", status: "en_preparacion" }),
       order({ id: "o4", sessionId: "otra", status: "pendiente" }),
     ];
-    const r = cancelSession(session({ pin: "1234" }), orders, iso(9));
+    const r = cancelSession(session({ pin: "1234" }), orders, [], iso(9));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.rejected).toBe(2);
@@ -178,7 +179,77 @@ describe("cambiar y cancelar", () => {
       "pendiente",
     ]);
     expect(r.value.orders[1]!.rejectReason).toBe("Mesa cancelada");
-    expect(cancelSession(session({ closedAt: iso(1) }), [], iso(9)).ok).toBe(false);
+    expect(cancelSession(session({ closedAt: iso(1) }), [], [], iso(9)).ok).toBe(false);
+  });
+});
+
+const sold = (over: Partial<Order> = {}) =>
+  order({
+    items: [{ id: "i", dishId: "d", variantId: "v", qty: 2, dinerId: "x", unitPrice: 10_000 }],
+    ...over,
+  });
+const pay = (amount: number, sessionId = "s1"): Payment => ({
+  id: `p${amount}`,
+  sessionId,
+  tableId: "mesa-3",
+  shiftId: "t1",
+  amount,
+  method: "efectivo",
+  at: iso(5),
+  by: "Julián",
+});
+
+describe("cobro obligatorio: una mesa con saldo no se cierra", () => {
+  const sessions = [session()];
+
+  it("no se cierra sola por inactividad mientras deba, y sí cuando se paga", () => {
+    const base = { sessions, orders: [sold()], now: T0 + 999 * 60_000, defaultIdleMin: 30 };
+    expect(sessionsToAutoClose({ ...base, payments: [] })).toEqual([]);
+    expect(sessionsToAutoClose({ ...base, payments: [pay(5_000)] })).toEqual([]);
+    expect(sessionsToAutoClose({ ...base, payments: [pay(20_000)] })).toEqual(["s1"]);
+  });
+
+  it("cancelar la mesa tampoco deja una cuenta sin pagar", () => {
+    const r = cancelSession(session(), [sold()], [], iso(9));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/\$20\.000 por cobrar/);
+    // Si lo único que debe es una ronda sin entregar, se rechaza y ya no hay saldo.
+    expect(cancelSession(session(), [sold({ status: "pendiente" })], [], iso(9)).ok).toBe(true);
+    expect(cancelSession(session(), [sold()], [pay(20_000)], iso(9)).ok).toBe(true);
+  });
+});
+
+describe("liberar sola al pagar", () => {
+  const base = { sessions: [session()] };
+
+  it("se libera cuando queda pagada por completo y todo está entregado", () => {
+    expect(sessionsPaidInFull({ ...base, orders: [sold()], payments: [pay(20_000)] })).toEqual([
+      "s1",
+    ]);
+  });
+
+  it("un pago parcial no la libera", () => {
+    expect(sessionsPaidInFull({ ...base, orders: [sold()], payments: [pay(19_999)] })).toEqual([]);
+  });
+
+  it("no la libera mientras haya rondas por entregar", () => {
+    const orders = [sold(), sold({ id: "o2", round: 2, status: "en_preparacion" })];
+    expect(sessionsPaidInFull({ ...base, orders, payments: [pay(40_000)] })).toEqual([]);
+  });
+
+  it("una mesa sin consumo no se libera sola, ni los domicilios ni las ya cerradas", () => {
+    expect(sessionsPaidInFull({ ...base, orders: [], payments: [] })).toEqual([]);
+    const delivery = session({ delivery: {} as NonNullable<TableSession["delivery"]> });
+    expect(
+      sessionsPaidInFull({ sessions: [delivery], orders: [sold()], payments: [pay(20_000)] }),
+    ).toEqual([]);
+    expect(
+      sessionsPaidInFull({
+        sessions: [session({ closedAt: iso(9) })],
+        orders: [sold()],
+        payments: [pay(20_000)],
+      }),
+    ).toEqual([]);
   });
 });
 

@@ -633,3 +633,19 @@ pueden cambiar sin rehacer pantallas.
       en 1280 por 800 sin desplazarse (`npm run e2e:cocina`); si aun así hay más, un aviso dice
       que quedan pedidos más abajo. (e) Los domicilios confirmados por caja también pasan directo
       a "Preparando" y el cliente lee "Tu pedido está confirmado y lo estamos preparando".
+146.  **Cobro obligatorio (bloque 2 de las mejoras de la entrevista; reemplaza la decisión 109).**
+      (a) Una mesa con saldo por cobrar **no se cierra de ninguna forma**: ni "Liberar mesa" (el
+      mensaje dice cuánto falta: "La mesa tiene $51.300 por cobrar. Se cobra en caja antes de
+      liberarla."), ni "Cancelar mesa" (lo ya entregado se cobra; las rondas sin entregar sí se
+      rechazan y dejan de contar), ni el cierre por inactividad. Se queda abierta y "por cobrar".
+      La salida para quien se fue sin pagar llegará con el crédito y la cortesía autorizados
+      (bloque 5). (b) **Liberación al pagar:** cuando el último pago deja la cuenta en cero y no hay
+      rondas por entregar, la mesa se libera sola (`closeReason: "pagada"`); un pago parcial no la
+      libera, ni una mesa sin consumo, ni un domicilio. Se revisa al registrar el pago y en cada
+      ciclo del vigilante (si lo último que faltaba era entregar). Riesgo conocido: el cliente que
+      paga antes de calificar pierde la sesión; queda por decidir cómo invitarlo a calificar al
+      pagar. (c) **Caja cerrada:** las mesas por cobrar se ven igual, con el aviso "Abre la caja para
+      cobrarlas"; cobrar sigue exigiendo un turno abierto (decisión 108). Cerrar la caja con mesas
+      por cobrar se permite y esas mesas siguen por cobrar en el turno siguiente. El mesero que
+      entrega con la caja cerrada recibe el aviso "queda por cobrar". (d) El reporte muestra
+      "Por cobrar" = mesas abiertas con saldo + mesas cerradas sin cobro (las antiguas).
