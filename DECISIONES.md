@@ -734,3 +734,18 @@ pueden cambiar sin rehacer pantallas.
      agotados. Informe de movimientos por periodo, producto y tipo, con CSV (RF-29b). (g) La demo
      siembra gaseosas (una en poco stock) y el usuario Rosa; se sube `DATA_VERSION` a 8.
      (h) Pendiente para la etapa 2: inventario por receta.
+
+152. **Facturas guardadas y reimprimibles (mejoras, bloque 8).** (a) Al quedar saldada una cuenta
+     (mesa, domicilio o para recoger) por cobro, crédito o cortesía, se genera y guarda un
+     comprobante con consecutivo del negocio (`F-0001`). Es una foto de lo cobrado (platos, envío,
+     total, formas de pago, mesero, cliente si lo hay), así que no cambia si luego cambian la
+     carta o los precios. Hay una sola por cuenta (su id sale de la sesión). Cuando una cuenta
+     se salda en varios pagos, el comprobante sale con el último. (b) Se consulta en Caja
+     («Facturas») y en el panel del administrador, con búsqueda por número, mesa, cliente o plato,
+     periodo y CSV. (c) **Impresión:** desde el navegador, con una página propia de
+     comprobante (80 mm) en un marco oculto; reimprimir deja constancia en la auditoría. La
+     conexión directa a una impresora térmica del negocio (ESC/POS por red o USB) queda para la
+     instalación real. (d) **No es factura electrónica de venta:** el comprobante lo dice. La
+     factura electrónica ante la DIAN exige un proveedor tecnológico autorizado y numeración
+     autorizada; queda como investigación del bloque 9. (e) Pendiente al pasar a base de datos: el
+     consecutivo debe asignarlo el servidor para que no se repita entre dispositivos.

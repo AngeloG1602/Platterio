@@ -9,6 +9,7 @@ import type {
   CreditPayment,
   Dish,
   DishRating,
+  Invoice,
   InventoryItem,
   InventoryMove,
   Order,
@@ -79,6 +80,8 @@ export interface AppData {
   inventory: InventoryItem[];
   /** Movimientos de inventario: entradas, salidas, ajustes y ventas. */
   inventoryMoves: InventoryMove[];
+  /** Facturas (comprobantes) de las cuentas saldadas; solo se agregan. */
+  invoices: Invoice[];
   demo: DemoSettings;
 }
 
@@ -119,6 +122,7 @@ export function createSeedState(now: number): AppData {
     audit: [],
     inventory: clone(INVENTORY),
     inventoryMoves: [],
+    invoices: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };
 }

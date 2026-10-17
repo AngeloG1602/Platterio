@@ -58,6 +58,7 @@ export function startSync(): () => void {
                 payments: unionById(local.payments, msg.state.payments),
                 creditPayments: unionById(local.creditPayments, msg.state.creditPayments),
                 audit: unionById(local.audit, msg.state.audit),
+                invoices: unionById(local.invoices ?? [], msg.state.invoices ?? []),
                 inventoryMoves: unionById(
                   local.inventoryMoves ?? [],
                   msg.state.inventoryMoves ?? [],

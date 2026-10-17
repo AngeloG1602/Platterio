@@ -32,6 +32,7 @@ export const AUDIT_ACTIONS = {
   "domicilio.despachar": { label: "Despachó un domicilio", area: "Pedidos" },
   "caja.abrir": { label: "Abrió la caja", area: "Caja" },
   "caja.cobrar": { label: "Registró un cobro", area: "Caja" },
+  "factura.reimprimir": { label: "Reimprimió una factura", area: "Caja" },
   "caja.cerrar": { label: "Cerró la caja", area: "Caja" },
   "credito.cargar": { label: "Cerró una cuenta a crédito", area: "Caja" },
   "cortesia.registrar": { label: "Registró una cortesía", area: "Caja" },

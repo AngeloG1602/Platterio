@@ -13,6 +13,7 @@ import {
   Users,
   UtensilsCrossed,
   Package,
+  Receipt,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -47,6 +48,7 @@ const NAV: NavItem[] = [
   },
   { href: "/admin/pedidos", label: "Pedidos", icon: ListOrdered },
   { href: "/admin/inventario", label: "Inventario", icon: Package, feature: "inventario" },
+  { href: "/admin/facturas", label: "Facturas", icon: Receipt },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
   {
     href: "/admin/reportes",

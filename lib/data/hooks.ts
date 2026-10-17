@@ -22,6 +22,7 @@ import type {
   Dish,
   InventoryItem,
   InventoryMove,
+  Invoice,
   Order,
   TableSession,
   TimeSlot,
@@ -74,6 +75,10 @@ const NO_REPAYMENTS: CreditPayment[] = [];
 export const useCreditAccounts = () => useAppStore((s) => s.creditAccounts ?? NO_ACCOUNTS);
 /** Abonos a las deudas de esas personas. */
 export const useCreditPayments = () => useAppStore((s) => s.creditPayments ?? NO_REPAYMENTS);
+
+const NO_INVOICES: Invoice[] = [];
+/** Facturas de las cuentas saldadas. */
+export const useInvoices = () => useAppStore((s) => s.invoices ?? NO_INVOICES);
 
 const NO_ITEMS: InventoryItem[] = [];
 const NO_MOVES: InventoryMove[] = [];

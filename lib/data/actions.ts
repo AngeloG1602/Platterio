@@ -18,6 +18,7 @@ import {
   type RepaymentMethod,
 } from "@/lib/domain/credit";
 import type { AuditAction } from "@/lib/domain/audit";
+import { buildInvoice, invoiceCode, invoiceFor } from "@/lib/domain/invoice";
 import { canAddUser, planAllows, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
@@ -1103,6 +1104,48 @@ export const deliveryConfigActions = {
 
 /* ——— Caja: turnos y cobros ——— */
 
+/**
+ * Si la cuenta quedó saldada, genera y guarda su factura. Devuelve el id (o `undefined` si aún
+ * falta cobrar). Una cuenta tiene una sola factura.
+ */
+function issueInvoiceFor(sessionId: string, by: string): string | undefined {
+  const s = useAppStore.getState();
+  const session = s.sessions.find((x) => x.id === sessionId);
+  if (!session) return undefined;
+  const invoices = s.invoices ?? [];
+  const existing = invoiceFor(invoices, sessionId);
+  if (existing) return existing.id;
+  const owner = s.waiters.find((w) => w.tableIds.includes(session.tableId));
+  const invoice = buildInvoice({
+    session,
+    orders: s.orders,
+    payments: s.payments,
+    dishes: s.dishes,
+    accounts: s.creditAccounts ?? [],
+    invoices,
+    place: sessionPlace(session),
+    waiter: session.delivery ? undefined : owner?.name,
+    businessName: s.restaurant.name,
+    now: nowIso(),
+    by,
+  });
+  if (!invoice) return undefined;
+  useAppStore.setState((st) => ({ invoices: [...(st.invoices ?? []), invoice] }));
+  return invoice.id;
+}
+
+export const invoiceActions = {
+  /** Deja constancia de que se volvió a imprimir una factura. */
+  reprint(invoiceId: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    const invoice = (useAppStore.getState().invoices ?? []).find((i) => i.id === invoiceId);
+    if (!invoice) return { ok: false, error: "No encontramos esa factura" };
+    recordAudit("factura.reimprimir", `${invoiceCode(invoice.number)} · ${invoice.place}`);
+    return { ok: true };
+  },
+};
+
 export const cashActions = {
   openShift(openingFloat: number): ActionResult {
     const allowed = requirePermission("cobrar");
@@ -1119,7 +1162,11 @@ export const cashActions = {
     return { ok: true };
   },
   /** Registra un pago contra la cuenta de una mesa abierta o de un pedido a domicilio. */
-  pay(sessionId: string, amount: number, method: PaymentMethod): ActionResult {
+  pay(
+    sessionId: string,
+    amount: number,
+    method: PaymentMethod,
+  ): ActionResult & { invoiceId?: string } {
     const allowed = requirePermission("cobrar");
     if (!allowed.ok) return allowed;
     const state = useAppStore.getState();
@@ -1147,12 +1194,17 @@ export const cashActions = {
     recordAudit("caja.cobrar", place, {
       detail: `${formatMoney(amount)} · ${METHOD_LABEL[method].toLowerCase()}`,
     });
+    const invoiceId = issueInvoiceFor(sessionId, allowed.actor!.name);
     // Pagada por completo: la mesa se libera sola, sin esperar al mesero.
     releasePaidTables();
-    return { ok: true };
+    return { ok: true, invoiceId };
   },
   /** Cierra (todo o parte de) la cuenta a crédito, a nombre de una persona de la lista. */
-  credit(sessionId: string, accountId: string, amount: number): ActionResult {
+  credit(
+    sessionId: string,
+    accountId: string,
+    amount: number,
+  ): ActionResult & { invoiceId?: string } {
     const allowed = requirePermission("cobrar");
     if (!allowed.ok) return allowed;
     const state = useAppStore.getState();
@@ -1179,11 +1231,17 @@ export const cashActions = {
       detail: `${formatMoney(amount)} a nombre de ${account!.name}`,
       authorizedBy: allowed.actor!.name,
     });
+    const invoiceId = issueInvoiceFor(sessionId, allowed.actor!.name);
     releasePaidTables();
-    return { ok: true };
+    return { ok: true, invoiceId };
   },
   /** Cierra (todo o parte de) la cuenta como cortesía: no se cobra y queda como gasto. */
-  courtesy(sessionId: string, amount: number, reason: string, accountId?: string): ActionResult {
+  courtesy(
+    sessionId: string,
+    amount: number,
+    reason: string,
+    accountId?: string,
+  ): ActionResult & { invoiceId?: string } {
     const allowed = requirePermission("cobrar");
     if (!allowed.ok) return allowed;
     const state = useAppStore.getState();
@@ -1213,8 +1271,9 @@ export const cashActions = {
       reason,
       authorizedBy: allowed.actor!.name,
     });
+    const invoiceId = issueInvoiceFor(sessionId, allowed.actor!.name);
     releasePaidTables();
-    return { ok: true };
+    return { ok: true, invoiceId };
   },
   closeShift(countedCash: number, note?: string): ActionResult {
     const allowed = requirePermission("cobrar");

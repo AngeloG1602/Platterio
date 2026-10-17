@@ -508,3 +508,41 @@ export interface InventoryMove {
   /** Ronda que lo causó (consumo y devolución). */
   orderId?: string;
 }
+
+/* ——— Facturas (comprobante de cuenta) ——— */
+
+export interface InvoiceLine {
+  name: string;
+  qty: number;
+  unitPrice: number;
+  total: number;
+}
+
+/** Cómo se saldó la cuenta: un cobro, un crédito o una cortesía. */
+export interface InvoicePayment {
+  label: string;
+  amount: number;
+}
+
+/**
+ * Comprobante de una cuenta saldada (mesa, domicilio o para recoger). Es una foto de lo cobrado:
+ * no cambia aunque después cambie la carta o los precios. No es factura electrónica de la DIAN.
+ */
+export interface Invoice {
+  id: string;
+  /** Consecutivo del negocio. */
+  number: number;
+  sessionId: string;
+  issuedAt: string;
+  issuedBy: string;
+  businessName: string;
+  /** "Mesa 3", "Domicilio D-4K7Q". */
+  place: string;
+  /** Mesero que atendió la mesa, si lo hubo. */
+  waiter?: string;
+  customer?: { name: string; document?: string; phone?: string };
+  lines: InvoiceLine[];
+  deliveryFee: number;
+  total: number;
+  payments: InvoicePayment[];
+}

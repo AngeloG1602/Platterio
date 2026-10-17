@@ -6,6 +6,7 @@ import { RestaurantMark, PlatterioLogo } from "@/components/brand/logos";
 import { CashPanel } from "./cash-panel";
 import { OrdersHistory } from "@/components/admin/orders-history";
 import { InventoryPanel } from "@/components/inventory/inventory-panel";
+import { InvoicesPanel } from "@/components/invoices/invoices-panel";
 import { CreditTab } from "./credit-accounts";
 import { ReservationsBoard } from "./reservations-board";
 import { DeliveryBoard, useDeliveryArrivalNotice, useNewDeliveryCount } from "./delivery-board";
@@ -33,6 +34,7 @@ type Tab =
   | "caja"
   | "credito"
   | "pedidos"
+  | "facturas"
   | "inventario"
   | "mesas"
   | "equipo";
@@ -102,6 +104,7 @@ function Caja() {
                 ]
               : []),
             { value: "pedidos", label: "Pedidos" },
+            { value: "facturas" as Tab, label: "Facturas" },
             ...(hasInventory ? [{ value: "inventario" as Tab, label: "Inventario" }] : []),
             { value: "equipo", label: "Equipo" },
           ]}
@@ -128,6 +131,11 @@ function Caja() {
       {tab === "pedidos" && (
         <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
           <OrdersHistory />
+        </main>
+      )}
+      {tab === "facturas" && (
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
+          <InvoicesPanel />
         </main>
       )}
       {tab === "inventario" && (

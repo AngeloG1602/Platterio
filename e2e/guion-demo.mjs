@@ -1586,6 +1586,51 @@ check(
   await visible(caja.getByRole("radio", { name: "Inventario" })),
 );
 
+// 31. Facturas guardadas y reimprimibles
+await caja.getByRole("radio", { name: "Facturas" }).click();
+const tablaFacturas = caja.getByRole("table", { name: "Facturas" });
+const filaMesa6 = tablaFacturas.getByRole("row").filter({ hasText: "Mesa 6" });
+check(
+  "31. Cada cuenta saldada deja su factura guardada",
+  (await visible(filaMesa6)) && (await visible(filaMesa6.getByText(/^F-\d{4}$/))),
+);
+check(
+  "31. La factura muestra a nombre de quién quedó el crédito",
+  await visible(filaMesa6.getByText(/A crédito · María Pérez/)),
+);
+await caja.getByPlaceholder("Número, mesa, cliente o plato…").fill("zzzz");
+check(
+  "31. Buscar sin coincidencias avisa que no hay facturas",
+  await visible(caja.getByText("No hay facturas con estos filtros.")),
+);
+await caja.getByPlaceholder("Número, mesa, cliente o plato…").fill("mesa 6");
+await filaMesa6.getByRole("button", { name: /^Ver/ }).first().click();
+const facturaDialog = caja.getByRole("dialog");
+check(
+  "31. La factura se puede abrir con sus platos, total y formas de pago",
+  (await visible(facturaDialog.getByRole("heading", { name: /^Factura F-\d{4}$/ }))) &&
+    (await visible(facturaDialog.getByText("Total", { exact: true }))) &&
+    (await visible(facturaDialog.getByText(/Cortesía/))),
+);
+await facturaDialog.getByRole("button", { name: "Imprimir" }).click();
+await caja.waitForTimeout(500);
+await facturaDialog.getByRole("button", { name: "Cerrar" }).click();
+await admin.goto(`${BASE}/admin/auditoria`);
+check(
+  "31. Reimprimir una factura queda en la auditoría",
+  await visible(
+    admin
+      .getByRole("table", { name: "Acciones registradas" })
+      .getByRole("row", { name: /Reimprimió una factura.*Mesa 6/ }),
+    8000,
+  ),
+);
+await admin.goto(`${BASE}/admin/facturas`);
+check(
+  "31. El administrador también consulta las facturas",
+  await visible(admin.getByRole("table", { name: "Facturas" })),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

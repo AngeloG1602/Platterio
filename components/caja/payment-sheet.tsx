@@ -58,6 +58,7 @@ export function PaymentSheet({
           ? cashActions.courtesy(sessionId, value, reason, accountId || undefined)
           : cashActions.pay(sessionId, value, method);
     if (!r.ok) return setError(r.error);
+    const invoiced = r.invoiceId ? " · Factura guardada" : "";
     const who = accounts.find((a) => a.id === accountId)?.name;
     toast.success(
       mode === "credito"
@@ -68,10 +69,10 @@ export function PaymentSheet({
       {
         description:
           mode === "cobrar"
-            ? `${METHOD_LABEL[method]} · ${formatMoney(value)}`
+            ? `${METHOD_LABEL[method]} · ${formatMoney(value)}${invoiced}`
             : mode === "credito"
-              ? `${formatMoney(value)} · queda debiendo`
-              : `${formatMoney(value)} · ${reason}`,
+              ? `${formatMoney(value)} · queda debiendo${invoiced}`
+              : `${formatMoney(value)} · ${reason}${invoiced}`,
       },
     );
     setError(undefined);
