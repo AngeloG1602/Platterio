@@ -1691,6 +1691,107 @@ check(
   await visible(filaGas("Agua en botella").getByText("29", { exact: true })),
 );
 
+// 33. Preparaciones por lote y producción
+await rosa.getByRole("radio", { name: "Preparaciones" }).click();
+const tablaPreps = rosa.getByRole("table", { name: "Preparaciones" });
+const filaCalentado = tablaPreps.getByRole("row").filter({ hasText: "Calentado de la casa" });
+check(
+  "33. La preparación muestra lo que gasta un lote, lo que rinde y las porciones disponibles",
+  (await visible(filaCalentado.getByText(/1,2 kg de Fríjol rojo/))) &&
+    (await visible(filaCalentado.getByText("10 porciones"))) &&
+    (await visible(filaCalentado.getByText("10", { exact: true }))),
+);
+await rosa.getByRole("button", { name: "Producir Calentado de la casa" }).click();
+await rosa.getByLabel("Cantidad de lotes").fill("20");
+await rosa.getByRole("button", { name: "Registrar producción" }).click();
+check(
+  "33. No se puede producir si faltan ingredientes",
+  await visible(rosa.getByText(/No alcanza Fríjol rojo/)),
+);
+await rosa.getByLabel("Cantidad de lotes").fill("1");
+await rosa.getByRole("button", { name: "Registrar producción" }).click();
+check(
+  "33. Producir un lote suma las porciones",
+  await visible(filaCalentado.getByText("20", { exact: true })),
+);
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+check(
+  "33. Producir gastó los ingredientes del inventario",
+  (await visible(filaGas("Fríjol rojo").getByText("6,8", { exact: true }))) &&
+    (await visible(filaGas("Arroz blanco").getByText("10,5", { exact: true }))),
+);
+await rosa.getByRole("radio", { name: "Movimientos" }).click();
+check(
+  "33. La producción queda en los movimientos con quién y qué se produjo",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Movimientos" })
+      .getByRole("row")
+      .filter({ hasText: "Producción" })
+      .filter({ hasText: "1 × Calentado de la casa" })
+      .filter({ hasText: "Rosa" }),
+  ),
+);
+await rosa.getByRole("radio", { name: "Preparaciones" }).click();
+await rosa.getByRole("button", { name: "Agregar preparación" }).click();
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+check(
+  "33. La preparación pide nombre e ingredientes",
+  (await visible(rosa.getByText("Escribe el nombre de la preparación"))) &&
+    (await visible(rosa.getByText("Agrega al menos un ingrediente"))),
+);
+await rosa.getByLabel("Nombre", { exact: true }).fill("Hogao");
+await rosa.getByLabel("Unidad", { exact: true }).fill("litros");
+await rosa.getByLabel("Rinde por lote").fill("4");
+await rosa.getByLabel("Plato que la vende").selectOption("calentado-de-la-casa");
+await rosa.getByLabel("Producto del ingrediente 1").selectOption({ label: "Arroz blanco (kg)" });
+await rosa.getByLabel("Cantidad del ingrediente 1").fill("0,5");
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+check(
+  "33. Un plato ya vinculado a otra preparación no se puede repetir",
+  await visible(rosa.getByText(/ya está vinculado a ese plato/)),
+);
+await rosa.getByLabel("Plato que la vende").selectOption("");
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+const filaHogao = tablaPreps.getByRole("row").filter({ hasText: "Hogao" });
+check("33. Se guarda la nueva preparación", await visible(filaHogao));
+await rosa.getByRole("button", { name: "Producir Hogao" }).click();
+await rosa.getByRole("button", { name: "Registrar producción" }).click();
+check(
+  "33. Una preparación puede ser ingrediente de otra (sub-receta)",
+  await visible(filaHogao.getByText("4", { exact: true })),
+);
+await rosa.getByRole("button", { name: "Editar Calentado de la casa" }).click();
+await rosa.getByRole("button", { name: "Agregar ingrediente" }).click();
+await rosa
+  .getByLabel("Producto del ingrediente 3")
+  .selectOption({ label: "Hogao (litros) (litros)" });
+await rosa.getByLabel("Cantidad del ingrediente 3").fill("0,4");
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+check(
+  "33. La preparación del calentado ahora gasta hogao",
+  await visible(filaCalentado.getByText(/0,4 litros de Hogao \(litros\)/)),
+);
+
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("calentado");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+check(
+  "33. Cada pedido del plato por lote descuenta una porción, no ingredientes",
+  (await visible(filaGas("Calentado de la casa (porciones)").getByText("19", { exact: true }))) &&
+    (await visible(filaGas("Fríjol rojo").getByText("6,8", { exact: true }))),
+);
+await cocina.goto(`${BASE}/cocina`);
+await cocina.getByRole("button", { name: "Producción" }).click();
+check(
+  "33. La cocina puede registrar producción desde su tablero",
+  await visible(cocina.getByRole("button", { name: "Producir Calentado de la casa" })),
+);
+await cocina.keyboard.press("Escape");
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

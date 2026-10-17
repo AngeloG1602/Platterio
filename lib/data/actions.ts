@@ -18,6 +18,15 @@ import {
   type RepaymentMethod,
 } from "@/lib/domain/credit";
 import type { AuditAction } from "@/lib/domain/audit";
+import {
+  addPreparation,
+  produce,
+  removePreparation,
+  updatePreparation,
+  validatePreparation,
+  type PreparationDraft,
+  type PreparationErrors,
+} from "@/lib/domain/preparations";
 import { buildInvoice, invoiceCode, invoiceFor } from "@/lib/domain/invoice";
 import { canAddUser, planAllows, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
@@ -66,6 +75,7 @@ import {
   type StockView,
   updateItem as updateInventoryItem,
   validateItem,
+  fmtQty,
   type ItemDraft,
   type RecipeDraft,
   type RecipeErrors,
@@ -1495,12 +1505,85 @@ export const inventoryActions = {
     const allowed = requirePermission("inventario");
     if (!allowed.ok) return allowed;
     const s = useAppStore.getState();
-    const errors = validateRecipe(draft, s.inventory ?? [], s.recipes ?? [], id);
+    const errors = validateRecipe(
+      draft,
+      s.inventory ?? [],
+      s.recipes ?? [],
+      id,
+      (s.preparations ?? []).map((p) => p.outputItemId),
+    );
     if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa la receta", errors };
     useAppStore.setState({ recipes: saveRecipe(s.recipes ?? [], draft, id ?? newId("receta")) });
     const dish = s.dishes.find((d) => d.id === draft.dishId);
     recordAudit("inventario.receta", dish?.name ?? draft.dishId, {
       detail: `${draft.lines.filter((l) => l.itemId).length} ingredientes${draft.dailyMax ? ` · máximo ${draft.dailyMax} al día` : ""}`,
+    });
+    return { ok: true };
+  },
+  /** Crea o cambia una preparación por lote (y su producto de porciones). */
+  savePreparation(
+    draft: PreparationDraft,
+    id?: string,
+  ): ActionResult & { errors?: PreparationErrors } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const prep = {
+      items: s.inventory ?? [],
+      moves: s.inventoryMoves ?? [],
+      preparations: s.preparations ?? [],
+    };
+    const errors = validatePreparation(draft, prep.items, prep.preparations, s.recipes ?? [], id);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa los datos", errors };
+    const r = id
+      ? updatePreparation(prep, id, draft, s.recipes ?? [])
+      : addPreparation(prep, draft, s.recipes ?? [], nowIso());
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, preparations: r.value.preparations });
+    recordAudit("inventario.preparacion", draft.name.trim(), {
+      detail: `Rinde ${draft.yield} ${draft.unit.trim() || "porciones"} · ${draft.lines.filter((l) => l.itemId).length} ingredientes`,
+    });
+    return { ok: true };
+  },
+  removePreparation(id: string): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const prep = (s.preparations ?? []).find((p) => p.id === id);
+    const r = removePreparation(
+      {
+        items: s.inventory ?? [],
+        moves: s.inventoryMoves ?? [],
+        preparations: s.preparations ?? [],
+      },
+      id,
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ preparations: r.value.preparations });
+    recordAudit("inventario.preparacion_quitar", prep?.name ?? id);
+    return { ok: true };
+  },
+  /** Registra la producción de lotes: gasta ingredientes y suma porciones. */
+  produce(preparationId: string, batches: number): ActionResult {
+    const allowed = requirePermission("produccion");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const prep = (s.preparations ?? []).find((p) => p.id === preparationId);
+    const r = produce(
+      {
+        items: s.inventory ?? [],
+        moves: s.inventoryMoves ?? [],
+        preparations: s.preparations ?? [],
+      },
+      { preparationId, batches },
+      allowed.actor!.name,
+      nowIso(),
+      newId("prod"),
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, inventoryMoves: r.value.moves });
+    recordAudit("inventario.producir", prep?.name ?? preparationId, {
+      detail: `${fmtQty(batches)} lotes · ${fmtQty((prep?.yield ?? 0) * batches)} porciones`,
     });
     return { ok: true };
   },

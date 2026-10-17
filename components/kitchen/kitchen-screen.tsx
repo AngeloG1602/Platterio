@@ -5,6 +5,7 @@ import { BellRing, ChefHat, ChevronsDown, CircleAlert, PackageCheck, Timer } fro
 import { useEffect, useRef, useState } from "react";
 import { PlatterioMark, RestaurantMark } from "@/components/brand/logos";
 import { RoleGate, SessionButton } from "@/components/access/role-gate";
+import { KitchenProduction } from "@/components/inventory/kitchen-production";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { Segmented } from "@/components/ui/segmented";
 import { toast } from "@/components/ui/toaster";
@@ -200,6 +201,7 @@ function Board() {
         <span className="font-display ml-auto text-2xl font-semibold tabular-nums">
           {formatTime(new Date(now))}
         </span>
+        <KitchenProduction />
         <SessionButton />
       </header>
 

@@ -24,6 +24,7 @@ import type {
   InventoryMove,
   Invoice,
   Order,
+  Preparation,
   Recipe,
   TableSession,
   TimeSlot,
@@ -87,6 +88,10 @@ const NO_MOVES: InventoryMove[] = [];
 export const useInventory = () => useAppStore((s) => s.inventory ?? NO_ITEMS);
 /** Movimientos de inventario (el más reciente al final). */
 export const useInventoryMoves = () => useAppStore((s) => s.inventoryMoves ?? NO_MOVES);
+const NO_PREPS: Preparation[] = [];
+/** Preparaciones por lote. */
+export const usePreparations = () => useAppStore((s) => s.preparations ?? NO_PREPS);
+
 const NO_RECIPES: Recipe[] = [];
 /** Recetas de los platos. */
 export const useRecipes = () => useAppStore((s) => s.recipes ?? NO_RECIPES);

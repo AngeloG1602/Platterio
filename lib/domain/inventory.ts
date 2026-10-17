@@ -35,6 +35,7 @@ export const MOVE_LABEL: Record<InventoryMoveKind, string> = {
   ajuste: "Ajuste",
   consumo: "Venta",
   devolucion: "Devolución",
+  produccion: "Producción",
 };
 
 /** Estados en los que la ronda ya se confirmó y por eso tiene su stock descontado. */
@@ -407,7 +408,7 @@ export type ManualKind = "entrada" | "salida" | "ajuste";
 
 export const MANUAL_REASONS: Record<ManualKind, readonly string[]> = {
   entrada: ["Compra a proveedor", "Devolución a la despensa", "Otro"],
-  salida: ["Dañado o vencido", "Consumo interno", "Cortesía", "Otro"],
+  salida: ["Dañado o vencido", "Sobró del día", "Consumo interno", "Cortesía", "Otro"],
   ajuste: ["Conteo físico", "Corrección de error", "Otro"],
 };
 
@@ -542,9 +543,19 @@ export function validateRecipe(
   items: readonly InventoryItem[],
   recipes: readonly Recipe[],
   editingId?: string,
+  /** Productos de salida de las preparaciones por lote: esos platos no llevan receta por venta. */
+  batchOutputs: readonly string[] = [],
 ): RecipeErrors {
   const errors: RecipeErrors = {};
   if (!draft.dishId) errors.dishId = "Elige el plato";
+  else if (
+    items.some(
+      (i) =>
+        batchOutputs.includes(i.id) &&
+        matches(i.link, draft.dishId, draft.variantId || i.link?.variantId || ""),
+    )
+  )
+    errors.dishId = "Ese plato se vende por lote: sus porciones salen de una preparación";
   else if (
     recipes.some(
       (r) =>

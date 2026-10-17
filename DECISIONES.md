@@ -765,3 +765,23 @@ pueden cambiar sin rehacer pantallas.
      electrónica:** no se implementa en el prototipo. La investigación está en
      `docs/mejoras/FACTURA-ELECTRONICA.md`: requiere proveedor autorizado, numeración de la DIAN,
      datos fiscales e impuestos por plato, y servidor; queda para la fase de base de datos.
+
+154. **Preparaciones por lote y producción (mejoras, bloque 10A).** (a) **El problema:** en platos
+     que se cocinan por lote (lasaña, sopa, arroz) el gasto real ocurre al preparar, no al vender,
+     y descontar ingredientes por venta deja datos falsos. (b) **Preparación:** receta de lote con
+     lo que gasta y lo que rinde. Crea un producto de inventario de «porciones» (u otra unidad)
+     vinculado al plato; así el agotado, los avisos de poco stock, los ajustes y el informe de
+     movimientos funcionan igual que con cualquier producto. (c) **Producción:** registrar N lotes
+     gasta los ingredientes y suma las porciones, todo o nada (si falta un ingrediente no cambia
+     nada), con movimientos de tipo «Producción» y registro en la auditoría. (d) **Venta:** cada
+     pedido de un plato por lote descuenta una porción, no ingredientes; sin porciones el plato
+     queda agotado. Un plato por lote no puede tener además una receta por venta (se evitan
+     descuentos dobles). (e) **Sub-recetas:** una preparación puede gastar porciones de otra (la
+     salsa de la lasaña); no se permiten ciclos ni quitar una preparación que otra usa. Quitar
+     una preparación conserva sus porciones. (f) **Quién:** nuevo permiso `produccion` para
+     administrador, encargado, despensa y cocina (la cocina lo registra desde un botón en su
+     tablero); crear y editar preparaciones es del permiso `inventario`. (g) El motivo de salida
+     «Sobró del día» sirve para anotar la merma de lo preparado y no vendido (el cierre del día
+     completo queda para el 10B). (h) La demo siembra fríjol, arroz y la preparación del
+     calentado (`DATA_VERSION` 10). Pendiente: conteo físico y desviaciones, carga masiva,
+     conversión de unidades y costo por plato (10B).

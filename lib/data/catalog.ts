@@ -3,6 +3,7 @@ import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import type { StaffUser } from "@/lib/domain/access";
 import type {
   InventoryItem,
+  Preparation,
   Recipe,
   Allergen,
   Category,
@@ -116,11 +117,51 @@ export const INVENTORY: InventoryItem[] = [
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
+    id: "frijol-rojo",
+    name: "Fríjol rojo",
+    unit: "kg",
+    qty: 8,
+    threshold: 2,
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
+    id: "arroz-blanco",
+    name: "Arroz blanco",
+    unit: "kg",
+    qty: 12,
+    threshold: 3,
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
+    id: "calentado-porciones",
+    name: "Calentado de la casa (porciones)",
+    unit: "porciones",
+    qty: 12,
+    threshold: 4,
+    link: { dishId: "calentado-de-la-casa" },
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
     id: "agua-botella",
     name: "Agua en botella",
     unit: "botellas",
     qty: 30,
     threshold: 8,
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+];
+
+/** Preparación por lote de la demo: el calentado se cocina en tandas antes de abrir. */
+export const PREPARATIONS: Preparation[] = [
+  {
+    id: "calentado",
+    name: "Calentado de la casa",
+    outputItemId: "calentado-porciones",
+    yield: 10,
+    lines: [
+      { itemId: "frijol-rojo", qty: 1.2 },
+      { itemId: "arroz-blanco", qty: 1.5 },
+    ],
     createdAt: "2026-08-01T12:00:00.000Z",
   },
 ];

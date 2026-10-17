@@ -490,7 +490,8 @@ export interface InventoryItem {
   createdAt: string;
 }
 
-export type InventoryMoveKind = "entrada" | "salida" | "ajuste" | "consumo" | "devolucion";
+export type InventoryMoveKind =
+  "entrada" | "salida" | "ajuste" | "consumo" | "devolucion" | "produccion";
 
 /** Un movimiento de inventario. Solo se agregan: no se editan ni se borran. */
 export interface InventoryMove {
@@ -557,4 +558,21 @@ export interface Recipe {
   lines: { itemId: string; qty: number }[];
   /** Cuántas unidades se pueden vender al día; sin tope si no se pone. */
   dailyMax?: number;
+}
+
+/**
+ * Preparación por lote (lasaña, sopa, arroz): una receta con su rendimiento. Al producir un lote
+ * se gastan sus ingredientes y se suman porciones al producto de salida, que es el que vende el
+ * plato (cada pedido descuenta una porción, no ingredientes).
+ */
+export interface Preparation {
+  id: string;
+  name: string;
+  /** Producto de inventario donde quedan las porciones preparadas. */
+  outputItemId: string;
+  /** Porciones que rinde un lote. */
+  yield: number;
+  /** Ingredientes que gasta un lote. Pueden ser también porciones de otra preparación (sub-recetas). */
+  lines: { itemId: string; qty: number }[];
+  createdAt: string;
 }

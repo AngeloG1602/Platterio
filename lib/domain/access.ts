@@ -50,6 +50,8 @@ export const PERMISSIONS = [
   "agotados",
   /** Ver y cargar el inventario: entradas, salidas y ajustes. */
   "inventario",
+  /** Registrar la producción de un lote (gasta ingredientes y suma porciones). */
+  "produccion",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -68,6 +70,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "cocina.tablero",
     "agotados",
     "inventario",
+    "produccion",
   ],
   encargado: [
     "equipo.personal",
@@ -81,10 +84,11 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "cocina.tablero",
     "agotados",
     "inventario",
+    "produccion",
   ],
   mesero: ["mesas.propias", "pedidos.crear", "pedidos.editar", "pedidos.confirmar", "agotados"],
-  cocina: ["cocina.tablero", "agotados"],
-  despensa: ["inventario"],
+  cocina: ["cocina.tablero", "agotados", "produccion"],
+  despensa: ["inventario", "produccion"],
 };
 
 export const can = (role: Role | undefined, permission: Permission): boolean =>

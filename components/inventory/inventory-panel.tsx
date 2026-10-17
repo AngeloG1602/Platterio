@@ -2,6 +2,7 @@
 
 import {
   ChefHat,
+  CookingPot,
   Download,
   Minus,
   PackagePlus,
@@ -22,6 +23,7 @@ import { toast } from "@/components/ui/toaster";
 import {
   inventoryActions,
   useDishes,
+  usePreparations,
   useRecipes,
   useFeature,
   useInventory,
@@ -50,9 +52,22 @@ import {
   type ItemErrors,
   type ManualKind,
 } from "@/lib/domain/inventory";
-import type { Dish, InventoryItem, InventoryMoveKind, Recipe } from "@/lib/domain/types";
+import {
+  batchesPossible,
+  emptyPreparationDraft,
+  productionNeeds,
+  type PreparationDraft,
+  type PreparationErrors,
+} from "@/lib/domain/preparations";
+import type {
+  Dish,
+  InventoryItem,
+  InventoryMoveKind,
+  Preparation,
+  Recipe,
+} from "@/lib/domain/types";
 
-type View = "existencias" | "recetas" | "movimientos";
+type View = "existencias" | "preparaciones" | "recetas" | "movimientos";
 
 function download(name: string, rows: (string | number | null)[][]) {
   const blob = new Blob(["﻿" + toCsv(rows)], { type: "text/csv;charset=utf-8" });
@@ -88,14 +103,16 @@ export function InventoryPanel() {
         label="Vista del inventario"
         value={view}
         onChange={setView}
-        className="w-full sm:w-[28rem]"
+        className="w-full sm:w-[36rem]"
         options={[
           { value: "existencias", label: "Existencias" },
+          { value: "preparaciones", label: "Preparaciones" },
           { value: "recetas", label: "Recetas" },
           { value: "movimientos", label: "Movimientos" },
         ]}
       />
       {view === "existencias" && <Stock items={items} />}
+      {view === "preparaciones" && <Preparations items={items} />}
       {view === "recetas" && <Recipes items={items} />}
       {view === "movimientos" && <Movements items={items} />}
     </>
@@ -437,6 +454,405 @@ function ItemDialog({
             )}
           </Field>
         )}
+      </form>
+    </Dialog>
+  );
+}
+
+/* ——— Preparaciones por lote ——— */
+
+function Preparations({ items }: { items: readonly InventoryItem[] }) {
+  const preps = usePreparations();
+  const dishes = useDishes();
+  const [editing, setEditing] = useState<Preparation | "nueva" | null>(null);
+  const [producing, setProducing] = useState<Preparation | null>(null);
+  const [removing, setRemoving] = useState<Preparation | null>(null);
+  const output = (p: Preparation) => items.find((i) => i.id === p.outputItemId);
+  const dishOf = (p: Preparation) => {
+    const link = output(p)?.link;
+    const dish = dishes.find((d) => d.id === link?.dishId);
+    const variant = dish?.variants.find((v) => v.id === link?.variantId);
+    return dish
+      ? `${dish.name}${variant ? ` · ${variant.name}` : ""}`
+      : "Solo ingrediente de otras";
+  };
+
+  return (
+    <>
+      <Panel
+        title="Preparaciones por lote"
+        description="Para lo que se cocina en tandas (lasaña, sopa, arroz). Al producir un lote se gastan sus ingredientes y se suman porciones; cada pedido descuenta una porción. Cuando se acaban, el plato queda agotado."
+        action={
+          <Button size="sm" onClick={() => setEditing("nueva")}>
+            <CookingPot aria-hidden /> Agregar preparación
+          </Button>
+        }
+      >
+        {preps.length === 0 ? (
+          <p className="text-muted text-[15px]">Todavía no hay preparaciones por lote.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[15px]">
+              <caption className="sr-only">Preparaciones</caption>
+              <thead className="text-muted text-sm">
+                <tr>
+                  {["Preparación", "Un lote gasta", "Rinde", "Disponible", ""].map((h, i) => (
+                    <th key={i} scope="col" className="py-2 pr-4 font-medium">
+                      {h || <span className="sr-only">Acciones</span>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-line divide-y">
+                {preps.map((p) => {
+                  const out = output(p);
+                  const level = out ? stockLevel(out) : "agotado";
+                  const lots = batchesPossible(p, items);
+                  return (
+                    <tr key={p.id} className="align-top">
+                      <th scope="row" className="py-2.5 pr-4 font-medium">
+                        {p.name}
+                        <span className="text-muted block text-sm font-normal">{dishOf(p)}</span>
+                      </th>
+                      <td className="text-ink-soft py-2.5 pr-4">
+                        {p.lines
+                          .map((l) => {
+                            const item = items.find((i) => i.id === l.itemId);
+                            return `${fmtQty(l.qty)} ${item?.unit ?? ""} de ${item?.name ?? "producto eliminado"}`;
+                          })
+                          .join(" · ")}
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
+                        {fmtQty(p.yield)} {out?.unit ?? "porciones"}
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
+                        <strong>{fmtQty(out?.qty ?? 0)}</strong>{" "}
+                        <Badge tone={LEVEL_TONE[level]}>{STOCK_LABEL[level]}</Badge>
+                        <span className="text-muted block text-sm">
+                          Alcanza para {plural(lots, "lote", "lotes")} más
+                        </span>
+                      </td>
+                      <td className="py-2.5">
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          <Button size="sm" onClick={() => setProducing(p)}>
+                            <CookingPot aria-hidden /> Producir
+                            <span className="sr-only"> {p.name}</span>
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(p)}>
+                            <Pencil aria-hidden /> Editar
+                            <span className="sr-only"> {p.name}</span>
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setRemoving(p)}>
+                            Quitar<span className="sr-only"> {p.name}</span>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+      {editing && (
+        <PreparationDialog
+          prep={editing === "nueva" ? null : editing}
+          items={items}
+          dishes={dishes}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {producing && <ProduceDialog prep={producing} onClose={() => setProducing(null)} />}
+      {removing && (
+        <Dialog
+          open
+          onOpenChange={(o) => !o && setRemoving(null)}
+          title={`Quitar ${removing.name}`}
+          description="Las porciones que haya se conservan en el inventario, pero ya no se podrá producir ni se vincularán a la receta."
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setRemoving(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const r = inventoryActions.removePreparation(removing.id);
+                  if (!r.ok) return toast.error(r.error);
+                  toast.success("Preparación quitada");
+                  setRemoving(null);
+                }}
+              >
+                Quitar preparación
+              </Button>
+            </>
+          }
+        />
+      )}
+    </>
+  );
+}
+
+/** Registrar la producción de lotes. También se usa desde la pantalla de cocina. */
+export function ProduceDialog({ prep, onClose }: { prep: Preparation; onClose: () => void }) {
+  const items = useInventory();
+  const [lots, setLots] = useState("1");
+  const [error, setError] = useState<string>();
+  const count = parseQty(lots);
+  const needs = productionNeeds(prep, Number.isFinite(count) ? count : 0, items);
+  const out = items.find((i) => i.id === prep.outputItemId);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const r = inventoryActions.produce(prep.id, count);
+    if (!r.ok) return setError(r.error);
+    toast.success(
+      `Producción registrada · ${fmtQty(prep.yield * count)} ${out?.unit ?? "porciones"}`,
+    );
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={`Producir ${prep.name}`}
+      description={`Cada lote rinde ${fmtQty(prep.yield)} ${out?.unit ?? "porciones"}. Ahora hay ${fmtQty(out?.qty ?? 0)}.`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="produccion-form">
+            Registrar producción
+          </Button>
+        </>
+      }
+    >
+      <form id="produccion-form" onSubmit={submit} noValidate className="flex flex-col gap-3.5">
+        <Field label="Cantidad de lotes" error={error}>
+          {(p) => (
+            <Input
+              {...p}
+              inputMode="decimal"
+              value={lots}
+              onChange={(e) => {
+                setLots(e.target.value.replace(/[^\d.,]/g, ""));
+                setError(undefined);
+              }}
+            />
+          )}
+        </Field>
+        <ul className="flex flex-col gap-1 text-[15px]" aria-label="Ingredientes que se gastan">
+          {needs.map((n) => (
+            <li key={n.itemId} className="flex items-center justify-between gap-3">
+              <span>
+                {fmtQty(n.need)} {n.unit} de {n.name}
+              </span>
+              <span
+                className={
+                  n.enough ? "text-muted text-sm" : "text-danger-ink text-sm font-semibold"
+                }
+              >
+                {n.enough ? `quedan ${fmtQty(n.have)}` : `solo hay ${fmtQty(n.have)}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </form>
+    </Dialog>
+  );
+}
+
+function PreparationDialog({
+  prep,
+  items,
+  dishes,
+  onClose,
+}: {
+  prep: Preparation | null;
+  items: readonly InventoryItem[];
+  dishes: readonly Dish[];
+  onClose: () => void;
+}) {
+  const out = prep ? items.find((i) => i.id === prep.outputItemId) : undefined;
+  const [draft, setDraft] = useState<PreparationDraft>(() =>
+    prep && out
+      ? {
+          name: prep.name,
+          dishId: out.link?.dishId ?? "",
+          variantId: out.link?.variantId ?? "",
+          yield: fmtQty(prep.yield),
+          threshold: fmtQty(out.threshold),
+          unit: out.unit,
+          lines: prep.lines.map((l) => ({ itemId: l.itemId, qty: fmtQty(l.qty) })),
+        }
+      : emptyPreparationDraft(),
+  );
+  const [errors, setErrors] = useState<PreparationErrors>({});
+  const dish = dishes.find((d) => d.id === draft.dishId);
+  const set = (patch: Partial<PreparationDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const setLine = (i: number, patch: Partial<PreparationDraft["lines"][number]>) =>
+    set({ lines: draft.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+  const usable = items.filter((i) => i.id !== prep?.outputItemId);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const r = inventoryActions.savePreparation(draft, prep?.id);
+    if (!r.ok) {
+      if (r.errors) return setErrors(r.errors);
+      return toast.error(r.error);
+    }
+    toast.success("Preparación guardada");
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={prep ? `Editar ${prep.name}` : "Agregar una preparación"}
+      description="Escribe lo que gasta un lote completo y cuántas porciones rinde."
+      className="max-w-lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="preparacion-form">
+            Guardar preparación
+          </Button>
+        </>
+      }
+    >
+      <form id="preparacion-form" onSubmit={submit} noValidate className="flex flex-col gap-3.5">
+        <Field label="Nombre" error={errors.name}>
+          {(p) => (
+            <Input
+              {...p}
+              value={draft.name}
+              autoComplete="off"
+              onChange={(e) => set({ name: e.target.value })}
+            />
+          )}
+        </Field>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Rinde por lote" error={errors.yield}>
+            {(p) => (
+              <Input
+                {...p}
+                inputMode="decimal"
+                value={draft.yield}
+                onChange={(e) => set({ yield: e.target.value.replace(/[^\d.,]/g, "") })}
+              />
+            )}
+          </Field>
+          <Field label="Unidad">
+            {(p) => (
+              <Input {...p} value={draft.unit} onChange={(e) => set({ unit: e.target.value })} />
+            )}
+          </Field>
+          <Field label="Avisar desde" error={errors.threshold}>
+            {(p) => (
+              <Input
+                {...p}
+                inputMode="decimal"
+                value={draft.threshold}
+                onChange={(e) => set({ threshold: e.target.value.replace(/[^\d.,]/g, "") })}
+              />
+            )}
+          </Field>
+        </div>
+        <Field
+          label="Plato que la vende"
+          optional
+          hint="Sin plato, la preparación solo sirve como ingrediente de otras."
+          error={errors.dishId}
+        >
+          {(p) => (
+            <Select
+              {...p}
+              value={draft.dishId}
+              onChange={(e) => set({ dishId: e.target.value, variantId: "" })}
+            >
+              <option value="">Ninguno</option>
+              {dishes.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        {dish && dish.variants.length > 1 && (
+          <Field label="Opción del plato">
+            {(p) => (
+              <Select
+                {...p}
+                value={draft.variantId}
+                onChange={(e) => set({ variantId: e.target.value })}
+              >
+                <option value="">Todas las opciones</option>
+                {dish.variants.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        )}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 text-sm font-medium">Ingredientes de un lote</legend>
+          {draft.lines.map((l, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Select
+                aria-label={`Producto del ingrediente ${i + 1}`}
+                value={l.itemId}
+                onChange={(e) => setLine(i, { itemId: e.target.value })}
+                className="min-w-0 flex-1"
+              >
+                <option value="">Elige un producto</option>
+                {usable.map((it) => (
+                  <option key={it.id} value={it.id}>
+                    {it.name} ({it.unit})
+                  </option>
+                ))}
+              </Select>
+              <Input
+                aria-label={`Cantidad del ingrediente ${i + 1}`}
+                inputMode="decimal"
+                className="w-24"
+                value={l.qty}
+                onChange={(e) => setLine(i, { qty: e.target.value.replace(/[^\d.,]/g, "") })}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={draft.lines.length === 1}
+                onClick={() => set({ lines: draft.lines.filter((_, j) => j !== i) })}
+              >
+                Quitar<span className="sr-only"> ingrediente {i + 1}</span>
+              </Button>
+            </div>
+          ))}
+          {errors.lines && (
+            <p role="alert" className="text-danger-ink text-sm">
+              {errors.lines}
+            </p>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="self-start"
+            onClick={() => set({ lines: [...draft.lines, { itemId: "", qty: "" }] })}
+          >
+            <Plus aria-hidden /> Agregar ingrediente
+          </Button>
+        </fieldset>
       </form>
     </Dialog>
   );
