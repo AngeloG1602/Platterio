@@ -43,6 +43,8 @@ export const AUDIT_ACTIONS = {
   "inventario.editar": { label: "Editó un producto del inventario", area: "Inventario" },
   "inventario.entrada": { label: "Registró una entrada de inventario", area: "Inventario" },
   "inventario.salida": { label: "Registró una salida de inventario", area: "Inventario" },
+  "inventario.receta": { label: "Guardó una receta", area: "Inventario" },
+  "inventario.receta_quitar": { label: "Quitó una receta", area: "Inventario" },
   "inventario.ajuste": { label: "Ajustó el inventario", area: "Inventario" },
   "equipo.crear": { label: "Creó un usuario", area: "Equipo" },
   "equipo.editar": { label: "Editó un usuario", area: "Equipo" },

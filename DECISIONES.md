@@ -749,3 +749,19 @@ pueden cambiar sin rehacer pantallas.
      factura electrónica ante la DIAN exige un proveedor tecnológico autorizado y numeración
      autorizada; queda como investigación del bloque 9. (e) Pendiente al pasar a base de datos: el
      consecutivo debe asignarlo el servidor para que no se repita entre dispositivos.
+
+153. **Inventario por receta y factura electrónica (mejoras, bloque 9).** (a) **Recetas:** un plato
+     (o una de sus opciones) puede tener una receta con sus ingredientes clave y lo que gasta
+     cada unidad, en decimales (0,15 kg de carne). Se descuentan al confirmar, con el mismo
+     mecanismo de la etapa 1, y se devuelven si se rechaza o se quita el plato. Las cantidades se
+     redondean a milésimas para no acumular error. Entradas, salidas y ajustes aceptan decimales
+     con coma o punto. (b) **Agotado:** el plato queda agotado cuando falta cualquier ingrediente
+     clave de su receta (la receta lista solo los ingredientes clave, así que no hay
+     ingredientes opcionales). La pantalla muestra «alcanza para N platos» y qué ingrediente se
+     acaba primero. (c) **Tope diario:** cada receta puede limitar cuántas unidades se venden al
+     día; cuenta las rondas confirmadas del día y se aplica al pedir y al confirmar. (d) Las
+     recetas las editan despensa, encargado y administrador, y quedan en la auditoría. La demo
+     siembra carne y pan y las recetas de la Clásica 27 (`DATA_VERSION` 9). (e) **Factura
+     electrónica:** no se implementa en el prototipo. La investigación está en
+     `docs/mejoras/FACTURA-ELECTRONICA.md`: requiere proveedor autorizado, numeración de la DIAN,
+     datos fiscales e impuestos por plato, y servidor; queda para la fase de base de datos.

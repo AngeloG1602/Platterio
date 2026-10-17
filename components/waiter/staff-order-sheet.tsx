@@ -7,7 +7,7 @@ import { Price } from "@/components/ui/price";
 import { QtyStepper } from "@/components/ui/qty-stepper";
 import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
-import { useFeature, useInventory, waiterActions } from "@/lib/data";
+import { useFeature, useStockView, waiterActions } from "@/lib/data";
 import { availableUnits } from "@/lib/domain/inventory";
 import { plural } from "@/lib/domain/format";
 import type { StaffLine } from "@/lib/domain/staffOrders";
@@ -44,7 +44,7 @@ export function StaffOrderSheet({
   const [error, setError] = useState<string>();
   const [filters, setFilters] = useState<MenuFilters>(EMPTY_FILTERS);
   const visible = filterDishes(dishes, filters);
-  const inventory = useInventory();
+  const stock = useStockView();
   const stockOn = useFeature("inventario");
 
   const lines: StaffLine[] = Object.entries(drafts)
@@ -161,7 +161,7 @@ export function StaffOrderSheet({
                     (v) => v.id === (d?.variantId ?? dish.variants[0]!.id),
                   );
                   const left = stockOn
-                    ? availableUnits(inventory, dish.id, d?.variantId ?? dish.variants[0]!.id)
+                    ? availableUnits(stock, dish.id, d?.variantId ?? dish.variants[0]!.id)
                     : undefined;
                   return (
                     <li key={dish.id} className="flex flex-col gap-2 py-3">

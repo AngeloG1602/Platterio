@@ -61,10 +61,16 @@ import {
   addItem as addInventoryItem,
   availableUnits,
   registerMove,
+  soldTodayFn,
   syncOrderStock,
+  type StockView,
   updateItem as updateInventoryItem,
   validateItem,
   type ItemDraft,
+  type RecipeDraft,
+  type RecipeErrors,
+  saveRecipe,
+  validateRecipe,
   type ManualKind,
 } from "@/lib/domain/inventory";
 import { placeLabel } from "@/lib/domain/delivery";
@@ -151,6 +157,15 @@ import { useAppStore } from "./store";
 /** Capa de escritura que usan las pantallas. */
 
 /** Hora actual de la demo en ISO (respeta el tiempo acelerado). */
+/** Lo que ve el inventario del estado actual: productos, recetas y lo vendido hoy. */
+function stockViewOf(state: ReturnType<typeof useAppStore.getState>): StockView {
+  return {
+    items: state.inventory ?? [],
+    recipes: state.recipes ?? [],
+    sold: soldTodayFn(state.orders, virtualNow(state.demo.clock, Date.now())),
+  };
+}
+
 export function nowIso(): string {
   return new Date(virtualNow(useAppStore.getState().demo.clock, Date.now())).toISOString();
 }
@@ -391,7 +406,7 @@ export const cartActions = {
     if (!dish?.active) return { ok: false, error: "Este plato ya no está disponible" };
     if (!dish.variants.some((v) => v.id === item.variantId))
       return { ok: false, error: "Elige una opción válida" };
-    const left = availableUnits(state.inventory ?? [], item.dishId, item.variantId);
+    const left = availableUnits(stockViewOf(state), item.dishId, item.variantId);
     if (left !== undefined) {
       const inCart = session.cart
         .filter((c) => c.dishId === item.dishId && c.variantId === item.variantId)
@@ -567,10 +582,12 @@ function stockSync(
   if (!planAllows(state.restaurant.plan, "inventario") || items.length === 0)
     return { ok: true, patch: {} };
   const r = syncOrderStock(
-    { items, moves: state.inventoryMoves ?? [] },
+    { items, moves: state.inventoryMoves ?? [], recipes: state.recipes ?? [] },
     order,
     currentStaff()?.name ?? "Pedido",
     nowIso(),
+    state.orders,
+    (id) => state.dishes.find((d) => d.id === id)?.name ?? "ese plato",
   );
   if (!r.ok) return r;
   return { ok: true, patch: { inventory: r.value.items, inventoryMoves: r.value.moves } };
@@ -970,7 +987,7 @@ export const deliveryClientActions = {
     const cart = useDeliveryClient.getState().cart;
     const nowMs = virtualNow(state.demo.clock, Date.now());
     for (const line of cart) {
-      const left = availableUnits(state.inventory ?? [], line.dishId, line.variantId);
+      const left = availableUnits(stockViewOf(state), line.dishId, line.variantId);
       const asked = cart
         .filter((c) => c.dishId === line.dishId && c.variantId === line.variantId)
         .reduce((n, c) => n + c.qty, 0);
@@ -1471,6 +1488,33 @@ export const inventoryActions = {
     if (!r.ok) return r;
     useAppStore.setState({ inventory: r.value.items });
     recordAudit("inventario.editar", draft.name.trim());
+    return { ok: true };
+  },
+  /** Crea o cambia la receta de un plato. */
+  saveRecipe(draft: RecipeDraft, id?: string): ActionResult & { errors?: RecipeErrors } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const errors = validateRecipe(draft, s.inventory ?? [], s.recipes ?? [], id);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa la receta", errors };
+    useAppStore.setState({ recipes: saveRecipe(s.recipes ?? [], draft, id ?? newId("receta")) });
+    const dish = s.dishes.find((d) => d.id === draft.dishId);
+    recordAudit("inventario.receta", dish?.name ?? draft.dishId, {
+      detail: `${draft.lines.filter((l) => l.itemId).length} ingredientes${draft.dailyMax ? ` · máximo ${draft.dailyMax} al día` : ""}`,
+    });
+    return { ok: true };
+  },
+  removeRecipe(id: string): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const recipe = (s.recipes ?? []).find((r) => r.id === id);
+    if (!recipe) return { ok: false, error: "Esa receta no existe" };
+    useAppStore.setState({ recipes: (s.recipes ?? []).filter((r) => r.id !== id) });
+    recordAudit(
+      "inventario.receta_quitar",
+      s.dishes.find((d) => d.id === recipe.dishId)?.name ?? recipe.dishId,
+    );
     return { ok: true };
   },
   /** Entrada, salida o ajuste manual. En el ajuste, `amount` es lo realmente contado. */

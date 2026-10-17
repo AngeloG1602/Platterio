@@ -546,3 +546,15 @@ export interface Invoice {
   total: number;
   payments: InvoicePayment[];
 }
+
+/** Receta de un plato (o de una de sus opciones): qué ingredientes clave gasta cada unidad. */
+export interface Recipe {
+  id: string;
+  dishId: string;
+  /** Sin opción: vale para todas las opciones del plato. */
+  variantId?: string;
+  /** Ingredientes clave y cuánto gasta una unidad (puede ser decimal: 0,15 kg). */
+  lines: { itemId: string; qty: number }[];
+  /** Cuántas unidades se pueden vender al día; sin tope si no se pone. */
+  dailyMax?: number;
+}

@@ -16,7 +16,7 @@ import { consolidateTicket } from "@/lib/domain/ticket";
 import { tableOverview } from "@/lib/domain/waiter";
 import { kitchenBoard } from "@/lib/domain/kitchen";
 import { ratableDishes, waiterForTable } from "@/lib/domain/feedback";
-import { isDishSoldOut, isSoldOut } from "@/lib/domain/inventory";
+import { isDishSoldOut, isSoldOut, soldTodayFn, type StockView } from "@/lib/domain/inventory";
 import type {
   Allergen,
   Dish,
@@ -24,6 +24,7 @@ import type {
   InventoryMove,
   Invoice,
   Order,
+  Recipe,
   TableSession,
   TimeSlot,
 } from "@/lib/domain/types";
@@ -86,21 +87,37 @@ const NO_MOVES: InventoryMove[] = [];
 export const useInventory = () => useAppStore((s) => s.inventory ?? NO_ITEMS);
 /** Movimientos de inventario (el más reciente al final). */
 export const useInventoryMoves = () => useAppStore((s) => s.inventoryMoves ?? NO_MOVES);
+const NO_RECIPES: Recipe[] = [];
+/** Recetas de los platos. */
+export const useRecipes = () => useAppStore((s) => s.recipes ?? NO_RECIPES);
+
+/** Productos, recetas y lo vendido hoy, para saber qué se puede pedir todavía. */
+export function useStockView(): StockView {
+  const items = useInventory();
+  const recipes = useRecipes();
+  const orders = useOrders();
+  const now = useNow(60_000);
+  return useMemo(
+    () => ({ items, recipes, sold: soldTodayFn(orders, now) }),
+    [items, recipes, orders, now],
+  );
+}
+
 /** ¿Esta opción de plato está agotada? Solo cuenta si el negocio tiene la función de inventario. */
 export function useSoldOut() {
-  const items = useInventory();
+  const stock = useStockView();
   const enabled = useFeature("inventario");
   return useMemo(
-    () => (dishId: string, variantId: string) => enabled && isSoldOut(items, dishId, variantId),
-    [items, enabled],
+    () => (dishId: string, variantId: string) => enabled && isSoldOut(stock, dishId, variantId),
+    [stock, enabled],
   );
 }
 
 /** ¿Se agotaron todas las opciones de este plato? (para marcarlo en la carta) */
 export function useDishSoldOut(dish: Dish) {
-  const items = useInventory();
+  const stock = useStockView();
   const enabled = useFeature("inventario");
-  return enabled && isDishSoldOut(items, dish);
+  return enabled && isDishSoldOut(stock, dish);
 }
 
 const NO_AUDIT: AuditEntry[] = [];

@@ -12,6 +12,7 @@ import type {
   Invoice,
   InventoryItem,
   InventoryMove,
+  Recipe,
   Order,
   Payment,
   Reservation,
@@ -27,6 +28,7 @@ import {
   CATEGORIES,
   DISHES,
   INVENTORY,
+  RECIPES,
   RESTAURANT,
   STAFF,
   TABLES,
@@ -35,7 +37,7 @@ import {
 } from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 8;
+export const DATA_VERSION = 9;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -80,6 +82,8 @@ export interface AppData {
   inventory: InventoryItem[];
   /** Movimientos de inventario: entradas, salidas, ajustes y ventas. */
   inventoryMoves: InventoryMove[];
+  /** Recetas de los platos: qué ingredientes gasta cada unidad. */
+  recipes: Recipe[];
   /** Facturas (comprobantes) de las cuentas saldadas; solo se agregan. */
   invoices: Invoice[];
   demo: DemoSettings;
@@ -122,6 +126,7 @@ export function createSeedState(now: number): AppData {
     audit: [],
     inventory: clone(INVENTORY),
     inventoryMoves: [],
+    recipes: clone(RECIPES),
     invoices: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };

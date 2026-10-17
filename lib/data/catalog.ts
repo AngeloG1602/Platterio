@@ -3,6 +3,7 @@ import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import type { StaffUser } from "@/lib/domain/access";
 import type {
   InventoryItem,
+  Recipe,
   Allergen,
   Category,
   Dish,
@@ -99,12 +100,50 @@ export const INVENTORY: InventoryItem[] = [
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
+    id: "carne-res",
+    name: "Carne de res molida",
+    unit: "kg",
+    qty: 20,
+    threshold: 3,
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
+    id: "pan-hamburguesa",
+    name: "Pan de hamburguesa",
+    unit: "unidades",
+    qty: 80,
+    threshold: 12,
+    createdAt: "2026-08-01T12:00:00.000Z",
+  },
+  {
     id: "agua-botella",
     name: "Agua en botella",
     unit: "botellas",
     qty: 30,
     threshold: 8,
     createdAt: "2026-08-01T12:00:00.000Z",
+  },
+];
+
+/** Recetas de la demo: la Clásica 27 gasta carne y pan según la opción. */
+export const RECIPES: Recipe[] = [
+  {
+    id: "receta-clasica-sencilla",
+    dishId: "clasica-27",
+    variantId: "sencilla",
+    lines: [
+      { itemId: "carne-res", qty: 0.15 },
+      { itemId: "pan-hamburguesa", qty: 1 },
+    ],
+  },
+  {
+    id: "receta-clasica-doble",
+    dishId: "clasica-27",
+    variantId: "doble",
+    lines: [
+      { itemId: "carne-res", qty: 0.3 },
+      { itemId: "pan-hamburguesa", qty: 1 },
+    ],
   },
 ];
 

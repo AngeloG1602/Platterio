@@ -1631,6 +1631,66 @@ check(
   await visible(admin.getByRole("table", { name: "Facturas" })),
 );
 
+// 32. Inventario por receta
+await rosa.goto(`${BASE}/inventario`);
+check(
+  "32. Los ingredientes llevan decimales (kg)",
+  await visible(filaGas("Carne de res molida").getByText("kg")),
+);
+await rosa.getByRole("button", { name: "Entrada de Carne de res molida" }).click();
+await rosa.getByLabel("Cantidad que llega").fill("2,5");
+await rosa.getByRole("button", { name: "Registrar entrada" }).click();
+check(
+  "32. Una entrada acepta cantidades con coma",
+  await visible(rosa.getByText("Entrada de Carne de res molida registrada")),
+);
+await rosa.getByRole("radio", { name: "Recetas" }).click();
+const tablaRecetas = rosa.getByRole("table", { name: "Recetas" });
+check(
+  "32. La receta de la Clásica 27 muestra sus ingredientes y para cuántos platos alcanza",
+  (await visible(tablaRecetas.getByRole("row").filter({ hasText: "Clásica 27 · Sencilla" }))) &&
+    (await visible(tablaRecetas.getByText(/0,15 kg de Carne de res molida/).first())) &&
+    (await visible(tablaRecetas.getByText(/\d+ platos?/).first())),
+);
+await rosa.getByRole("button", { name: "Agregar receta" }).click();
+await rosa.getByRole("button", { name: "Guardar receta" }).click();
+check(
+  "32. La receta pide plato e ingredientes",
+  (await visible(rosa.getByText("Elige el plato"))) &&
+    (await visible(rosa.getByText("Agrega al menos un ingrediente"))),
+);
+await rosa.getByLabel("Plato", { exact: true }).selectOption("jugo-natural");
+await rosa.getByLabel("Opción del plato").selectOption("mora");
+await rosa
+  .getByLabel("Producto del ingrediente 1")
+  .selectOption({ label: "Agua en botella (botellas)" });
+await rosa.getByLabel("Cantidad del ingrediente 1").fill("1");
+await rosa.getByLabel("Tope diario de ventas").fill("1");
+await rosa.getByRole("button", { name: "Guardar receta" }).click();
+check(
+  "32. Se guarda la receta con su tope diario",
+  await visible(tablaRecetas.getByRole("row").filter({ hasText: "Jugo natural en agua · Mora" })),
+);
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("jugo natural");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("jugo natural");
+check(
+  "32. Al llegar al tope diario el plato queda agotado",
+  (await visible(hoja.getByText("Agotado", { exact: true }))) &&
+    (await hoja.getByRole("button", { name: "Agregar uno" }).count()) === 0,
+);
+await daniela.keyboard.press("Escape");
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+check(
+  "32. La venta por receta descontó el agua del inventario",
+  await visible(filaGas("Agua en botella").getByText("29", { exact: true })),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

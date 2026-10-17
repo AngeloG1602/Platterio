@@ -6,6 +6,13 @@ import {
   filterMoves,
   isDishSoldOut,
   isSoldOut,
+  limitingItem,
+  parseQty,
+  recipePortions,
+  recipeToDraft,
+  saveRecipe,
+  soldTodayFn,
+  validateRecipe,
   lowStockItems,
   movesCsvRows,
   registerMove,
@@ -16,7 +23,7 @@ import {
   validateItem,
   type InventoryState,
 } from "./inventory";
-import type { Dish, InventoryItem, Order } from "./types";
+import type { Dish, InventoryItem, Order, Recipe } from "./types";
 
 const NOW = "2026-10-01T12:00:00.000Z";
 const gaseosa: InventoryItem = {
@@ -53,14 +60,14 @@ describe("existencias y agotado", () => {
   });
 
   it("un plato sin vínculo nunca se agota; con stock cero sí", () => {
-    expect(isSoldOut([gaseosa], "clasica-27", "sencilla")).toBe(false);
-    expect(isSoldOut([{ ...gaseosa, qty: 0 }], "gaseosa", "400ml")).toBe(true);
-    expect(isSoldOut([{ ...gaseosa, qty: 0 }], "gaseosa", "1-5l")).toBe(false);
+    expect(isSoldOut({ items: [gaseosa] }, "clasica-27", "sencilla")).toBe(false);
+    expect(isSoldOut({ items: [{ ...gaseosa, qty: 0 }] }, "gaseosa", "400ml")).toBe(true);
+    expect(isSoldOut({ items: [{ ...gaseosa, qty: 0 }] }, "gaseosa", "1-5l")).toBe(false);
   });
 
   it("el vínculo sin variante vale para todas las opciones", () => {
     const all = { ...gaseosa, qty: 0, link: { dishId: "gaseosa" } };
-    expect(isSoldOut([all], "gaseosa", "1-5l")).toBe(true);
+    expect(isSoldOut({ items: [all] }, "gaseosa", "1-5l")).toBe(true);
   });
 
   it("el plato se agota cuando todas sus opciones lo están", () => {
@@ -73,13 +80,13 @@ describe("existencias y agotado", () => {
     } as Dish;
     const a = { ...gaseosa, qty: 0 };
     const b = { ...gaseosa, id: "g2", qty: 0, link: { dishId: "gaseosa", variantId: "1-5l" } };
-    expect(isDishSoldOut([a], dish)).toBe(false);
-    expect(isDishSoldOut([a, b], dish)).toBe(true);
+    expect(isDishSoldOut({ items: [a] }, dish)).toBe(false);
+    expect(isDishSoldOut({ items: [a, b] }, dish)).toBe(true);
   });
 
   it("calcula cuántas unidades quedan por pedir", () => {
-    expect(availableUnits([gaseosa], "gaseosa", "400ml")).toBe(10);
-    expect(availableUnits([gaseosa], "clasica-27", "sencilla")).toBeUndefined();
+    expect(availableUnits({ items: [gaseosa] }, "gaseosa", "400ml")).toBe(10);
+    expect(availableUnits({ items: [gaseosa] }, "clasica-27", "sencilla")).toBeUndefined();
   });
 });
 
@@ -256,5 +263,134 @@ describe("informe", () => {
       "Entrada",
       "6",
     ]);
+  });
+});
+
+describe("recetas", () => {
+  const carne: InventoryItem = {
+    id: "carne",
+    name: "Carne",
+    unit: "kg",
+    qty: 1,
+    threshold: 0.5,
+    createdAt: NOW,
+  };
+  const pan: InventoryItem = { ...carne, id: "pan", name: "Pan", unit: "unidades", qty: 10 };
+  const receta: Recipe = {
+    id: "r1",
+    dishId: "clasica-27",
+    variantId: "sencilla",
+    lines: [
+      { itemId: "carne", qty: 0.15 },
+      { itemId: "pan", qty: 1 },
+    ],
+  };
+  const clasica = (qty: number, status: Order["status"] = "en_preparacion"): Order => ({
+    ...order({ status }),
+    items: [
+      { id: "i1", dishId: "clasica-27", variantId: "sencilla", qty, dinerId: "a", unitPrice: 1 },
+    ],
+  });
+  const withRecipes = (over: Partial<Recipe> = {}): InventoryState => ({
+    items: [carne, pan],
+    moves: [],
+    recipes: [{ ...receta, ...over }],
+  });
+
+  it("calcula cuántos platos salen y qué ingrediente limita", () => {
+    expect(recipePortions(receta, [carne, pan])).toBe(6);
+    expect(limitingItem(receta, [carne, pan])?.item.name).toBe("Carne");
+    expect(
+      availableUnits({ items: [carne, pan], recipes: [receta] }, "clasica-27", "sencilla"),
+    ).toBe(6);
+    expect(
+      availableUnits({ items: [carne, pan], recipes: [receta] }, "clasica-27", "doble"),
+    ).toBeUndefined();
+  });
+
+  it("descuenta decimales sin acumular error y devuelve al rechazar", () => {
+    const r = syncOrderStock(withRecipes(), clasica(3), "Ana", NOW);
+    expect(r.ok && r.value.items.map((i) => i.qty)).toEqual([0.55, 7]);
+    if (!r.ok) throw new Error();
+    const back = syncOrderStock(r.value, clasica(3, "rechazado"), "Ana", NOW);
+    expect(back.ok && back.value.items.map((i) => i.qty)).toEqual([1, 10]);
+  });
+
+  it("falla si falta un ingrediente clave y no cambia nada", () => {
+    const r = syncOrderStock(withRecipes(), clasica(7), "Ana", NOW);
+    expect(r).toEqual({ ok: false, error: "No alcanza Carne: quedan 1 y se necesitan 1,05." });
+  });
+
+  it("el plato se agota cuando falta un ingrediente clave", () => {
+    const stock = { items: [{ ...carne, qty: 0.1 }, pan], recipes: [receta] };
+    expect(isSoldOut(stock, "clasica-27", "sencilla")).toBe(true);
+  });
+
+  it("respeta el tope diario, también al confirmar", () => {
+    const rules = withRecipes({ dailyMax: 4 });
+    const sold = soldTodayFn([clasica(3)], Date.parse(NOW));
+    const stock = { ...rules, sold };
+    expect(availableUnits(stock, "clasica-27", "sencilla")).toBe(1);
+    const other = { ...clasica(3), id: "o-viejo" };
+    const r = syncOrderStock(
+      rules,
+      { ...clasica(2), id: "o-nuevo" },
+      "Ana",
+      NOW,
+      [other],
+      () => "Clásica 27",
+    );
+    expect(r).toEqual({
+      ok: false,
+      error: "Hoy solo se pueden vender 4 de Clásica 27. Ya se llegó al tope.",
+    });
+    const ok = syncOrderStock(rules, { ...clasica(1), id: "o-nuevo" }, "Ana", NOW, [other]);
+    expect(ok.ok).toBe(true);
+  });
+
+  it("valida y guarda la receta", () => {
+    const draft = {
+      dishId: "clasica-27",
+      variantId: "doble",
+      lines: [
+        { itemId: "carne", qty: "0,3" },
+        { itemId: "pan", qty: "1" },
+      ],
+      dailyMax: "20",
+    };
+    expect(validateRecipe(draft, [carne, pan], [receta])).toEqual({});
+    expect(
+      validateRecipe({ ...draft, variantId: "sencilla" }, [carne, pan], [receta]).dishId,
+    ).toMatch(/ya tiene/);
+    expect(
+      validateRecipe({ ...draft, lines: [{ itemId: "carne", qty: "0" }] }, [carne, pan], []).lines,
+    ).toBeTruthy();
+    expect(validateRecipe({ ...draft, lines: [] }, [carne, pan], []).lines).toMatch(/al menos/);
+    expect(validateRecipe({ ...draft, dailyMax: "-1" }, [carne, pan], []).dailyMax).toBeTruthy();
+    expect(saveRecipe([receta], draft, "r2")[1]).toEqual({
+      id: "r2",
+      dishId: "clasica-27",
+      variantId: "doble",
+      lines: [
+        { itemId: "carne", qty: 0.3 },
+        { itemId: "pan", qty: 1 },
+      ],
+      dailyMax: 20,
+    });
+    expect(recipeToDraft(receta).lines[0]).toEqual({ itemId: "carne", qty: "0,15" });
+  });
+
+  it("acepta cantidades con coma en entradas y salidas", () => {
+    expect(parseQty("1,5")).toBe(1.5);
+    expect(parseQty("1.25")).toBe(1.25);
+    expect(Number.isNaN(parseQty("1,2345"))).toBe(true);
+    const r = registerMove(
+      { items: [carne], moves: [] },
+      { itemId: "carne", kind: "entrada", amount: 2.5, reason: "" },
+      "Ana",
+      NOW,
+      "m",
+    );
+    expect(r.ok && r.value.items[0]!.qty).toBe(3.5);
   });
 });

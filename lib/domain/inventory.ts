@@ -6,6 +6,7 @@ import type {
   InventoryMoveKind,
   Order,
   OrderStatus,
+  Recipe,
 } from "./types";
 
 /**
@@ -22,6 +23,7 @@ export type InventoryResult<T> = { ok: true; value: T } | { ok: false; error: st
 export interface InventoryState {
   items: InventoryItem[];
   moves: InventoryMove[];
+  recipes?: Recipe[];
 }
 
 /** Cuántos movimientos se guardan; los más viejos se descartan primero. */
@@ -54,53 +56,122 @@ export const STOCK_LABEL: Record<StockLevel, string> = {
   bien: "Bien",
 };
 
-const linkMatches = (item: InventoryItem, dishId: string, variantId: string) =>
-  item.link?.dishId === dishId && (!item.link.variantId || item.link.variantId === variantId);
+/** Se redondea a milésimas: las recetas gastan decimales (0,15 kg) y no deben acumular error. */
+export const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+/** Cantidad para mostrar: sin ceros de sobra y con coma decimal. */
+export const fmtQty = (n: number) => String(round3(n)).replace(".", ",");
+
+/** Lo que se ve del inventario: productos, recetas y, para el tope diario, lo vendido hoy. */
+export interface StockView {
+  items: readonly InventoryItem[];
+  recipes?: readonly Recipe[];
+  /** Unidades vendidas hoy de un plato (y de una opción, o de todas si no se indica). */
+  sold?: (dishId: string, variantId?: string) => number;
+}
+
+const matches = (
+  link: { dishId: string; variantId?: string } | undefined,
+  dishId: string,
+  variantId: string,
+) => link?.dishId === dishId && (!link.variantId || link.variantId === variantId);
 
 /** Productos de inventario que consume una opción de un plato. */
 export const itemsFor = (items: readonly InventoryItem[], dishId: string, variantId: string) =>
-  items.filter((i) => linkMatches(i, dishId, variantId));
+  items.filter((i) => matches(i.link, dishId, variantId));
 
-/**
- * ¿Se puede pedir esta opción? Falla si algún producto vinculado está en cero. Un plato sin
- * vínculo siempre se puede pedir.
- */
-export function isSoldOut(
-  items: readonly InventoryItem[],
+/** Lo que gasta una unidad de esta opción: por vínculo (1) y por receta (su cantidad). */
+export function requirements(
+  stock: StockView,
   dishId: string,
   variantId: string,
-): boolean {
-  return itemsFor(items, dishId, variantId).some((i) => i.qty <= 0);
+): { item: InventoryItem; per: number }[] {
+  const out = new Map<string, { item: InventoryItem; per: number }>();
+  const add = (item: InventoryItem | undefined, per: number) => {
+    if (!item) return;
+    const prev = out.get(item.id);
+    out.set(item.id, { item, per: round3((prev?.per ?? 0) + per) });
+  };
+  for (const item of itemsFor(stock.items, dishId, variantId)) add(item, 1);
+  for (const r of stock.recipes ?? [])
+    if (matches(r, dishId, variantId))
+      for (const l of r.lines)
+        add(
+          stock.items.find((i) => i.id === l.itemId),
+          l.qty,
+        );
+  return [...out.values()];
 }
 
-/** Un plato queda agotado en la carta cuando todas sus opciones lo están. */
-export function isDishSoldOut(items: readonly InventoryItem[], dish: Dish): boolean {
-  return dish.variants.length > 0 && dish.variants.every((v) => isSoldOut(items, dish.id, v.id));
+/** Tope diario que queda para esta opción (undefined: sin tope). */
+function dailyLeft(stock: StockView, dishId: string, variantId: string): number | undefined {
+  const caps = (stock.recipes ?? []).filter(
+    (r) => r.dailyMax !== undefined && matches(r, dishId, variantId),
+  );
+  if (caps.length === 0) return undefined;
+  return Math.max(
+    0,
+    Math.min(...caps.map((r) => r.dailyMax! - (stock.sold?.(r.dishId, r.variantId) ?? 0))),
+  );
 }
 
-/** Cuántas unidades de esta opción se pueden pedir todavía (undefined: sin límite). */
+/**
+ * Cuántas unidades de esta opción se pueden pedir todavía: las que alcanzan con el stock de cada
+ * ingrediente, sin pasar del tope diario (undefined: sin límite).
+ */
 export function availableUnits(
-  items: readonly InventoryItem[],
+  stock: StockView,
   dishId: string,
   variantId: string,
 ): number | undefined {
-  const linked = itemsFor(items, dishId, variantId);
-  return linked.length ? Math.max(0, Math.min(...linked.map((i) => i.qty))) : undefined;
+  const reqs = requirements(stock, dishId, variantId);
+  const daily = dailyLeft(stock, dishId, variantId);
+  if (reqs.length === 0) return daily;
+  const byStock = Math.min(
+    ...reqs.map((r) => Math.max(0, Math.floor(round3(r.item.qty / r.per) + 1e-9))),
+  );
+  return daily === undefined ? byStock : Math.min(byStock, daily);
+}
+
+/** ¿Se agotó esta opción? (falta un ingrediente clave o se llegó al tope del día) */
+export function isSoldOut(stock: StockView, dishId: string, variantId: string): boolean {
+  const left = availableUnits(stock, dishId, variantId);
+  return left !== undefined && left < 1;
+}
+
+/** Un plato queda agotado en la carta cuando todas sus opciones lo están. */
+export function isDishSoldOut(stock: StockView, dish: Dish): boolean {
+  return dish.variants.length > 0 && dish.variants.every((v) => isSoldOut(stock, dish.id, v.id));
 }
 
 export const lowStockItems = (items: readonly InventoryItem[]) =>
   items.filter((i) => stockLevel(i) !== "bien");
 
+/** Unidades vendidas hoy (rondas confirmadas, sin lo quitado), por plato y opción. */
+export function soldTodayFn(orders: readonly Order[], nowMs: number) {
+  const day = new Date(nowMs).toDateString();
+  return (dishId: string, variantId?: string) => {
+    let n = 0;
+    for (const o of orders) {
+      if (!holdsStock(o.status) || new Date(o.createdAt).toDateString() !== day) continue;
+      for (const l of o.items)
+        if (!l.removed && l.dishId === dishId && (!variantId || l.variantId === variantId))
+          n += l.qty;
+    }
+    return n;
+  };
+}
+
 /* ——— Stock de los pedidos ——— */
 
 /** Lo que una ronda necesita tener descontado ahora, por producto. */
-function wanted(order: Order, items: readonly InventoryItem[]): Map<string, number> {
+function wanted(order: Order, stock: StockView): Map<string, number> {
   const out = new Map<string, number>();
   if (!holdsStock(order.status)) return out;
   for (const line of order.items) {
     if (line.removed) continue;
-    for (const item of itemsFor(items, line.dishId, line.variantId))
-      out.set(item.id, (out.get(item.id) ?? 0) + line.qty);
+    for (const { item, per } of requirements(stock, line.dishId, line.variantId))
+      out.set(item.id, round3((out.get(item.id) ?? 0) + line.qty * per));
   }
   return out;
 }
@@ -110,7 +181,7 @@ function held(moves: readonly InventoryMove[], orderId: string): Map<string, num
   const out = new Map<string, number>();
   for (const m of moves)
     if (m.orderId === orderId && (m.kind === "consumo" || m.kind === "devolucion"))
-      out.set(m.itemId, (out.get(m.itemId) ?? 0) - m.delta);
+      out.set(m.itemId, round3((out.get(m.itemId) ?? 0) - m.delta));
   return out;
 }
 
@@ -133,26 +204,34 @@ export function syncOrderStock(
   order: Order,
   by: string,
   now: string,
+  /** Todas las rondas, para respetar el tope diario de los platos. */
+  orders: readonly Order[] = [],
+  dishName: (dishId: string) => string = (id) => id,
 ): InventoryResult<InventoryState> {
-  const want = wanted(order, state.items);
+  const view: StockView = { items: state.items, recipes: state.recipes };
+  const want = wanted(order, view);
   const have = held(state.moves, order.id);
   const ids = new Set([...want.keys(), ...have.keys()]);
   let next = state;
+  let increasing = false;
   for (const id of ids) {
-    const diff = (want.get(id) ?? 0) - (have.get(id) ?? 0);
+    const diff = round3((want.get(id) ?? 0) - (have.get(id) ?? 0));
     if (diff === 0) continue;
     const item = next.items.find((i) => i.id === id);
     if (!item) continue;
-    if (diff > 0 && item.qty < diff)
-      return {
-        ok: false,
-        error:
-          item.qty <= 0
-            ? `${item.name} está agotado.`
-            : `No alcanza ${item.name}: quedan ${item.qty} y se necesitan ${diff}.`,
-      };
+    if (diff > 0) {
+      increasing = true;
+      if (item.qty < diff)
+        return {
+          ok: false,
+          error:
+            item.qty <= 0
+              ? `${item.name} está agotado.`
+              : `No alcanza ${item.name}: quedan ${fmtQty(item.qty)} y se necesitan ${fmtQty(diff)}.`,
+        };
+    }
     const count = next.moves.filter((m) => m.orderId === order.id && m.itemId === id).length;
-    const qty = item.qty - diff;
+    const qty = round3(item.qty - diff);
     const move: InventoryMove = {
       id: `mov-${order.id}-${id}-${count + 1}`,
       itemId: id,
@@ -165,7 +244,21 @@ export function syncOrderStock(
     };
     next = withMove(next, move, { ...item, qty });
   }
-  return { ok: true, value: { items: next.items, moves: capMoves(next.moves) } };
+  if (increasing && holdsStock(order.status)) {
+    const others = orders.filter((o) => o.id !== order.id);
+    const sold = soldTodayFn([...others, order], Date.parse(now));
+    for (const r of state.recipes ?? []) {
+      if (r.dailyMax === undefined) continue;
+      if (!order.items.some((l) => !l.removed && matches(r, l.dishId, l.variantId))) continue;
+      if (sold(r.dishId, r.variantId) > r.dailyMax) {
+        return {
+          ok: false,
+          error: `Hoy solo se pueden vender ${r.dailyMax} de ${dishName(r.dishId)}. Ya se llegó al tope.`,
+        };
+      }
+    }
+  }
+  return { ok: true, value: { ...next, moves: capMoves(next.moves) } };
 }
 
 /* ——— Productos ——— */
@@ -190,7 +283,10 @@ export const emptyItemDraft = (): ItemDraft => ({
   variantId: "",
 });
 
-const toCount = (s: string) => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : NaN);
+/** Número con hasta 3 decimales, con coma o punto ("1,5"); NaN si no lo es. */
+export const parseQty = (s: string) =>
+  /^\d+([.,]\d{1,3})?$/.test(s.trim()) ? round3(Number(s.trim().replace(",", "."))) : NaN;
+const toCount = parseQty;
 
 export function validateItem(
   draft: ItemDraft,
@@ -205,11 +301,11 @@ export function validateItem(
   if (!draft.unit.trim()) errors.unit = "Escribe la unidad (botellas, unidades…)";
   if (editingId === undefined) {
     const qty = toCount(draft.qty);
-    if (!Number.isInteger(qty) || qty > 100_000)
+    if (!Number.isFinite(qty) || qty > 100_000)
       errors.qty = "Escribe las existencias iniciales (0 o más)";
   }
   const threshold = toCount(draft.threshold);
-  if (!Number.isInteger(threshold) || threshold > 100_000)
+  if (!Number.isFinite(threshold) || threshold > 100_000)
     errors.threshold = "Escribe desde cuántas unidades avisar (0 o más)";
   if (draft.dishId) {
     const clash = items.find(
@@ -331,8 +427,8 @@ export function registerMove(
   if (!item) return { ok: false, error: "Ese producto no existe" };
   const { amount, kind } = input;
   const reason = input.reason.trim();
-  if (!Number.isInteger(amount) || amount < 0 || amount > 100_000)
-    return { ok: false, error: "Escribe una cantidad entera" };
+  if (!Number.isFinite(amount) || round3(amount) !== amount || amount < 0 || amount > 100_000)
+    return { ok: false, error: "Escribe una cantidad válida (hasta 3 decimales)" };
   if (kind !== "ajuste" && amount === 0)
     return { ok: false, error: "La cantidad debe ser mayor que cero" };
   if (kind !== "entrada" && !reason) return { ok: false, error: "Indica el motivo" };
@@ -341,13 +437,16 @@ export function registerMove(
   if (kind === "entrada") delta = amount;
   else if (kind === "salida") {
     if (amount > item.qty)
-      return { ok: false, error: `Solo hay ${item.qty} ${item.unit}: no se puede sacar más.` };
+      return {
+        ok: false,
+        error: `Solo hay ${fmtQty(item.qty)} ${item.unit}: no se puede sacar más.`,
+      };
     delta = -amount;
   } else {
     if (amount === item.qty) return { ok: false, error: "Esa ya es la cantidad registrada" };
-    delta = amount - item.qty;
+    delta = round3(amount - item.qty);
   }
-  const qty = item.qty + delta;
+  const qty = round3(item.qty + delta);
   const move: InventoryMove = {
     id: moveId,
     itemId: item.id,
@@ -412,4 +511,102 @@ export function movesCsvRows(
       m.reason ?? "",
     ]),
   ];
+}
+
+/* ——— Recetas (etapa 2) ——— */
+
+export interface RecipeDraft {
+  dishId: string;
+  /** Vacío: vale para todas las opciones del plato. */
+  variantId: string;
+  lines: { itemId: string; qty: string }[];
+  /** Vacío: sin tope diario. */
+  dailyMax: string;
+}
+
+export interface RecipeErrors {
+  dishId?: string;
+  lines?: string;
+  dailyMax?: string;
+}
+
+export const emptyRecipeDraft = (): RecipeDraft => ({
+  dishId: "",
+  variantId: "",
+  lines: [{ itemId: "", qty: "" }],
+  dailyMax: "",
+});
+
+export function validateRecipe(
+  draft: RecipeDraft,
+  items: readonly InventoryItem[],
+  recipes: readonly Recipe[],
+  editingId?: string,
+): RecipeErrors {
+  const errors: RecipeErrors = {};
+  if (!draft.dishId) errors.dishId = "Elige el plato";
+  else if (
+    recipes.some(
+      (r) =>
+        r.id !== editingId && r.dishId === draft.dishId && (r.variantId ?? "") === draft.variantId,
+    )
+  )
+    errors.dishId = "Ese plato ya tiene una receta para esa opción";
+  const lines = draft.lines.filter((l) => l.itemId || l.qty.trim());
+  if (lines.length === 0) errors.lines = "Agrega al menos un ingrediente";
+  else if (lines.some((l) => !items.some((i) => i.id === l.itemId)))
+    errors.lines = "Elige el producto de cada ingrediente";
+  else if (new Set(lines.map((l) => l.itemId)).size !== lines.length)
+    errors.lines = "Un producto no puede repetirse en la receta";
+  else if (lines.some((l) => !(parseQty(l.qty) > 0)))
+    errors.lines = "Escribe cuánto gasta cada ingrediente (mayor que cero)";
+  const max = draft.dailyMax.trim();
+  if (max && !(/^\d+$/.test(max) && Number(max) > 0))
+    errors.dailyMax = "Escribe un número entero mayor que cero, o déjalo vacío";
+  return errors;
+}
+
+/** Guarda (o reemplaza) la receta. Devuelve la lista nueva. */
+export function saveRecipe(recipes: readonly Recipe[], draft: RecipeDraft, id: string): Recipe[] {
+  const max = draft.dailyMax.trim();
+  const recipe: Recipe = {
+    id,
+    dishId: draft.dishId,
+    ...(draft.variantId ? { variantId: draft.variantId } : {}),
+    lines: draft.lines
+      .filter((l) => l.itemId)
+      .map((l) => ({ itemId: l.itemId, qty: parseQty(l.qty) })),
+    ...(max ? { dailyMax: Number(max) } : {}),
+  };
+  return recipes.some((r) => r.id === id)
+    ? recipes.map((r) => (r.id === id ? recipe : r))
+    : [...recipes, recipe];
+}
+
+export const recipeToDraft = (r: Recipe): RecipeDraft => ({
+  dishId: r.dishId,
+  variantId: r.variantId ?? "",
+  lines: r.lines.map((l) => ({ itemId: l.itemId, qty: fmtQty(l.qty) })),
+  dailyMax: r.dailyMax === undefined ? "" : String(r.dailyMax),
+});
+
+/** Cuántos platos salen con lo que hay en el inventario (por el ingrediente que primero se acaba). */
+export function recipePortions(recipe: Recipe, items: readonly InventoryItem[]): number {
+  const counts = recipe.lines.map((l) => {
+    const item = items.find((i) => i.id === l.itemId);
+    return item ? Math.max(0, Math.floor(round3(item.qty / l.qty) + 1e-9)) : 0;
+  });
+  return counts.length ? Math.min(...counts) : 0;
+}
+
+/** El ingrediente que limita cuántos platos salen. */
+export function limitingItem(recipe: Recipe, items: readonly InventoryItem[]) {
+  let worst: { item: InventoryItem; portions: number } | undefined;
+  for (const l of recipe.lines) {
+    const item = items.find((i) => i.id === l.itemId);
+    if (!item) continue;
+    const portions = Math.max(0, Math.floor(round3(item.qty / l.qty) + 1e-9));
+    if (!worst || portions < worst.portions) worst = { item, portions };
+  }
+  return worst;
 }

@@ -1,6 +1,14 @@
 "use client";
 
-import { Download, Minus, PackagePlus, Pencil, Plus, SlidersHorizontal } from "lucide-react";
+import {
+  ChefHat,
+  Download,
+  Minus,
+  PackagePlus,
+  Pencil,
+  Plus,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { describePeriod, PeriodFilter, usePeriod } from "@/components/admin/ui/period-filter";
 import { Panel } from "@/components/admin/ui/page-header";
@@ -14,6 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import {
   inventoryActions,
   useDishes,
+  useRecipes,
   useFeature,
   useInventory,
   useInventoryMoves,
@@ -22,6 +31,14 @@ import { toCsv } from "@/lib/domain/cash";
 import { formatDay, formatTime, plural } from "@/lib/domain/format";
 import {
   emptyItemDraft,
+  emptyRecipeDraft,
+  fmtQty,
+  limitingItem,
+  parseQty,
+  recipePortions,
+  recipeToDraft,
+  type RecipeDraft,
+  type RecipeErrors,
   filterMoves,
   MANUAL_REASONS,
   MOVE_LABEL,
@@ -33,9 +50,9 @@ import {
   type ItemErrors,
   type ManualKind,
 } from "@/lib/domain/inventory";
-import type { Dish, InventoryItem, InventoryMoveKind } from "@/lib/domain/types";
+import type { Dish, InventoryItem, InventoryMoveKind, Recipe } from "@/lib/domain/types";
 
-type View = "existencias" | "movimientos";
+type View = "existencias" | "recetas" | "movimientos";
 
 function download(name: string, rows: (string | number | null)[][]) {
   const blob = new Blob(["﻿" + toCsv(rows)], { type: "text/csv;charset=utf-8" });
@@ -71,13 +88,16 @@ export function InventoryPanel() {
         label="Vista del inventario"
         value={view}
         onChange={setView}
-        className="w-full sm:w-80"
+        className="w-full sm:w-[28rem]"
         options={[
           { value: "existencias", label: "Existencias" },
+          { value: "recetas", label: "Recetas" },
           { value: "movimientos", label: "Movimientos" },
         ]}
       />
-      {view === "existencias" ? <Stock items={items} /> : <Movements items={items} />}
+      {view === "existencias" && <Stock items={items} />}
+      {view === "recetas" && <Recipes items={items} />}
+      {view === "movimientos" && <Movements items={items} />}
     </>
   );
 }
@@ -150,9 +170,10 @@ function Stock({ items }: { items: readonly InventoryItem[] }) {
                         {item.name}
                       </th>
                       <td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
-                        <strong>{item.qty}</strong> <span className="text-muted">{item.unit}</span>
+                        <strong>{fmtQty(item.qty)}</strong>{" "}
+                        <span className="text-muted">{item.unit}</span>
                       </td>
-                      <td className="py-2.5 pr-4 tabular-nums">{item.threshold}</td>
+                      <td className="py-2.5 pr-4 tabular-nums">{fmtQty(item.threshold)}</td>
                       <td className="text-ink-soft py-2.5 pr-4">{dishName(item)}</td>
                       <td className="py-2.5 pr-4">
                         <Badge tone={LEVEL_TONE[level]}>{STOCK_LABEL[level]}</Badge>
@@ -227,7 +248,7 @@ function MoveDialog({
 }) {
   const copy = MOVE_COPY[kind];
   const reasons = MANUAL_REASONS[kind];
-  const [amount, setAmount] = useState(kind === "ajuste" ? String(item.qty) : "");
+  const [amount, setAmount] = useState(kind === "ajuste" ? fmtQty(item.qty) : "");
   const [reason, setReason] = useState(reasons[0]!);
   const [detail, setDetail] = useState("");
   const [error, setError] = useState<string>();
@@ -235,7 +256,7 @@ function MoveDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = detail.trim() ? `${reason}: ${detail.trim()}` : reason;
-    const r = inventoryActions.move(item.id, kind, Number(amount), text);
+    const r = inventoryActions.move(item.id, kind, parseQty(amount), text);
     if (!r.ok) return setError(r.error);
     toast.success(`${copy.title} de ${item.name} registrada`);
     onClose();
@@ -246,7 +267,7 @@ function MoveDialog({
       open
       onOpenChange={(o) => !o && onClose()}
       title={`${copy.title} · ${item.name}`}
-      description={`Ahora hay ${item.qty} ${item.unit}.`}
+      description={`Ahora hay ${fmtQty(item.qty)} ${item.unit}.`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -266,7 +287,7 @@ function MoveDialog({
               inputMode="numeric"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value.replace(/\D/g, ""));
+                setAmount(e.target.value.replace(/[^\d.,]/g, ""));
                 setError(undefined);
               }}
             />
@@ -303,8 +324,8 @@ function ItemDialog({
       ? {
           name: item.name,
           unit: item.unit,
-          qty: String(item.qty),
-          threshold: String(item.threshold),
+          qty: fmtQty(item.qty),
+          threshold: fmtQty(item.threshold),
           dishId: item.link?.dishId ?? "",
           variantId: item.link?.variantId ?? "",
         }
@@ -365,7 +386,7 @@ function ItemDialog({
                 {...p}
                 inputMode="numeric"
                 value={draft.threshold}
-                onChange={(e) => set({ threshold: e.target.value.replace(/\D/g, "") })}
+                onChange={(e) => set({ threshold: e.target.value.replace(/[^\d.,]/g, "") })}
               />
             )}
           </Field>
@@ -377,7 +398,7 @@ function ItemDialog({
                 {...p}
                 inputMode="numeric"
                 value={draft.qty}
-                onChange={(e) => set({ qty: e.target.value.replace(/\D/g, "") })}
+                onChange={(e) => set({ qty: e.target.value.replace(/[^\d.,]/g, "") })}
               />
             )}
           </Field>
@@ -416,6 +437,285 @@ function ItemDialog({
             )}
           </Field>
         )}
+      </form>
+    </Dialog>
+  );
+}
+
+/* ——— Recetas ——— */
+
+function Recipes({ items }: { items: readonly InventoryItem[] }) {
+  const recipes = useRecipes();
+  const dishes = useDishes();
+  const [editing, setEditing] = useState<Recipe | "nueva" | null>(null);
+  const [removing, setRemoving] = useState<Recipe | null>(null);
+  const label = (r: Recipe) => {
+    const dish = dishes.find((d) => d.id === r.dishId);
+    const variant = dish?.variants.find((v) => v.id === r.variantId);
+    return `${dish?.name ?? "Plato eliminado"}${variant ? ` · ${variant.name}` : ""}`;
+  };
+
+  return (
+    <>
+      <Panel
+        title="Recetas"
+        description="Con la receta, cada plato gasta sus ingredientes clave al confirmarse. Si falta uno, el plato queda agotado. El tope diario limita cuántos se venden por día."
+        action={
+          <Button size="sm" onClick={() => setEditing("nueva")}>
+            <ChefHat aria-hidden /> Agregar receta
+          </Button>
+        }
+      >
+        {recipes.length === 0 ? (
+          <p className="text-muted text-[15px]">Todavía no hay recetas.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[15px]">
+              <caption className="sr-only">Recetas</caption>
+              <thead className="text-muted text-sm">
+                <tr>
+                  {["Plato", "Ingredientes por unidad", "Alcanza para", "Tope diario", ""].map(
+                    (h, i) => (
+                      <th key={i} scope="col" className="py-2 pr-4 font-medium">
+                        {h || <span className="sr-only">Acciones</span>}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-line divide-y">
+                {recipes.map((r) => {
+                  const limit = limitingItem(r, items);
+                  const portions = recipePortions(r, items);
+                  return (
+                    <tr key={r.id} className="align-top">
+                      <th scope="row" className="py-2.5 pr-4 font-medium">
+                        {label(r)}
+                      </th>
+                      <td className="text-ink-soft py-2.5 pr-4">
+                        {r.lines
+                          .map((l) => {
+                            const item = items.find((i) => i.id === l.itemId);
+                            return `${fmtQty(l.qty)} ${item?.unit ?? ""} de ${item?.name ?? "producto eliminado"}`;
+                          })
+                          .join(" · ")}
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap tabular-nums">
+                        <strong>{plural(portions, "plato", "platos")}</strong>
+                        {limit && portions < 10 && (
+                          <span className="text-muted block text-sm">
+                            Se acaba {limit.item.name}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4 tabular-nums">{r.dailyMax ?? "Sin tope"}</td>
+                      <td className="py-2.5">
+                        <div className="flex justify-end gap-1.5">
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>
+                            <Pencil aria-hidden /> Editar
+                            <span className="sr-only"> receta de {label(r)}</span>
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setRemoving(r)}>
+                            Quitar<span className="sr-only"> receta de {label(r)}</span>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+      {editing && (
+        <RecipeDialog
+          recipe={editing === "nueva" ? null : editing}
+          items={items}
+          dishes={dishes}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {removing && (
+        <Dialog
+          open
+          onOpenChange={(o) => !o && setRemoving(null)}
+          title={`Quitar la receta de ${label(removing)}`}
+          description="El plato deja de gastar ingredientes al confirmarse. Lo ya descontado no cambia."
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setRemoving(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const r = inventoryActions.removeRecipe(removing.id);
+                  if (!r.ok) return toast.error(r.error);
+                  toast.success("Receta quitada");
+                  setRemoving(null);
+                }}
+              >
+                Quitar receta
+              </Button>
+            </>
+          }
+        />
+      )}
+    </>
+  );
+}
+
+function RecipeDialog({
+  recipe,
+  items,
+  dishes,
+  onClose,
+}: {
+  recipe: Recipe | null;
+  items: readonly InventoryItem[];
+  dishes: readonly Dish[];
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<RecipeDraft>(() =>
+    recipe ? recipeToDraft(recipe) : emptyRecipeDraft(),
+  );
+  const [errors, setErrors] = useState<RecipeErrors>({});
+  const dish = dishes.find((d) => d.id === draft.dishId);
+  const set = (patch: Partial<RecipeDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const setLine = (i: number, patch: Partial<RecipeDraft["lines"][number]>) =>
+    set({ lines: draft.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const r = inventoryActions.saveRecipe(draft, recipe?.id);
+    if (!r.ok) {
+      if (r.errors) return setErrors(r.errors);
+      return toast.error(r.error);
+    }
+    toast.success("Receta guardada");
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={recipe ? "Editar receta" : "Agregar una receta"}
+      description="Escribe solo los ingredientes clave y lo que gasta una unidad del plato."
+      className="max-w-lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="receta-form">
+            Guardar receta
+          </Button>
+        </>
+      }
+    >
+      <form id="receta-form" onSubmit={submit} noValidate className="flex flex-col gap-3.5">
+        <Field label="Plato" error={errors.dishId}>
+          {(p) => (
+            <Select
+              {...p}
+              value={draft.dishId}
+              onChange={(e) => set({ dishId: e.target.value, variantId: "" })}
+            >
+              <option value="">Elige un plato</option>
+              {dishes.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        {dish && dish.variants.length > 1 && (
+          <Field label="Opción del plato">
+            {(p) => (
+              <Select
+                {...p}
+                value={draft.variantId}
+                onChange={(e) => set({ variantId: e.target.value })}
+              >
+                <option value="">Todas las opciones</option>
+                {dish.variants.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        )}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 text-sm font-medium">Ingredientes por unidad</legend>
+          {draft.lines.map((l, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Select
+                aria-label={`Producto del ingrediente ${i + 1}`}
+                value={l.itemId}
+                onChange={(e) => setLine(i, { itemId: e.target.value })}
+                className="min-w-0 flex-1"
+              >
+                <option value="">Elige un producto</option>
+                {items.map((it) => (
+                  <option key={it.id} value={it.id}>
+                    {it.name} ({it.unit})
+                  </option>
+                ))}
+              </Select>
+              <Input
+                aria-label={`Cantidad del ingrediente ${i + 1}`}
+                inputMode="decimal"
+                placeholder="0,15"
+                className="w-24"
+                value={l.qty}
+                onChange={(e) => setLine(i, { qty: e.target.value.replace(/[^\d.,]/g, "") })}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={draft.lines.length === 1}
+                onClick={() => set({ lines: draft.lines.filter((_, j) => j !== i) })}
+              >
+                Quitar<span className="sr-only"> ingrediente {i + 1}</span>
+              </Button>
+            </div>
+          ))}
+          {errors.lines && (
+            <p role="alert" className="text-danger-ink text-sm">
+              {errors.lines}
+            </p>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="self-start"
+            onClick={() => set({ lines: [...draft.lines, { itemId: "", qty: "" }] })}
+          >
+            <Plus aria-hidden /> Agregar ingrediente
+          </Button>
+        </fieldset>
+        <Field
+          label="Tope diario de ventas"
+          optional
+          hint="Cuántas unidades se pueden vender al día. Vacío: sin tope."
+          error={errors.dailyMax}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              inputMode="numeric"
+              value={draft.dailyMax}
+              onChange={(e) => set({ dailyMax: e.target.value.replace(/\D/g, "") })}
+            />
+          )}
+        </Field>
       </form>
     </Dialog>
   );
