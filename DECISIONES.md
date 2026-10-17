@@ -785,3 +785,26 @@ pueden cambiar sin rehacer pantallas.
      completo queda para el 10B). (h) La demo siembra fríjol, arroz y la preparación del
      calentado (`DATA_VERSION` 10). Pendiente: conteo físico y desviaciones, carga masiva,
      conversión de unidades y costo por plato (10B).
+
+155. **Conteo, desviaciones, costos y carga masiva (mejoras, bloque 10B).** (a) **Conteo físico:**
+     se escribe lo contado (lo que se deja vacío no se cuenta) y cada diferencia con el sistema
+     queda como un ajuste «Conteo físico» con nombre y hora; es todo o nada y se guarda el conteo
+     (esperado, contado, diferencia) para consultarlo. **Cierre del día:** el mismo mecanismo
+     sobre las porciones de las preparaciones, con la opción de dar de baja lo que sobró (salida
+     «Sobró del día»). (b) **Desviaciones:** por producto, lo que faltó en los conteos frente a lo
+     que el sistema dice que se gastó (pedidos y producción) desde el conteo anterior; con el
+     costo, el valor del faltante. El primer conteo compara contra todo lo gastado desde el inicio,
+     así que al principio el porcentaje es más bajo. (c) **Calibración:** con al menos dos conteos
+     y una desviación sostenida del 5 % o más, el sistema propone subir (o bajar) las cantidades de
+     las recetas y preparaciones que usan el producto, y el dueño lo acepta con un botón; nada se
+     ajusta solo. (d) **Costos:** cada producto tiene costo por unidad de uso y, opcional, unidad de
+     compra (caja de 24, bulto de 25 kg). Una entrada puede escribirse en la unidad de compra y,
+     si se anota el precio pagado, el costo por unidad se actualiza al último precio. El costo de
+     una porción sale de lo que gasta un lote entre lo que rinde (con sub-recetas). El costo por
+     plato suma lo que gasta su receta; si a un ingrediente le falta el costo se marca «Faltan
+     costos» en lugar de mostrar una cifra engañosa. (e) **Carga masiva:** productos y recetas
+     desde CSV de Excel (separador coma, punto y coma o tabulador, con o sin tildes, plantilla
+     descargable) con vista previa fila por fila; los productos que ya existen se omiten y las
+     recetas del mismo plato y opción se reemplazan. Solo se cargan las filas válidas. (f) Todo
+     queda en la auditoría. La demo siembra costos y unidades de compra. Sin IA: lo que sigue
+     (borradores de recetas, pronóstico) va con el servidor.

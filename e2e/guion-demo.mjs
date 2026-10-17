@@ -1792,6 +1792,146 @@ check(
 );
 await cocina.keyboard.press("Escape");
 
+// 34. Costos, unidades de compra, carga masiva, conteo y cierre del día
+await rosa.goto(`${BASE}/inventario`);
+await rosa.getByRole("radio", { name: "Costos", exact: true }).click();
+const tablaCostos = rosa.getByRole("table", { name: "Costo por plato" });
+const filaClasica = tablaCostos.getByRole("row").filter({ hasText: "Clásica 27 · Sencilla" });
+check(
+  "34. El costo de la Clásica sale de su receta y muestra el margen",
+  (await visible(filaClasica.getByText("$3.900"))) &&
+    (await visible(filaClasica.getByText("83 %"))),
+);
+await rosa.getByRole("radio", { name: "Existencias", exact: true }).click();
+await rosa.getByRole("button", { name: "Entrada de Gaseosa 400 ml" }).click();
+await rosa.getByLabel("Cantidad en").selectOption({ label: "caja" });
+await rosa.getByLabel("Cantidad que llega").fill("2");
+await rosa.getByLabel("Precio pagado por todo").fill("90000");
+await rosa.getByRole("button", { name: "Registrar entrada" }).click();
+check(
+  "34. Una entrada en cajas suma las botellas que trae cada caja",
+  await visible(filaGas("Gaseosa 400 ml").getByText("48", { exact: true })),
+);
+
+await rosa.getByRole("button", { name: "Cargar desde archivo" }).click();
+await rosa
+  .getByLabel("O pega las filas aquí")
+  .fill(
+    "Producto;Unidad;Existencias;Avisar desde;Costo por unidad\nSal;kg;5;1;\nCarne de res molida;kg;1;1;1\nAceite;litros;abc;1;1",
+  );
+check(
+  "34. La vista previa marca lo nuevo, lo que ya existe y los errores",
+  (await visible(rosa.getByText("Nuevo", { exact: true }))) &&
+    (await visible(rosa.getByText("Ya existe", { exact: true }))) &&
+    (await visible(rosa.getByText(/Fila 4: Las existencias no son un número válido/))),
+);
+await rosa.getByRole("button", { name: "Cargar 1 producto" }).click();
+check(
+  "34. Se cargan solo los productos válidos",
+  await visible(filaGas("Sal").getByText("5", { exact: true })),
+);
+
+await rosa.getByRole("radio", { name: "Recetas", exact: true }).click();
+await rosa.getByRole("button", { name: "Cargar desde archivo" }).click();
+await rosa
+  .getByLabel("O pega las filas aquí")
+  .fill("Plato;Opción;Ingrediente;Cantidad\nLimonada de coco;;Sal;0,01\nPizza;;Sal;1");
+check(
+  "34. Las recetas del archivo avisan de los platos que no existen",
+  await visible(rosa.getByText(/no existe el plato «Pizza»/)),
+);
+await rosa.getByRole("button", { name: "Cargar 1 receta" }).click();
+check(
+  "34. Se carga la receta válida",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Recetas" })
+      .getByRole("row")
+      .filter({ hasText: "Limonada de coco" }),
+  ),
+);
+
+await rosa.getByRole("radio", { name: "Costos", exact: true }).click();
+check(
+  "34. Si falta el costo de un ingrediente lo dice en vez de mostrar una cifra engañosa",
+  await visible(
+    tablaCostos.getByRole("row").filter({ hasText: "Limonada de coco" }).getByText("Faltan costos"),
+  ),
+);
+await rosa.getByRole("radio", { name: "Conteo", exact: true }).click();
+const tablaConteo = rosa.getByRole("table", { name: "Conteo físico" });
+const filaCarne = () => tablaConteo.getByRole("row").filter({ hasText: "Carne de res molida" });
+const sistema = async () =>
+  Number.parseFloat(
+    (await filaCarne().locator("td").first().innerText()).replace(/[^\d,]/g, "").replace(",", "."),
+  );
+const coma = (n) => String(Math.round(n * 1000) / 1000).replace(".", ",");
+await rosa.getByLabel("Contado de Carne de res molida").fill(coma(await sistema()));
+await rosa.getByRole("button", { name: "Guardar conteo" }).click();
+check(
+  "34. Un conteo que cuadra lo dice",
+  await visible(rosa.getByText("Todo cuadra con lo que dice el sistema.")),
+);
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("clásica 27");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await rosa.reload();
+await rosa.getByRole("radio", { name: "Conteo", exact: true }).click();
+await rosa.getByLabel("Contado de Carne de res molida").fill(coma((await sistema()) - 0.1));
+check(
+  "34. Mientras se escribe, se ve la diferencia con el sistema",
+  await visible(filaCarne().getByText("-0,1", { exact: true })),
+);
+await rosa.getByRole("button", { name: "Guardar conteo" }).click();
+const tablaDesv = rosa.getByRole("table", { name: "Desviaciones" });
+check(
+  "34. Las desviaciones muestran lo que faltó frente a lo que se gastó",
+  await visible(
+    tablaDesv.getByRole("row").filter({ hasText: "Carne de res molida" }).getByText(/\d+ %/),
+  ),
+);
+check(
+  "34. Si la diferencia se repite, el sistema propone ajustar las recetas",
+  await visible(
+    rosa.getByText(/Carne de res molida se gastó \d+ % más de lo que dicen tus recetas/),
+  ),
+);
+await rosa.getByRole("button", { name: /Ajustar recetas \+\d+ %/ }).click();
+await rosa.getByRole("radio", { name: "Recetas", exact: true }).click();
+check(
+  "34. Al aceptar, las recetas suben sus cantidades",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Recetas" })
+      .getByRole("row")
+      .filter({ hasText: "Clásica 27 · Sencilla" })
+      .getByText(/0,1[6-9]\d* kg de Carne de res molida/),
+  ),
+);
+
+await rosa.getByRole("radio", { name: "Conteo", exact: true }).click();
+await rosa.getByRole("radio", { name: "Cierre del día", exact: true }).click();
+await rosa.getByLabel("Contado de Calentado de la casa (porciones)").fill("5");
+await rosa.getByLabel("Dar de baja Calentado de la casa (porciones)").check();
+await rosa.getByRole("button", { name: "Guardar cierre" }).click();
+check(
+  "34. El cierre del día registra las sobras",
+  await visible(rosa.getByText("Cierre del día registrado")),
+);
+await rosa.getByRole("radio", { name: "Existencias", exact: true }).click();
+check(
+  "34. Lo que se dio de baja deja el plato agotado",
+  await visible(filaGas("Calentado de la casa (porciones)").getByText("Agotado")),
+);
+await rosa.getByRole("radio", { name: "Movimientos", exact: true }).click();
+check(
+  "34. El cierre y la baja quedan en los movimientos",
+  (await visible(rosa.getByRole("table", { name: "Movimientos" }).getByText("Cierre del día"))) &&
+    (await visible(rosa.getByRole("table", { name: "Movimientos" }).getByText("Sobró del día"))),
+);
+
 // Limpieza: hora automática
 await hub.goto(`${BASE}/demo?demo=1`);
 await hub.getByRole("radio", { name: /Automática/ }).click();

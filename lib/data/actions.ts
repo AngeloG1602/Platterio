@@ -27,6 +27,8 @@ import {
   type PreparationDraft,
   type PreparationErrors,
 } from "@/lib/domain/preparations";
+import { applyCalibration, applyCount, type CountInput } from "@/lib/domain/counts";
+import type { ItemRow, RecipeRow } from "@/lib/domain/importer";
 import { buildInvoice, invoiceCode, invoiceFor } from "@/lib/domain/invoice";
 import { canAddUser, planAllows, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
@@ -65,7 +67,13 @@ import {
   type OrderEdit,
   type StaffLine,
 } from "@/lib/domain/staffOrders";
-import type { InventoryItem, InventoryMove, Order, OrderStatus } from "@/lib/domain/types";
+import type {
+  InventoryItem,
+  InventoryMove,
+  Order,
+  OrderStatus,
+  StockCount,
+} from "@/lib/domain/types";
 import {
   addItem as addInventoryItem,
   availableUnits,
@@ -76,6 +84,7 @@ import {
   updateItem as updateInventoryItem,
   validateItem,
   fmtQty,
+  emptyItemDraft,
   type ItemDraft,
   type RecipeDraft,
   type RecipeErrors,
@@ -1587,6 +1596,110 @@ export const inventoryActions = {
     });
     return { ok: true };
   },
+  /** Registra un conteo físico (o el cierre del día): cada diferencia queda como un ajuste. */
+  saveCount(
+    lines: CountInput[],
+    scope: StockCount["scope"],
+  ): ActionResult & { differences?: number } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const r = applyCount({ items: s.inventory ?? [], moves: s.inventoryMoves ?? [] }, lines, {
+      scope,
+      by: allowed.actor!.name,
+      now: nowIso(),
+      id: newId("conteo"),
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((st) => ({
+      inventory: r.value.state.items,
+      inventoryMoves: r.value.state.moves,
+      stockCounts: [...(st.stockCounts ?? []), r.value.count],
+    }));
+    const differences = r.value.count.lines.filter((l) => l.diff !== 0).length;
+    recordAudit("inventario.conteo", scope === "cierre" ? "Cierre del día" : "Conteo físico", {
+      detail: `${r.value.count.lines.length} productos · ${differences} con diferencia`,
+    });
+    return { ok: true, differences };
+  },
+  /** Aplica la sugerencia de un conteo: cambia las cantidades de las recetas que usan el producto. */
+  calibrate(itemId: string, percent: number): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const item = (s.inventory ?? []).find((i) => i.id === itemId);
+    if (!item) return { ok: false, error: "Ese producto no existe" };
+    const r = applyCalibration(s.recipes ?? [], s.preparations ?? [], itemId, percent);
+    useAppStore.setState({ recipes: r.recipes, preparations: r.preparations });
+    recordAudit("inventario.calibrar", item.name, {
+      detail: `${percent > 0 ? "+" : ""}${Math.round(percent * 100)} % en las recetas`,
+    });
+    return { ok: true };
+  },
+  /** Crea los productos de un archivo (los que ya existen se omiten). */
+  importItems(rows: ItemRow[]): ActionResult & { created?: number } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    let state = { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] };
+    let created = 0;
+    for (const row of rows) {
+      if (row.error || row.existing) continue;
+      const r = addInventoryItem(
+        state,
+        {
+          ...emptyItemDraft(),
+          name: row.name,
+          unit: row.unit,
+          qty: fmtQty(row.qty),
+          threshold: fmtQty(row.threshold),
+          cost: row.cost === undefined ? "" : fmtQty(row.cost),
+          purchaseUnit: row.purchase?.unit ?? "",
+          purchaseFactor: row.purchase ? fmtQty(row.purchase.factor) : "",
+        },
+        allowed.actor!.name,
+        nowIso(),
+        newId("mov"),
+      );
+      if (!r.ok) return { ok: false, error: `${row.name}: ${r.error}` };
+      state = { items: r.value.items, moves: r.value.moves };
+      created++;
+    }
+    if (created === 0) return { ok: false, error: "No hay productos nuevos para cargar" };
+    useAppStore.setState({ inventory: state.items, inventoryMoves: state.moves });
+    recordAudit("inventario.importar", "Productos", { detail: `${created} productos nuevos` });
+    return { ok: true, created };
+  },
+  /** Guarda las recetas de un archivo (reemplaza las del mismo plato y opción). */
+  importRecipes(rows: RecipeRow[]): ActionResult & { saved?: number } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const outputs = (s.preparations ?? []).map((p) => p.outputItemId);
+    let recipes = s.recipes ?? [];
+    let saved = 0;
+    for (const row of rows) {
+      if (row.error) continue;
+      const existing = recipes.find(
+        (r) => r.dishId === row.dishId && (r.variantId ?? "") === (row.variantId ?? ""),
+      );
+      const draft: RecipeDraft = {
+        dishId: row.dishId,
+        variantId: row.variantId ?? "",
+        lines: row.ingredients.map((i) => ({ itemId: i.itemId, qty: fmtQty(i.qty) })),
+        dailyMax: row.dailyMax === undefined ? "" : String(row.dailyMax),
+      };
+      const errors = validateRecipe(draft, s.inventory ?? [], recipes, existing?.id, outputs);
+      const first = Object.values(errors)[0];
+      if (first) return { ok: false, error: `${row.dishName}: ${first}` };
+      recipes = saveRecipe(recipes, draft, existing?.id ?? newId("receta"));
+      saved++;
+    }
+    if (saved === 0) return { ok: false, error: "No hay recetas válidas para cargar" };
+    useAppStore.setState({ recipes });
+    recordAudit("inventario.importar", "Recetas", { detail: `${saved} recetas` });
+    return { ok: true, saved };
+  },
   removeRecipe(id: string): ActionResult {
     const allowed = requirePermission("inventario");
     if (!allowed.ok) return allowed;
@@ -1601,14 +1714,20 @@ export const inventoryActions = {
     return { ok: true };
   },
   /** Entrada, salida o ajuste manual. En el ajuste, `amount` es lo realmente contado. */
-  move(itemId: string, kind: ManualKind, amount: number, reason: string): ActionResult {
+  move(
+    itemId: string,
+    kind: ManualKind,
+    amount: number,
+    reason: string,
+    totalPrice?: number,
+  ): ActionResult {
     const allowed = requirePermission("inventario");
     if (!allowed.ok) return allowed;
     const s = useAppStore.getState();
     const item = (s.inventory ?? []).find((i) => i.id === itemId);
     const r = registerMove(
       { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
-      { itemId, kind, amount, reason },
+      { itemId, kind, amount, reason, totalPrice },
       allowed.actor!.name,
       nowIso(),
       newId("mov"),

@@ -154,6 +154,35 @@ for (const [name, path, width] of [["Entrada QR", "/mesa/3", 390], ...pages]) {
   }
 }
 
+// Cada vista del inventario del administrador (preparaciones, recetas, conteo, costos…).
+{
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto(`${BASE}/admin/inventario`);
+  await asegurarSesion(page, "Marta");
+  for (const vista of [
+    "Existencias",
+    "Preparaciones",
+    "Recetas",
+    "Conteo",
+    "Costos",
+    "Movimientos",
+  ]) {
+    await page.getByRole("radio", { name: vista, exact: true }).click();
+    await page.waitForTimeout(400);
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    total += result.violations.length;
+    console.log(
+      `${result.violations.length ? "✘" : "✔"} Inventario · ${vista} — ${result.violations.length} problemas`,
+    );
+    for (const v of result.violations) {
+      console.log(`   · [${v.impact}] ${v.id}: ${v.help}`);
+      for (const n of v.nodes.slice(0, 3)) console.log(`       ${n.target.join(" ")}`);
+    }
+  }
+}
+
 // Cada estilo de la carta (fondos oscuros, tarjetas, portada…) con el mismo escaneo: contraste incluido.
 {
   const ESTILOS = [

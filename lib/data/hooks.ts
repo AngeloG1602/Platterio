@@ -26,6 +26,7 @@ import type {
   Order,
   Preparation,
   Recipe,
+  StockCount,
   TableSession,
   TimeSlot,
 } from "@/lib/domain/types";
@@ -88,6 +89,10 @@ const NO_MOVES: InventoryMove[] = [];
 export const useInventory = () => useAppStore((s) => s.inventory ?? NO_ITEMS);
 /** Movimientos de inventario (el más reciente al final). */
 export const useInventoryMoves = () => useAppStore((s) => s.inventoryMoves ?? NO_MOVES);
+const NO_COUNTS: StockCount[] = [];
+/** Conteos físicos del inventario (el más reciente al final). */
+export const useStockCounts = () => useAppStore((s) => s.stockCounts ?? NO_COUNTS);
+
 const NO_PREPS: Preparation[] = [];
 /** Preparaciones por lote. */
 export const usePreparations = () => useAppStore((s) => s.preparations ?? NO_PREPS);

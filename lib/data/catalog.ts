@@ -89,6 +89,8 @@ export const INVENTORY: InventoryItem[] = [
     qty: 24,
     threshold: 6,
     link: { dishId: "gaseosa", variantId: "400ml" },
+    cost: 1800,
+    purchase: { unit: "caja", factor: 24 },
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
@@ -98,6 +100,8 @@ export const INVENTORY: InventoryItem[] = [
     qty: 4,
     threshold: 4,
     link: { dishId: "gaseosa", variantId: "1-5l" },
+    cost: 3900,
+    purchase: { unit: "paquete", factor: 6 },
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
@@ -106,6 +110,8 @@ export const INVENTORY: InventoryItem[] = [
     unit: "kg",
     qty: 20,
     threshold: 3,
+    cost: 22000,
+    purchase: { unit: "bulto", factor: 25 },
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
@@ -114,6 +120,8 @@ export const INVENTORY: InventoryItem[] = [
     unit: "unidades",
     qty: 80,
     threshold: 12,
+    cost: 600,
+    purchase: { unit: "paquete", factor: 12 },
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
@@ -122,6 +130,7 @@ export const INVENTORY: InventoryItem[] = [
     unit: "kg",
     qty: 8,
     threshold: 2,
+    cost: 6500,
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
@@ -130,6 +139,7 @@ export const INVENTORY: InventoryItem[] = [
     unit: "kg",
     qty: 12,
     threshold: 3,
+    cost: 3800,
     createdAt: "2026-08-01T12:00:00.000Z",
   },
   {
@@ -147,6 +157,7 @@ export const INVENTORY: InventoryItem[] = [
     unit: "botellas",
     qty: 30,
     threshold: 8,
+    cost: 1000,
     createdAt: "2026-08-01T12:00:00.000Z",
   },
 ];

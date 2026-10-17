@@ -271,6 +271,11 @@ export interface ItemDraft {
   threshold: string;
   dishId: string;
   variantId: string;
+  /** Pesos por unidad de uso; vacío si no se sabe. */
+  cost: string;
+  /** Unidad en que se compra («caja») y a cuántas unidades de uso equivale; vacío si no aplica. */
+  purchaseUnit: string;
+  purchaseFactor: string;
 }
 
 export type ItemErrors = Partial<Record<keyof ItemDraft, string>>;
@@ -282,6 +287,9 @@ export const emptyItemDraft = (): ItemDraft => ({
   threshold: "5",
   dishId: "",
   variantId: "",
+  cost: "",
+  purchaseUnit: "",
+  purchaseFactor: "",
 });
 
 /** Número con hasta 3 decimales, con coma o punto ("1,5"); NaN si no lo es. */
@@ -308,6 +316,16 @@ export function validateItem(
   const threshold = toCount(draft.threshold);
   if (!Number.isFinite(threshold) || threshold > 100_000)
     errors.threshold = "Escribe desde cuántas unidades avisar (0 o más)";
+  const costText = draft.cost.trim();
+  if (costText && !Number.isFinite(parseQty(costText)))
+    errors.cost = "Escribe el costo en pesos por unidad (hasta 3 decimales)";
+  const pUnit = draft.purchaseUnit.trim();
+  const pFactor = draft.purchaseFactor.trim();
+  if (pUnit || pFactor) {
+    if (!pUnit) errors.purchaseUnit = "Escribe la unidad de compra (caja, bulto…)";
+    else if (!(parseQty(pFactor) > 0))
+      errors.purchaseFactor = "Escribe a cuántas unidades equivale (mayor que cero)";
+  }
   if (draft.dishId) {
     const clash = items.find(
       (i) =>
@@ -327,6 +345,14 @@ const slug = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "producto";
+
+/** Costo y unidad de compra del borrador, listos para guardar (omitidos si están vacíos). */
+const priceFields = (draft: ItemDraft): Pick<InventoryItem, "cost" | "purchase"> => ({
+  ...(draft.cost.trim() ? { cost: parseQty(draft.cost) } : {}),
+  ...(draft.purchaseUnit.trim()
+    ? { purchase: { unit: draft.purchaseUnit.trim(), factor: parseQty(draft.purchaseFactor) } }
+    : {}),
+});
 
 const linkOf = (draft: ItemDraft): InventoryItem["link"] =>
   draft.dishId
@@ -355,6 +381,7 @@ export function addItem(
     qty,
     threshold: toCount(draft.threshold),
     ...(link ? { link } : {}),
+    ...priceFields(draft),
     createdAt: now,
   };
   const moves =
@@ -387,14 +414,17 @@ export function updateItem(
   if (Object.keys(validateItem({ ...draft, qty: "0" }, state.items, itemId)).length > 0)
     return { ok: false, error: "Revisa los datos del producto" };
   const link = linkOf(draft);
-  const { link: _old, ...rest } = item;
+  const { link: _old, cost: _cost, purchase: _purchase, ...rest } = item;
   void _old;
+  void _cost;
+  void _purchase;
   const next: InventoryItem = {
     ...rest,
     name: draft.name.trim().replace(/\s+/g, " "),
     unit: draft.unit.trim(),
     threshold: toCount(draft.threshold),
     ...(link ? { link } : {}),
+    ...priceFields(draft),
   };
   return {
     ok: true,
@@ -419,7 +449,14 @@ export const MANUAL_REASONS: Record<ManualKind, readonly string[]> = {
  */
 export function registerMove(
   state: InventoryState,
-  input: { itemId: string; kind: ManualKind; amount: number; reason: string },
+  input: {
+    itemId: string;
+    kind: ManualKind;
+    amount: number;
+    reason: string;
+    /** Solo en entradas: lo que se pagó por todo. Actualiza el costo por unidad. */
+    totalPrice?: number;
+  },
   by: string,
   now: string,
   moveId: string,
@@ -458,7 +495,11 @@ export function registerMove(
     balance: qty,
     ...(reason ? { reason } : {}),
   };
-  const next = withMove(state, move, { ...item, qty });
+  const price = input.totalPrice;
+  if (price !== undefined && (!Number.isFinite(price) || price < 0))
+    return { ok: false, error: "Escribe el precio pagado en pesos" };
+  const cost = kind === "entrada" && price && amount > 0 ? round3(price / amount) : item.cost;
+  const next = withMove(state, move, { ...item, qty, ...(cost !== undefined ? { cost } : {}) });
   return { ok: true, value: { items: next.items, moves: capMoves(next.moves) } };
 }
 

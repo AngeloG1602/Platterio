@@ -9,11 +9,16 @@ import {
   Pencil,
   Plus,
   SlidersHorizontal,
+  Upload,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { describePeriod, PeriodFilter, usePeriod } from "@/components/admin/ui/period-filter";
 import { Panel } from "@/components/admin/ui/page-header";
 import { StatTile } from "@/components/admin/ui/stat-tile";
+import { CostsPanel } from "./costs-panel";
+import { CountPanel } from "./count-panel";
+import { downloadCsv as download } from "./download";
+import { ImportDialog } from "./import-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/chip";
 import { Dialog } from "@/components/ui/dialog";
@@ -29,7 +34,6 @@ import {
   useInventory,
   useInventoryMoves,
 } from "@/lib/data";
-import { toCsv } from "@/lib/domain/cash";
 import { formatDay, formatTime, plural } from "@/lib/domain/format";
 import {
   emptyItemDraft,
@@ -37,6 +41,7 @@ import {
   fmtQty,
   limitingItem,
   parseQty,
+  round3,
   recipePortions,
   recipeToDraft,
   type RecipeDraft,
@@ -67,17 +72,7 @@ import type {
   Recipe,
 } from "@/lib/domain/types";
 
-type View = "existencias" | "preparaciones" | "recetas" | "movimientos";
-
-function download(name: string, rows: (string | number | null)[][]) {
-  const blob = new Blob(["﻿" + toCsv(rows)], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+type View = "existencias" | "preparaciones" | "recetas" | "conteo" | "costos" | "movimientos";
 
 const LEVEL_TONE = { agotado: "danger", poco: "warning", bien: "success" } as const;
 
@@ -99,21 +94,27 @@ export function InventoryPanel() {
 
   return (
     <>
-      <Segmented
-        label="Vista del inventario"
-        value={view}
-        onChange={setView}
-        className="w-full sm:w-[36rem]"
-        options={[
-          { value: "existencias", label: "Existencias" },
-          { value: "preparaciones", label: "Preparaciones" },
-          { value: "recetas", label: "Recetas" },
-          { value: "movimientos", label: "Movimientos" },
-        ]}
-      />
+      <div className="overflow-x-auto">
+        <Segmented
+          label="Vista del inventario"
+          value={view}
+          onChange={setView}
+          className="w-full min-w-[46rem]"
+          options={[
+            { value: "existencias", label: "Existencias" },
+            { value: "preparaciones", label: "Preparaciones" },
+            { value: "recetas", label: "Recetas" },
+            { value: "conteo", label: "Conteo" },
+            { value: "costos", label: "Costos" },
+            { value: "movimientos", label: "Movimientos" },
+          ]}
+        />
+      </div>
       {view === "existencias" && <Stock items={items} />}
       {view === "preparaciones" && <Preparations items={items} />}
       {view === "recetas" && <Recipes items={items} />}
+      {view === "conteo" && <CountPanel items={items} />}
+      {view === "costos" && <CostsPanel />}
       {view === "movimientos" && <Movements items={items} />}
     </>
   );
@@ -125,6 +126,7 @@ function Stock({ items }: { items: readonly InventoryItem[] }) {
   const dishes = useDishes();
   const [editing, setEditing] = useState<InventoryItem | "nuevo" | null>(null);
   const [moving, setMoving] = useState<{ item: InventoryItem; kind: ManualKind } | null>(null);
+  const [importing, setImporting] = useState(false);
   const low = items.filter((i) => stockLevel(i) === "poco").length;
   const out = items.filter((i) => stockLevel(i) === "agotado").length;
   const dishName = (item: InventoryItem) => {
@@ -156,9 +158,14 @@ function Stock({ items }: { items: readonly InventoryItem[] }) {
         title="Existencias"
         description="Lo que está vinculado a un plato baja solo cuando el mesero confirma el pedido y vuelve si se rechaza o se quita."
         action={
-          <Button size="sm" onClick={() => setEditing("nuevo")}>
-            <PackagePlus aria-hidden /> Agregar producto
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setImporting(true)}>
+              <Upload aria-hidden /> Cargar desde archivo
+            </Button>
+            <Button size="sm" onClick={() => setEditing("nuevo")}>
+              <PackagePlus aria-hidden /> Agregar producto
+            </Button>
+          </div>
         }
       >
         {items.length === 0 ? (
@@ -244,6 +251,7 @@ function Stock({ items }: { items: readonly InventoryItem[] }) {
         />
       )}
       {moving && <MoveDialog {...moving} onClose={() => setMoving(null)} />}
+      {importing && <ImportDialog mode="productos" onClose={() => setImporting(false)} />}
     </>
   );
 }
@@ -269,11 +277,17 @@ function MoveDialog({
   const [reason, setReason] = useState(reasons[0]!);
   const [detail, setDetail] = useState("");
   const [error, setError] = useState<string>();
+  // Si el producto se compra en cajas o bultos, la entrada se puede escribir en esa unidad.
+  const [inPurchase, setInPurchase] = useState(false);
+  const [price, setPrice] = useState("");
+  const factor = kind === "entrada" && inPurchase && item.purchase ? item.purchase.factor : 1;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = detail.trim() ? `${reason}: ${detail.trim()}` : reason;
-    const r = inventoryActions.move(item.id, kind, parseQty(amount), text);
+    const units = Number.isFinite(parseQty(amount)) ? round3(parseQty(amount) * factor) : NaN;
+    const total = price.trim() ? parseQty(price.replace(/[$\s]/g, "")) : undefined;
+    const r = inventoryActions.move(item.id, kind, units, text, total);
     if (!r.ok) return setError(r.error);
     toast.success(`${copy.title} de ${item.name} registrada`);
     onClose();
@@ -310,6 +324,43 @@ function MoveDialog({
             />
           )}
         </Field>
+        {kind === "entrada" && item.purchase && (
+          <Field
+            label="Cantidad en"
+            hint={
+              inPurchase
+                ? `Cada ${item.purchase.unit} equivale a ${fmtQty(item.purchase.factor)} ${item.unit}.`
+                : undefined
+            }
+          >
+            {(p) => (
+              <Select
+                {...p}
+                value={inPurchase ? "compra" : "uso"}
+                onChange={(e) => setInPurchase(e.target.value === "compra")}
+              >
+                <option value="uso">{item.unit}</option>
+                <option value="compra">{item.purchase!.unit}</option>
+              </Select>
+            )}
+          </Field>
+        )}
+        {kind === "entrada" && (
+          <Field
+            label="Precio pagado por todo"
+            optional
+            hint="Si lo escribes, el costo por unidad se actualiza."
+          >
+            {(p) => (
+              <Input
+                {...p}
+                inputMode="numeric"
+                value={price}
+                onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ""))}
+              />
+            )}
+          </Field>
+        )}
         <Field label="Motivo">
           {(p) => (
             <Select {...p} value={reason} onChange={(e) => setReason(e.target.value)}>
@@ -345,6 +396,9 @@ function ItemDialog({
           threshold: fmtQty(item.threshold),
           dishId: item.link?.dishId ?? "",
           variantId: item.link?.variantId ?? "",
+          cost: item.cost === undefined ? "" : fmtQty(item.cost),
+          purchaseUnit: item.purchase?.unit ?? "",
+          purchaseFactor: item.purchase ? fmtQty(item.purchase.factor) : "",
         }
       : emptyItemDraft(),
   );
@@ -420,6 +474,47 @@ function ItemDialog({
             )}
           </Field>
         )}
+        <Field
+          label="Costo por unidad"
+          optional
+          hint={`Pesos por ${draft.unit.trim() || "unidad"}. Sirve para calcular el costo de cada plato.`}
+          error={errors.cost}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              inputMode="decimal"
+              value={draft.cost}
+              onChange={(e) => set({ cost: e.target.value.replace(/[^\d.,]/g, "") })}
+            />
+          )}
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Unidad de compra" optional error={errors.purchaseUnit}>
+            {(p) => (
+              <Input
+                {...p}
+                placeholder="caja, bulto…"
+                value={draft.purchaseUnit}
+                onChange={(e) => set({ purchaseUnit: e.target.value })}
+              />
+            )}
+          </Field>
+          <Field
+            label={`Equivale a (${draft.unit.trim() || "unidades"})`}
+            optional
+            error={errors.purchaseFactor}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                inputMode="decimal"
+                value={draft.purchaseFactor}
+                onChange={(e) => set({ purchaseFactor: e.target.value.replace(/[^\d.,]/g, "") })}
+              />
+            )}
+          </Field>
+        </div>
         <Field label="Se descuenta del plato" optional error={errors.dishId}>
           {(p) => (
             <Select
@@ -865,6 +960,7 @@ function Recipes({ items }: { items: readonly InventoryItem[] }) {
   const dishes = useDishes();
   const [editing, setEditing] = useState<Recipe | "nueva" | null>(null);
   const [removing, setRemoving] = useState<Recipe | null>(null);
+  const [importing, setImporting] = useState(false);
   const label = (r: Recipe) => {
     const dish = dishes.find((d) => d.id === r.dishId);
     const variant = dish?.variants.find((v) => v.id === r.variantId);
@@ -877,9 +973,14 @@ function Recipes({ items }: { items: readonly InventoryItem[] }) {
         title="Recetas"
         description="Con la receta, cada plato gasta sus ingredientes clave al confirmarse. Si falta uno, el plato queda agotado. El tope diario limita cuántos se venden por día."
         action={
-          <Button size="sm" onClick={() => setEditing("nueva")}>
-            <ChefHat aria-hidden /> Agregar receta
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setImporting(true)}>
+              <Upload aria-hidden /> Cargar desde archivo
+            </Button>
+            <Button size="sm" onClick={() => setEditing("nueva")}>
+              <ChefHat aria-hidden /> Agregar receta
+            </Button>
+          </div>
         }
       >
         {recipes.length === 0 ? (
@@ -944,6 +1045,7 @@ function Recipes({ items }: { items: readonly InventoryItem[] }) {
           </div>
         )}
       </Panel>
+      {importing && <ImportDialog mode="recetas" onClose={() => setImporting(false)} />}
       {editing && (
         <RecipeDialog
           recipe={editing === "nueva" ? null : editing}

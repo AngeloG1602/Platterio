@@ -487,6 +487,10 @@ export interface InventoryItem {
   threshold: number;
   /** Plato (y variante, si aplica) que consume este producto al venderse. Sin vínculo: solo se lleva la cuenta. */
   link?: { dishId: string; variantId?: string };
+  /** Lo que cuesta una unidad de uso (pesos por kg, por botella…). Sirve para el costo por plato. */
+  cost?: number;
+  /** Cómo se compra: «caja» que trae 24 unidades. Las entradas se pueden escribir en esa unidad. */
+  purchase?: { unit: string; factor: number };
   createdAt: string;
 }
 
@@ -575,4 +579,23 @@ export interface Preparation {
   /** Ingredientes que gasta un lote. Pueden ser también porciones de otra preparación (sub-recetas). */
   lines: { itemId: string; qty: number }[];
   createdAt: string;
+}
+
+/** Un conteo físico del inventario (o el cierre del día): lo esperado frente a lo contado. */
+export interface StockCount {
+  id: string;
+  at: string;
+  by: string;
+  /** «cierre» cuenta solo las porciones de las preparaciones al terminar el día. */
+  scope: "todo" | "cierre";
+  lines: {
+    itemId: string;
+    name: string;
+    unit: string;
+    expected: number;
+    counted: number;
+    /** Contado menos esperado: negativo es faltante. */
+    diff: number;
+    cost?: number;
+  }[];
 }

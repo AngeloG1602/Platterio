@@ -48,6 +48,12 @@ export const AUDIT_ACTIONS = {
   "inventario.preparacion": { label: "Guardó una preparación", area: "Inventario" },
   "inventario.preparacion_quitar": { label: "Quitó una preparación", area: "Inventario" },
   "inventario.producir": { label: "Registró una producción", area: "Inventario" },
+  "inventario.conteo": { label: "Registró un conteo de inventario", area: "Inventario" },
+  "inventario.calibrar": { label: "Ajustó recetas según un conteo", area: "Inventario" },
+  "inventario.importar": {
+    label: "Cargó datos de inventario desde un archivo",
+    area: "Inventario",
+  },
   "inventario.ajuste": { label: "Ajustó el inventario", area: "Inventario" },
   "equipo.crear": { label: "Creó un usuario", area: "Equipo" },
   "equipo.editar": { label: "Editó un usuario", area: "Equipo" },

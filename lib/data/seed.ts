@@ -13,6 +13,7 @@ import type {
   InventoryItem,
   InventoryMove,
   Preparation,
+  StockCount,
   Recipe,
   Order,
   Payment,
@@ -88,6 +89,8 @@ export interface AppData {
   recipes: Recipe[];
   /** Preparaciones por lote: lo que gasta cada lote y cuántas porciones rinde. */
   preparations: Preparation[];
+  /** Conteos físicos del inventario y cierres del día; solo se agregan. */
+  stockCounts: StockCount[];
   /** Facturas (comprobantes) de las cuentas saldadas; solo se agregan. */
   invoices: Invoice[];
   demo: DemoSettings;
@@ -132,6 +135,7 @@ export function createSeedState(now: number): AppData {
     inventoryMoves: [],
     recipes: clone(RECIPES),
     preparations: clone(PREPARATIONS),
+    stockCounts: [],
     invoices: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };
