@@ -609,3 +609,202 @@ pueden cambiar sin rehacer pantallas.
       Digital oculta Salón/Caja/Mesas, Calificaciones y Reportes, y `teamActions.add` respeta el tope.
       El cumplimiento real (por cuenta y cobro) llega con la base de datos en la fase 9. Pendiente:
       aviso en `/mesa` y `/mesero` cuando el plan no incluye salón.
+144.  **Video de presentación (10 de octubre).** Se produce con código en `video/`: capturas reales
+      de la demo con Playwright, animación HTML determinista grabada cuadro a cuadro, voz sintetizada
+      local (Kokoro, `ef_dora`) y música y efectos propios generados con numpy (sin derechos de
+      terceros). Dos formatos: horizontal 16:9 y vertical 9:16 con subtítulos quemados; ~2:10. Sin
+      precios ni cifras prometidas; menciona la prueba de 7 días y los dos planes. La voz neuronal
+      colombiana de Microsoft sonaría más natural, pero la red del entorno la bloquea. La dirección
+      del cierre (`sitio` en `video/guion.json`) debe confirmarse antes de publicar.
+145.  **Cocina ágil (bloque 1 de las mejoras de la entrevista; reemplaza las decisiones 45, 46 y 47).**
+      (a) Confirmar el mesero ya manda la ronda a la cocina **en preparación**: `transitionOrder`
+      sella `confirmedAt` y `preparingAt` con la misma hora y la cocina no marca un paso intermedio.
+      El cliente sigue viendo "Confirmado" y "En preparación" en su línea de tiempo, sin tiempos
+      estimados. El estado `confirmado` se conserva solo para pedidos guardados antes del cambio
+      (la cocina los puede dar por listos), así que no hubo que subir la versión de los datos.
+      (b) La cocina es **una sola cola** en orden de llegada, a pantalla completa, con un único
+      botón "Listo". Una segunda vista, "Hechos", lista lo último que se marcó listo (máx. 30)
+      para consultar si faltó algo. (c) Una ronda es **adicional** si su mesa ya mandó otra ronda
+      anterior a la cocina (aunque ya esté entregada): se marca en rojo con la etiqueta "Adicional"
+      y no cambia su lugar en la cola. El retraso (20 min) pasó de rojo a ámbar con la palabra
+      "Atrasado", para que el rojo signifique una sola cosa; ningún color va sin texto.
+      (d) `kitchenLayout` reparte los pedidos en columnas y baja el tamaño de la letra según
+      cuántos hay (1-3 grande, 4-6 media, 7-12 compacta, más de 12 mínima): 12 pedidos caben
+      en 1280 por 800 sin desplazarse (`npm run e2e:cocina`); si aun así hay más, un aviso dice
+      que quedan pedidos más abajo. (e) Los domicilios confirmados por caja también pasan directo
+      a "Preparando" y el cliente lee "Tu pedido está confirmado y lo estamos preparando".
+146.  **Cobro obligatorio (bloque 2 de las mejoras de la entrevista; reemplaza la decisión 109).**
+      (a) Una mesa con saldo por cobrar **no se cierra de ninguna forma**: ni "Liberar mesa" (el
+      mensaje dice cuánto falta: "La mesa tiene $51.300 por cobrar. Se cobra en caja antes de
+      liberarla."), ni "Cancelar mesa" (lo ya entregado se cobra; las rondas sin entregar sí se
+      rechazan y dejan de contar), ni el cierre por inactividad. Se queda abierta y "por cobrar".
+      La salida para quien se fue sin pagar llegará con el crédito y la cortesía autorizados
+      (bloque 5). (b) **Liberación al pagar:** cuando el último pago deja la cuenta en cero y no hay
+      rondas por entregar, la mesa se libera sola (`closeReason: "pagada"`); un pago parcial no la
+      libera, ni una mesa sin consumo, ni un domicilio. Se revisa al registrar el pago y en cada
+      ciclo del vigilante (si lo último que faltaba era entregar). Riesgo conocido: el cliente que
+      paga antes de calificar pierde la sesión; queda por decidir cómo invitarlo a calificar al
+      pagar. (c) **Caja cerrada:** las mesas por cobrar se ven igual, con el aviso "Abre la caja para
+      cobrarlas"; cobrar sigue exigiendo un turno abierto (decisión 108). Cerrar la caja con mesas
+      por cobrar se permite y esas mesas siguen por cobrar en el turno siguiente. El mesero que
+      entrega con la caja cerrada recibe el aviso "queda por cobrar". (d) El reporte muestra
+      "Por cobrar" = mesas abiertas con saldo + mesas cerradas sin cobro (las antiguas).
+147.  **Auditoría (bloque 3 de las mejoras de la entrevista).** Registro único de acciones
+      (`lib/domain/audit.ts`, guardado en el estado como `audit`): persona, rol, acción, sobre qué,
+      detalle, motivo y quién autorizó. Se registra desde la capa de acciones, después de que la
+      acción se aplicó (una acción rechazada no deja registro): confirmar, rechazar, entregar,
+      tomar, ajustar y editar pedidos; marcar listo en cocina; abrir, cancelar y liberar mesas;
+      despachar domicilios; abrir y cerrar caja y cada cobro; y crear, editar, activar y desactivar
+      usuarios. Lo automático (mesa liberada al pagarse, cierre por inactividad) queda a nombre de
+      "Sistema". El campo `authorizedBy` ya existe para el cambio de mesa, el crédito y la
+      cortesía. Solo se agrega (sin edición ni borrado desde la interfaz) y guarda las últimas
+      1.500 entradas. Se consulta en Admin → Auditoría, solo para el administrador (el panel ya
+      lo exige), con periodo, área, persona y búsqueda sin tildes, y descarga CSV. No hizo falta
+      subir la versión de los datos: los guardados antes no traen el campo y arrancan vacíos.
+148.  **Cambio de mesa (bloque 4 de las mejoras de la entrevista).** (a) En la hoja de la mesa,
+      "Cambiar de mesa" pasa la **misma sesión** a una mesa libre: comensales, PIN, carrito,
+      rondas, cobros y cambios (`transferSession`). La mesa de origen queda libre por sí sola
+      porque ya no tiene sesión, y su QR abre una sesión nueva. Lo hace quien opera la mesa de
+      origen (su mesero, el encargado o el administrador); el cliente no. Puede pasarla a
+      cualquier mesa libre, aunque sea de otro mesero: desde ese momento la ve el mesero de la
+      mesa nueva. (b) El celular del cliente lo detecta (`movedTableFor`: el dispositivo está en
+      una sesión abierta con un cambio que sale de esta mesa) y lo lleva a la misma pantalla de
+      la mesa nueva, con el aviso "Te pasamos a la Mesa N", sin escanear ni pedir otro PIN.
+      (c) La sesión guarda `transfers` (de qué mesa a cuál, cuándo y quién), y la auditoría
+      registra "Pasó una mesa a otra" con "Mesa 1 → Mesa 2". No pide motivo, solo queda quién
+      lo hizo. (d) Corrección de la hoja "Liberar mesa": ya no dice que se puede cerrar con saldo
+      (decisión 146); con saldo muestra cuánto falta y deshabilita la confirmación.
+149.  **Crédito y cortesías (bloque 5 de las mejoras de la entrevista).** (a) **Personas con
+      cuenta** (`CreditAccount`): nombre completo (único, sin distinguir tildes), tipo (empleado,
+      dueño o familia, cliente especial), cédula o NIT y celular opcionales, y un tope opcional
+      de lo que pueden deber. Se administran en Caja → Crédito; se pueden desactivar (no recibir
+      más crédito) pero no borrar, para conservar el historial. La cédula es para que la cuenta,
+      y luego la factura, salgan a su nombre. (b) **Cerrar una cuenta a crédito o como cortesía**
+      se hace en la hoja de cobro ("Cobrar / A crédito / Cortesía"). Se guardan como un `Payment`
+      con `kind`, así el saldo de la mesa baja, se puede repartir (una parte pagada, otra a
+      crédito, otra cortesía) y la mesa se libera sola igual que si hubiera pagado (decisión 146).
+      No cuentan como dinero cobrado: `isCashPayment` los deja fuera del turno y del reporte
+      de cobros. Exigen permiso de cobrar (encargado y administrador, no el mesero), turno
+      abierto y que el valor no pase lo que falta; el crédito exige una persona activa y respeta
+      su tope; la cortesía exige un motivo (dueño o familia, atención al cliente, error del
+      servicio, otro) y puede ir a nombre de una persona. Quien lo registra es quien lo autoriza
+      y queda en el registro y en la auditoría ("Autorizó"). (c) **Abonos** (`CreditPayment`):
+      se paga todo o una parte, en efectivo, tarjeta, transferencia u "Descuento de nómina". Los
+      tres primeros exigen caja abierta y entran al turno; el descuento de nómina no mueve la
+      caja. Cada persona tiene su estado de cuenta (créditos con mesa, fecha y quién autorizó, y
+      abonos) con descarga en CSV. (d) **Reportes:** el panel "Crédito y cortesías" muestra
+      crédito otorgado, abonos, cortesías (gasto) y lo que se debe hoy, aparte del dinero
+      cobrado. (e) **Sincronización:** los cobros, los abonos y la auditoría solo crecen, así que
+      al llegar el estado de otra pestaña se mezclan por `id` (`unionById`) en lugar de
+      reemplazarse: una pestaña con datos viejos ya no borra un registro recién agregado
+      (se vio en el e2e con la auditoría). Las liberaciones y cierres automáticos usan un `id`
+      fijo en la auditoría para no repetirse si varias pestañas los hacen a la vez.
+
+150. **Historial de pedidos y carga de trabajo (mejoras, bloque 6).** (a) Nueva pantalla
+     «Pedidos» en el panel del administrador y como pestaña en Caja: lista cada ronda con
+     número (`M3-R1` o código de domicilio), mesa, mesero, platos, total, estado y estado de la
+     cuenta (por cobrar, cobrado, crédito, cortesía). (b) Filtros de tiempo (RF-38): últimos 10
+     min, última hora, últimas 24 h, por días u otro lapso; días de la semana (lunes = 0) y varias
+     franjas de horas del día (el fin no cuenta; una franja puede cruzar la medianoche). Además
+     mesa, mesero, estado, cuenta y búsqueda por texto; descarga en CSV. (c) «Carga de trabajo»:
+     mapa de calor día × hora medido en pedidos o en ventas, con día, hora y franja más
+     movidos. (d) Toda la lógica está en `lib/domain/orderHistory.ts` (funciones puras con
+     pruebas); la pantalla solo la usa y pagina de 100 en 100.
+
+151. **Inventario etapa 1 y rol de despensa (mejoras, bloque 7).** (a) Producto de inventario =
+     nombre, unidad, existencias, umbral de aviso y, opcional, el plato (y la opción) que
+     consume. Sin vínculo solo lleva la cuenta. Función `inventario` del plan Completo.
+     (b) **Descuento:** la ronda tiene descontado su stock mientras esté confirmada (en
+     preparación, lista o entregada). `syncOrderStock` compara lo que la ronda necesita con lo que
+     ya tiene descontado (suma de sus movimientos) y mueve solo la diferencia; así confirmar,
+     editar, quitar un ítem, rechazar o anular siempre dejan el inventario correcto sin descontar
+     dos veces. Los ids de los movimientos son fijos por ronda y producto, para que dos pestañas
+     no dupliquen. Si no alcanza, la acción falla entera con el mensaje (el stock nunca queda
+     negativo, RNF-06). Los pedidos del personal, que van directo a cocina, descuentan al
+     crearse; los del cliente, al confirmar el mesero. Al cancelar una mesa las rondas rechazadas
+     devuelven su stock. (c) **Agotado:** con existencias en cero la carta marca el plato
+     «Agotado» (cuando lo están todas sus opciones), no se puede agregar al carrito ni al pedido
+     a domicilio, y la toma de pedidos del personal no deja pedirlo ni más de lo que hay.
+     (d) Movimientos manuales: entrada, salida y ajuste (el ajuste es la cantidad contada y guarda
+     la diferencia); salida y ajuste exigen motivo; todo queda con persona y hora, y en la
+     auditoría (nueva área «Inventario»). (e) **Rol `despensa`:** solo el permiso `inventario`
+     (entra a `/inventario`, PIN de 4 a 6 dígitos); administrador y encargado también lo tienen y
+     lo ven en `/admin/inventario` y en la pestaña «Inventario» de Caja. El encargado puede crear
+     usuarios de despensa. (f) El resumen del administrador avisa los productos en su límite o
+     agotados. Informe de movimientos por periodo, producto y tipo, con CSV (RF-29b). (g) La demo
+     siembra gaseosas (una en poco stock) y el usuario Rosa; se sube `DATA_VERSION` a 8.
+     (h) Pendiente para la etapa 2: inventario por receta.
+
+152. **Facturas guardadas y reimprimibles (mejoras, bloque 8).** (a) Al quedar saldada una cuenta
+     (mesa, domicilio o para recoger) por cobro, crédito o cortesía, se genera y guarda un
+     comprobante con consecutivo del negocio (`F-0001`). Es una foto de lo cobrado (platos, envío,
+     total, formas de pago, mesero, cliente si lo hay), así que no cambia si luego cambian la
+     carta o los precios. Hay una sola por cuenta (su id sale de la sesión). Cuando una cuenta
+     se salda en varios pagos, el comprobante sale con el último. (b) Se consulta en Caja
+     («Facturas») y en el panel del administrador, con búsqueda por número, mesa, cliente o plato,
+     periodo y CSV. (c) **Impresión:** desde el navegador, con una página propia de
+     comprobante (80 mm) en un marco oculto; reimprimir deja constancia en la auditoría. La
+     conexión directa a una impresora térmica del negocio (ESC/POS por red o USB) queda para la
+     instalación real. (d) **No es factura electrónica de venta:** el comprobante lo dice. La
+     factura electrónica ante la DIAN exige un proveedor tecnológico autorizado y numeración
+     autorizada; queda como investigación del bloque 9. (e) Pendiente al pasar a base de datos: el
+     consecutivo debe asignarlo el servidor para que no se repita entre dispositivos.
+
+153. **Inventario por receta y factura electrónica (mejoras, bloque 9).** (a) **Recetas:** un plato
+     (o una de sus opciones) puede tener una receta con sus ingredientes clave y lo que gasta
+     cada unidad, en decimales (0,15 kg de carne). Se descuentan al confirmar, con el mismo
+     mecanismo de la etapa 1, y se devuelven si se rechaza o se quita el plato. Las cantidades se
+     redondean a milésimas para no acumular error. Entradas, salidas y ajustes aceptan decimales
+     con coma o punto. (b) **Agotado:** el plato queda agotado cuando falta cualquier ingrediente
+     clave de su receta (la receta lista solo los ingredientes clave, así que no hay
+     ingredientes opcionales). La pantalla muestra «alcanza para N platos» y qué ingrediente se
+     acaba primero. (c) **Tope diario:** cada receta puede limitar cuántas unidades se venden al
+     día; cuenta las rondas confirmadas del día y se aplica al pedir y al confirmar. (d) Las
+     recetas las editan despensa, encargado y administrador, y quedan en la auditoría. La demo
+     siembra carne y pan y las recetas de la Clásica 27 (`DATA_VERSION` 9). (e) **Factura
+     electrónica:** no se implementa en el prototipo. La investigación está en
+     `docs/mejoras/FACTURA-ELECTRONICA.md`: requiere proveedor autorizado, numeración de la DIAN,
+     datos fiscales e impuestos por plato, y servidor; queda para la fase de base de datos.
+
+154. **Preparaciones por lote y producción (mejoras, bloque 10A).** (a) **El problema:** en platos
+     que se cocinan por lote (lasaña, sopa, arroz) el gasto real ocurre al preparar, no al vender,
+     y descontar ingredientes por venta deja datos falsos. (b) **Preparación:** receta de lote con
+     lo que gasta y lo que rinde. Crea un producto de inventario de «porciones» (u otra unidad)
+     vinculado al plato; así el agotado, los avisos de poco stock, los ajustes y el informe de
+     movimientos funcionan igual que con cualquier producto. (c) **Producción:** registrar N lotes
+     gasta los ingredientes y suma las porciones, todo o nada (si falta un ingrediente no cambia
+     nada), con movimientos de tipo «Producción» y registro en la auditoría. (d) **Venta:** cada
+     pedido de un plato por lote descuenta una porción, no ingredientes; sin porciones el plato
+     queda agotado. Un plato por lote no puede tener además una receta por venta (se evitan
+     descuentos dobles). (e) **Sub-recetas:** una preparación puede gastar porciones de otra (la
+     salsa de la lasaña); no se permiten ciclos ni quitar una preparación que otra usa. Quitar
+     una preparación conserva sus porciones. (f) **Quién:** nuevo permiso `produccion` para
+     administrador, encargado, despensa y cocina (la cocina lo registra desde un botón en su
+     tablero); crear y editar preparaciones es del permiso `inventario`. (g) El motivo de salida
+     «Sobró del día» sirve para anotar la merma de lo preparado y no vendido (el cierre del día
+     completo queda para el 10B). (h) La demo siembra fríjol, arroz y la preparación del
+     calentado (`DATA_VERSION` 10). Pendiente: conteo físico y desviaciones, carga masiva,
+     conversión de unidades y costo por plato (10B).
+
+155. **Conteo, desviaciones, costos y carga masiva (mejoras, bloque 10B).** (a) **Conteo físico:**
+     se escribe lo contado (lo que se deja vacío no se cuenta) y cada diferencia con el sistema
+     queda como un ajuste «Conteo físico» con nombre y hora; es todo o nada y se guarda el conteo
+     (esperado, contado, diferencia) para consultarlo. **Cierre del día:** el mismo mecanismo
+     sobre las porciones de las preparaciones, con la opción de dar de baja lo que sobró (salida
+     «Sobró del día»). (b) **Desviaciones:** por producto, lo que faltó en los conteos frente a lo
+     que el sistema dice que se gastó (pedidos y producción) desde el conteo anterior; con el
+     costo, el valor del faltante. El primer conteo compara contra todo lo gastado desde el inicio,
+     así que al principio el porcentaje es más bajo. (c) **Calibración:** con al menos dos conteos
+     y una desviación sostenida del 5 % o más, el sistema propone subir (o bajar) las cantidades de
+     las recetas y preparaciones que usan el producto, y el dueño lo acepta con un botón; nada se
+     ajusta solo. (d) **Costos:** cada producto tiene costo por unidad de uso y, opcional, unidad de
+     compra (caja de 24, bulto de 25 kg). Una entrada puede escribirse en la unidad de compra y,
+     si se anota el precio pagado, el costo por unidad se actualiza al último precio. El costo de
+     una porción sale de lo que gasta un lote entre lo que rinde (con sub-recetas). El costo por
+     plato suma lo que gasta su receta; si a un ingrediente le falta el costo se marca «Faltan
+     costos» en lugar de mostrar una cifra engañosa. (e) **Carga masiva:** productos y recetas
+     desde CSV de Excel (separador coma, punto y coma o tabulador, con o sin tildes, plantilla
+     descargable) con vista previa fila por fila; los productos que ya existen se omiten y las
+     recetas del mismo plato y opción se reemplazan. Solo se cargan las filas válidas. (f) Todo
+     queda en la auditoría. La demo siembra costos y unidades de compra. Sin IA: lo que sigue
+     (borradores de recetas, pronóstico) va con el servidor.

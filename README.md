@@ -72,8 +72,8 @@ dispositivo distinto. Ábrelas desde el hub de la demo (`/demo`) para que cada u
    cocina_.
    - Para mostrar la alerta: activa **Acelerar el tiempo ×10** en el panel de demo antes de
      confirmar. A los ~18 s la tarjeta se pone en alerta y a los ~36 s se avisa al administrador.
-5. **Pestaña D – Cocina** (entra como _Cocina_ en "Usuarios de la demo"): _Empezar a preparar_ y luego _Marcar listo_. El cliente ve avanzar
-   la línea de tiempo y el mesero recibe el aviso. En el mesero: _Marcar entregado_.
+5. **Pestaña D – Cocina** (entra como _Cocina_ en "Usuarios de la demo"): el pedido ya llega en preparación; un solo toque, _Listo_ (la pestaña
+   _Hechos_ guarda lo ya entregado a la barra). El cliente ve avanzar la línea de tiempo y el mesero recibe el aviso. En el mesero: _Marcar entregado_.
 6. **Pestaña A**: _Califica tu experiencia_ → estrellas a los platos → **2 estrellas** al
    servicio.
 7. **Pestaña E – Administrador** (entra como _Marta_): aparece la alerta de servicio bajo de la Mesa 3. Recorre el

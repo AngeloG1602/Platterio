@@ -8,8 +8,12 @@ import {
   MessageSquareText,
   Settings2,
   Sparkles,
+  ListOrdered,
+  ScrollText,
   Users,
   UtensilsCrossed,
+  Package,
+  Receipt,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
@@ -42,6 +46,9 @@ const NAV: NavItem[] = [
     icon: MessageSquareText,
     feature: "calificaciones",
   },
+  { href: "/admin/pedidos", label: "Pedidos", icon: ListOrdered },
+  { href: "/admin/inventario", label: "Inventario", icon: Package, feature: "inventario" },
+  { href: "/admin/facturas", label: "Facturas", icon: Receipt },
   { href: "/admin/ventas", label: "Ventas", icon: ChartColumn },
   {
     href: "/admin/reportes",
@@ -50,6 +57,7 @@ const NAV: NavItem[] = [
     feature: "reportes-completos",
   },
   { href: "/admin/equipo", label: "Equipo", icon: Users },
+  { href: "/admin/auditoria", label: "Auditoría", icon: ScrollText },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings2 },
 ];
 

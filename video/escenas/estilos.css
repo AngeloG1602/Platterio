@@ -1,0 +1,316 @@
+@font-face {
+  font-family: "Fraunces";
+  src: url("../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-italic.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")
+    format("woff2-variations");
+  font-weight: 100 900;
+}
+
+:root {
+  --bg: #faf7f2;
+  --ink: #1c1917;
+  --ink-soft: #44403c;
+  --muted: #716a64;
+  --accent: #e4572e;
+  --accent-strong: #b24424;
+  --line: #e7e2da;
+  --dark: #120f0d;
+  --ok: #2f855a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  background: #000;
+  overflow: hidden;
+}
+#stage {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.abs {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  will-change: transform, opacity;
+}
+
+/* Fondo */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Titulares */
+.kicker {
+  position: absolute;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  white-space: nowrap;
+}
+.kicker i {
+  display: inline-block;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.title {
+  position: absolute;
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  font-variation-settings:
+    "opsz" 144,
+    "SOFT" 30;
+}
+.wm {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.04em 0.02em 0.14em;
+  margin: -0.04em 0 -0.14em;
+}
+.w {
+  display: inline-block;
+  will-change: transform;
+}
+.acc {
+  color: var(--accent);
+  font-style: italic;
+}
+
+/* Dispositivos */
+.phone {
+  position: absolute;
+  background: #0d0d0e;
+  box-shadow:
+    0 0 0 2px #2a2a2c inset,
+    0 50px 90px -30px rgba(28, 25, 23, 0.55),
+    0 18px 36px -18px rgba(28, 25, 23, 0.45);
+}
+.island {
+  position: absolute;
+  background: #000;
+  border-radius: 999px;
+  z-index: 3;
+}
+.screen {
+  position: absolute;
+  overflow: hidden;
+  background: #fff;
+}
+.cam {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.shot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+.win {
+  position: absolute;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(28, 25, 23, 0.08),
+    0 60px 120px -40px rgba(28, 25, 23, 0.5),
+    0 20px 40px -20px rgba(28, 25, 23, 0.35);
+}
+.win.dark {
+  background: #1a1816;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 60px 120px -40px rgba(0, 0, 0, 0.7);
+}
+.bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1ece4;
+  border-bottom: 1px solid #e3ddd3;
+}
+.win.dark .bar {
+  background: #24211e;
+  border-bottom-color: #34302b;
+}
+.dot {
+  border-radius: 50%;
+}
+.url {
+  margin: 0 auto;
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.win.dark .url {
+  background: #1a1816;
+  color: #b3aba1;
+}
+
+/* Elementos */
+.chip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow:
+    0 0 0 1px rgba(28, 25, 23, 0.06),
+    0 18px 40px -14px rgba(28, 25, 23, 0.35);
+  will-change: transform;
+  transform-origin: center;
+}
+.chip .ic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent) 14%, white);
+  color: var(--accent-strong);
+}
+.chip.ok .ic {
+  background: #e3f3ea;
+  color: var(--ok);
+}
+.chip.wa .ic {
+  background: #dcf8e6;
+  color: #128c4a;
+}
+.chip.dark {
+  background: #24211e;
+  color: #f7f3ec;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 18px 40px -14px rgba(0, 0, 0, 0.6);
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  pointer-events: none;
+}
+.finger {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(28, 25, 23, 0.25);
+  box-shadow: 0 6px 18px rgba(28, 25, 23, 0.35);
+}
+.cursor {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+  z-index: 5;
+}
+.glow {
+  position: absolute;
+  border-radius: 16px;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 22%, transparent);
+  pointer-events: none;
+}
+.packet {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 20px 40px -12px rgba(28, 25, 23, 0.6);
+}
+.card {
+  position: absolute;
+  background: #fff;
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 1px rgba(28, 25, 23, 0.06),
+    0 40px 80px -30px rgba(28, 25, 23, 0.4);
+  overflow: hidden;
+}
+.cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 50;
+}
+.cap span {
+  background: rgba(18, 15, 13, 0.82);
+  color: #fff;
+  font-weight: 650;
+  border-radius: 16px;
+  text-align: center;
+}
+.ticket {
+  position: absolute;
+  background: #fffdf8;
+  border-radius: 6px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+  font-family: "Fraunces", serif;
+  color: #3a332d;
+}

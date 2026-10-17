@@ -1,4 +1,6 @@
-import type { Order, OrderItem, Table, TableSession, Dish } from "./types";
+import { pendingOf } from "./cash";
+import { unpaidMessage } from "./tableAccess";
+import type { Order, OrderItem, Payment, Table, TableSession, Dish } from "./types";
 
 /* ——— Estado de las mesas (US-25) ——— */
 
@@ -134,10 +136,14 @@ export function adjustOrderItem(
 
 export type ReleaseResult = { ok: true; session: TableSession } | { ok: false; error: string };
 
-/** Cierra la sesión. No se puede con rondas sin entregar; el siguiente escaneo abre sesión nueva. */
+/**
+ * Cierra la sesión a mano. No se puede con rondas sin entregar ni con saldo por cobrar; el
+ * siguiente escaneo abre sesión nueva. Al pagarse por completo la mesa se libera sola.
+ */
 export function releaseSession(
   session: TableSession,
   orders: readonly Order[],
+  payments: readonly Payment[],
   now: string,
 ): ReleaseResult {
   if (session.closedAt) return { ok: false, error: "La mesa ya estaba libre" };
@@ -150,5 +156,7 @@ export function releaseSession(
       error: `Hay ${open.length === 1 ? "una ronda" : `${open.length} rondas`} sin entregar`,
     };
   }
+  const pending = pendingOf(orders, payments, session.id);
+  if (pending > 0) return { ok: false, error: unpaidMessage(pending) };
   return { ok: true, session: { ...session, closedAt: now, cart: [], closeReason: "mesero" } };
 }

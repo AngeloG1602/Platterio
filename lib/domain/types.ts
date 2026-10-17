@@ -233,7 +233,9 @@ export interface TableSession {
   lastActivityAt?: string;
   /** Minutos de inactividad para cerrarse sola, si el mesero cambió el del negocio. */
   idleCloseMin?: number;
-  closeReason?: "mesero" | "cancelada" | "inactividad";
+  closeReason?: "mesero" | "cancelada" | "inactividad" | "pagada";
+  /** Cambios de mesa de esta sesión, en orden: de qué mesa a cuál, cuándo y quién los hizo. */
+  transfers?: { from: string; to: string; at: string; by?: string }[];
   /** Si es un pedido a domicilio o para recoger (no hay mesa; `tableId` es `domicilio`). */
   delivery?: DeliveryInfo;
 }
@@ -343,6 +345,46 @@ export interface Payment {
   at: string;
   /** Nombre de quien registró el pago. */
   by: string;
+  /**
+   * Si no es un cobro sino una cuenta que se cierra a crédito (queda debiendo una persona) o como
+   * cortesía (no se cobra, es un gasto). Sin esto, es dinero que entró a la caja.
+   */
+  kind?: "credito" | "cortesia";
+  /** Persona de la lista a cuyo nombre queda el crédito (o la cortesía, si se indicó). */
+  accountId?: string;
+  /** Quién autorizó el crédito o la cortesía. */
+  authorizedBy?: string;
+  /** Motivo de la cortesía. */
+  reason?: string;
+}
+
+/** Tipo de persona a la que se le fía. */
+export type CreditKind = "empleado" | "familia" | "cliente";
+
+/** Persona con cuenta: a su nombre quedan los consumos a crédito, para cobrarlos después. */
+export interface CreditAccount {
+  id: string;
+  name: string;
+  kind: CreditKind;
+  /** Cédula o NIT, para que la cuenta (y la factura) salgan a su nombre. */
+  document?: string;
+  phone?: string;
+  /** Tope de lo que puede deber, en pesos; sin tope si no se pone. */
+  limit?: number;
+  active: boolean;
+  createdAt: string;
+}
+
+/** Abono a la deuda de una persona. "nomina" es descuento de nómina: no mueve la caja. */
+export interface CreditPayment {
+  id: string;
+  accountId: string;
+  amount: number;
+  method: PaymentMethod | "nomina";
+  at: string;
+  by: string;
+  /** Turno de caja al que entró (solo si el abono fue dinero que entró a la caja). */
+  shiftId?: string;
 }
 
 /** Resumen congelado al cerrar el turno de caja. */
@@ -430,4 +472,130 @@ export interface ReservationConfig {
   /** Con cuántas horas de anticipación como mínimo. */
   minHours: number;
   events: { enabled: boolean; minPeople: number; occasions: string[] };
+}
+
+/* ——— Inventario (etapa 1: productos terminados) ——— */
+
+/** Un producto con existencias: gaseosas, cervezas, postres ya hechos, insumos sueltos. */
+export interface InventoryItem {
+  id: string;
+  name: string;
+  /** "botellas", "unidades", "kg"… solo para mostrar. */
+  unit: string;
+  qty: number;
+  /** Con esta cantidad o menos se avisa que queda poco. */
+  threshold: number;
+  /** Plato (y variante, si aplica) que consume este producto al venderse. Sin vínculo: solo se lleva la cuenta. */
+  link?: { dishId: string; variantId?: string };
+  /** Lo que cuesta una unidad de uso (pesos por kg, por botella…). Sirve para el costo por plato. */
+  cost?: number;
+  /** Cómo se compra: «caja» que trae 24 unidades. Las entradas se pueden escribir en esa unidad. */
+  purchase?: { unit: string; factor: number };
+  createdAt: string;
+}
+
+export type InventoryMoveKind =
+  "entrada" | "salida" | "ajuste" | "consumo" | "devolucion" | "produccion";
+
+/** Un movimiento de inventario. Solo se agregan: no se editan ni se borran. */
+export interface InventoryMove {
+  id: string;
+  itemId: string;
+  at: string;
+  /** Quién lo hizo, o "Pedido" si lo causó la confirmación de una ronda. */
+  by: string;
+  kind: InventoryMoveKind;
+  /** Cambio en las existencias: positivo suma, negativo resta. */
+  delta: number;
+  /** Existencias después del movimiento. */
+  balance: number;
+  reason?: string;
+  /** Ronda que lo causó (consumo y devolución). */
+  orderId?: string;
+}
+
+/* ——— Facturas (comprobante de cuenta) ——— */
+
+export interface InvoiceLine {
+  name: string;
+  qty: number;
+  unitPrice: number;
+  total: number;
+}
+
+/** Cómo se saldó la cuenta: un cobro, un crédito o una cortesía. */
+export interface InvoicePayment {
+  label: string;
+  amount: number;
+}
+
+/**
+ * Comprobante de una cuenta saldada (mesa, domicilio o para recoger). Es una foto de lo cobrado:
+ * no cambia aunque después cambie la carta o los precios. No es factura electrónica de la DIAN.
+ */
+export interface Invoice {
+  id: string;
+  /** Consecutivo del negocio. */
+  number: number;
+  sessionId: string;
+  issuedAt: string;
+  issuedBy: string;
+  businessName: string;
+  /** "Mesa 3", "Domicilio D-4K7Q". */
+  place: string;
+  /** Mesero que atendió la mesa, si lo hubo. */
+  waiter?: string;
+  customer?: { name: string; document?: string; phone?: string };
+  lines: InvoiceLine[];
+  deliveryFee: number;
+  total: number;
+  payments: InvoicePayment[];
+}
+
+/** Receta de un plato (o de una de sus opciones): qué ingredientes clave gasta cada unidad. */
+export interface Recipe {
+  id: string;
+  dishId: string;
+  /** Sin opción: vale para todas las opciones del plato. */
+  variantId?: string;
+  /** Ingredientes clave y cuánto gasta una unidad (puede ser decimal: 0,15 kg). */
+  lines: { itemId: string; qty: number }[];
+  /** Cuántas unidades se pueden vender al día; sin tope si no se pone. */
+  dailyMax?: number;
+}
+
+/**
+ * Preparación por lote (lasaña, sopa, arroz): una receta con su rendimiento. Al producir un lote
+ * se gastan sus ingredientes y se suman porciones al producto de salida, que es el que vende el
+ * plato (cada pedido descuenta una porción, no ingredientes).
+ */
+export interface Preparation {
+  id: string;
+  name: string;
+  /** Producto de inventario donde quedan las porciones preparadas. */
+  outputItemId: string;
+  /** Porciones que rinde un lote. */
+  yield: number;
+  /** Ingredientes que gasta un lote. Pueden ser también porciones de otra preparación (sub-recetas). */
+  lines: { itemId: string; qty: number }[];
+  createdAt: string;
+}
+
+/** Un conteo físico del inventario (o el cierre del día): lo esperado frente a lo contado. */
+export interface StockCount {
+  id: string;
+  at: string;
+  by: string;
+  /** «cierre» cuenta solo las porciones de las preparaciones al terminar el día. */
+  scope: "todo" | "cierre";
+  lines: {
+    itemId: string;
+    name: string;
+    unit: string;
+    expected: number;
+    counted: number;
+    /** Contado menos esperado: negativo es faltante. */
+    diff: number;
+    cost?: number;
+  }[];
 }

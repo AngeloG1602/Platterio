@@ -1,5 +1,7 @@
+import { pendingOf, sessionDue } from "./cash";
+import { formatMoney } from "./format";
 import { newPin } from "./pin";
-import type { Order, TableCall, TableSession } from "./types";
+import type { Order, Payment, TableCall, TableSession } from "./types";
 
 /**
  * Cómo se abre, se usa y se cierra una mesa. El QR de la mesa es fijo y no da acceso por sí
@@ -73,24 +75,51 @@ export function lastActivity(session: TableSession, orders: readonly Order[]): n
 }
 
 /**
- * Mesas que ya pueden cerrarse solas: sin rondas pendientes y con más de `limite` minutos sin
- * actividad desde la última entrega (o desde que se abrió, si nunca pidieron).
+ * Mesas que ya pueden cerrarse solas: sin rondas pendientes, **sin saldo por cobrar** y con más
+ * de `limite` minutos sin actividad desde la última entrega (o desde que se abrió, si nunca
+ * pidieron). Una mesa con saldo se queda abierta y "por cobrar" hasta que se pague.
  */
 export function sessionsToAutoClose(params: {
   sessions: readonly TableSession[];
   orders: readonly Order[];
+  payments: readonly Payment[];
   now: number;
   defaultIdleMin: number;
 }): string[] {
   return params.sessions
     .filter(isOpen)
     .filter((s) => !hasOpenRounds(s, params.orders))
+    .filter((s) => pendingOf(params.orders, params.payments, s.id) === 0)
     .filter(
       (s) =>
         params.now - lastActivity(s, params.orders) >=
         idleLimitMin(s, params.defaultIdleMin) * 60_000,
     )
     .map((s) => s.id);
+}
+
+/**
+ * Mesas que quedaron pagadas por completo y sin rondas por entregar: se liberan solas, sin
+ * esperar tiempo ni trabajo del mesero (si pagó, ya se desocupó). Un pago parcial no cuenta.
+ * Los domicilios se manejan aparte.
+ */
+export function sessionsPaidInFull(params: {
+  sessions: readonly TableSession[];
+  orders: readonly Order[];
+  payments: readonly Payment[];
+}): string[] {
+  return params.sessions
+    .filter(isOpen)
+    .filter((s) => !s.delivery)
+    .filter((s) => sessionDue(params.orders, s.id) > 0)
+    .filter((s) => !hasOpenRounds(s, params.orders))
+    .filter((s) => pendingOf(params.orders, params.payments, s.id) === 0)
+    .map((s) => s.id);
+}
+
+/** Mensaje cuando no se puede cerrar una mesa porque aún debe. */
+export function unpaidMessage(pending: number): string {
+  return `La mesa tiene ${formatMoney(pending)} por cobrar. Se cobra en caja antes de liberarla.`;
 }
 
 export function closeSessions(
@@ -111,6 +140,7 @@ export function closeSessions(
 export function cancelSession(
   session: TableSession,
   orders: readonly Order[],
+  payments: readonly Payment[],
   now: string,
 ): AccessResult<{ session: TableSession; orders: Order[]; rejected: number }> {
   if (session.closedAt) return { ok: false, error: "La mesa ya estaba cerrada" };
@@ -120,6 +150,9 @@ export function cancelSession(
     rejected++;
     return { ...o, status: "rechazado" as const, rejectReason: "Mesa cancelada" };
   });
+  // Lo ya entregado se cobra: cancelar no es una forma de dejar una cuenta sin pagar.
+  const pending = pendingOf(next, payments, session.id);
+  if (pending > 0) return { ok: false, error: unpaidMessage(pending) };
   return {
     ok: true,
     value: {
@@ -128,6 +161,79 @@ export function cancelSession(
       rejected,
     },
   };
+}
+
+/**
+ * Cambio de mesa: el cliente se cambió de sitio y el personal pasa su sesión a otra mesa libre.
+ * La sesión es la misma (comensales, PIN, carrito, rondas, cobros y cambios), solo cambia de mesa;
+ * la mesa de origen queda libre sola, porque ya no tiene sesión. Queda anotado de dónde a dónde.
+ */
+export function transferSession(params: {
+  sessions: readonly TableSession[];
+  orders: readonly Order[];
+  payments: readonly Payment[];
+  fromTableId: string;
+  toTableId: string;
+  now: string;
+  /** Nombre de quien lo hizo. */
+  by?: string;
+}): AccessResult<{
+  sessions: TableSession[];
+  orders: Order[];
+  payments: Payment[];
+  session: TableSession;
+}> {
+  const { fromTableId, toTableId } = params;
+  if (fromTableId === toTableId) return { ok: false, error: "Elige otra mesa" };
+  const session = params.sessions.find((s) => s.tableId === fromTableId && isOpen(s));
+  if (!session) return { ok: false, error: "La mesa ya estaba libre" };
+  if (params.sessions.some((s) => s.tableId === toTableId && isOpen(s)))
+    return { ok: false, error: "Esa mesa está ocupada. Elige una libre" };
+  const moved: TableSession = {
+    ...session,
+    tableId: toTableId,
+    lastActivityAt: params.now,
+    transfers: [
+      ...(session.transfers ?? []),
+      {
+        from: fromTableId,
+        to: toTableId,
+        at: params.now,
+        ...(params.by ? { by: params.by } : {}),
+      },
+    ],
+  };
+  return {
+    ok: true,
+    value: {
+      session: moved,
+      sessions: params.sessions.map((s) => (s.id === session.id ? moved : s)),
+      orders: params.orders.map((o) =>
+        o.sessionId === session.id ? { ...o, tableId: toTableId } : o,
+      ),
+      payments: params.payments.map((p) =>
+        p.sessionId === session.id ? { ...p, tableId: toTableId } : p,
+      ),
+    },
+  };
+}
+
+/**
+ * Si este dispositivo estaba en una sesión que se pasó a otra mesa, dónde está ahora. Sirve para
+ * llevar al cliente a la mesa nueva sin que escanee ni escriba otro PIN.
+ */
+export function movedTableFor(
+  sessions: readonly TableSession[],
+  deviceId: string,
+  fromTableId: string,
+): string | null {
+  const s = sessions.find(
+    (x) =>
+      isOpen(x) &&
+      x.diners.some((d) => d.deviceId === deviceId) &&
+      x.transfers?.some((t) => t.from === fromTableId),
+  );
+  return s ? s.tableId : null;
 }
 
 export function setIdleClose(

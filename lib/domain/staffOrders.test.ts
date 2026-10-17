@@ -55,9 +55,10 @@ function edit(
 }
 
 describe("pedido tomado por el personal", () => {
-  it("nace confirmado, va a cocina y se marca como del personal", () => {
+  it("nace confirmado, va directo a cocina en preparación y se marca como del personal", () => {
     const o = make();
-    expect(o).toMatchObject({ status: "confirmado", createdBy: "Carlos", round: 1 });
+    expect(o).toMatchObject({ status: "en_preparacion", createdBy: "Carlos", round: 1 });
+    expect(o.preparingAt).toBe(o.confirmedAt);
     expect(o.items[0]).toMatchObject({ dinerId: STAFF_DINER_ID, unitPrice: v1!.price });
   });
 

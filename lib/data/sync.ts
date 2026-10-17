@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { unionById } from "@/lib/domain/merge";
 import type { AppData } from "./seed";
 import { useAppStore } from "./store";
 
@@ -46,7 +47,27 @@ export function startSync(): () => void {
     if (msg.type === "state") {
       applyingRemote = true;
       try {
-        useAppStore.setState(msg.state, true);
+        const local = useAppStore.getState();
+        // Los registros que solo crecen no se pierden si llega un estado más viejo (mismo
+        // arranque de datos; tras reiniciar la demo no se mezcla nada).
+        const same = local.seedEpoch === msg.state.seedEpoch;
+        useAppStore.setState(
+          same
+            ? {
+                ...msg.state,
+                payments: unionById(local.payments, msg.state.payments),
+                creditPayments: unionById(local.creditPayments, msg.state.creditPayments),
+                audit: unionById(local.audit, msg.state.audit),
+                stockCounts: unionById(local.stockCounts ?? [], msg.state.stockCounts ?? []),
+                invoices: unionById(local.invoices ?? [], msg.state.invoices ?? []),
+                inventoryMoves: unionById(
+                  local.inventoryMoves ?? [],
+                  msg.state.inventoryMoves ?? [],
+                ),
+              }
+            : msg.state,
+          true,
+        );
       } finally {
         applyingRemote = false;
       }

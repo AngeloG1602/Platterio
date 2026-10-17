@@ -1,35 +1,84 @@
 import { STATUS_LABEL, TIMELINE } from "./orderStatus";
 import type { Order, OrderStatus } from "./types";
 
-/* ——— Tablero de cocina (US-28) ——— */
+/* ——— Cola de cocina (US-28, US-80 a 85) ——— */
 
-export type KitchenColumn = "confirmado" | "en_preparacion" | "listo";
+/** Estados en los que una ronda está en la cocina por hacer. "confirmado" es de datos antiguos. */
+const IN_QUEUE = new Set<OrderStatus>(["confirmado", "en_preparacion"]);
+/** Estados en los que una ronda ya llegó a la cocina alguna vez. */
+const REACHED_KITCHEN = new Set<OrderStatus>([
+  "confirmado",
+  "en_preparacion",
+  "listo",
+  "entregado",
+]);
 
-export const KITCHEN_COLUMNS: KitchenColumn[] = ["confirmado", "en_preparacion", "listo"];
+/** Cuántos pedidos ya hechos guarda la vista de consulta. */
+export const KITCHEN_DONE_LIMIT = 30;
 
 /** Minutos desde la confirmación a partir de los cuales la tarjeta cambia de color. */
 export const KITCHEN_WARN_MIN = 10;
 export const KITCHEN_LATE_MIN = 20;
 
+export interface KitchenTicket {
+  order: Order;
+  /**
+   * Es un pedido de una mesa que ya había mandado otra ronda a la cocina. Se marca en rojo para
+   * que no quede enterrado detrás de los de otras mesas; no cambia su lugar en la cola.
+   */
+  additional: boolean;
+}
+
+export interface KitchenView {
+  /** Rondas por hacer, en orden de llegada a la cocina. */
+  queue: KitchenTicket[];
+  /** Rondas que la cocina ya marcó como listas, la más reciente primero. */
+  done: Order[];
+}
+
+/** ¿La mesa ya había mandado una ronda anterior a la cocina? */
+export function isAdditionalRound(order: Order, orders: readonly Order[]): boolean {
+  return orders.some(
+    (o) =>
+      o.id !== order.id &&
+      o.sessionId === order.sessionId &&
+      o.round < order.round &&
+      REACHED_KITCHEN.has(o.status),
+  );
+}
+
 /**
- * Pedidos del tablero por columna. Solo entra lo que el mesero confirmó (regla 1), en orden de
- * llegada a la cocina. Los ítems quitados por el mesero no se muestran.
+ * Lo que ve la cocina. Solo entra lo que el mesero confirmó (regla 1). Una sola cola en orden de
+ * llegada (la hora de confirmación) y, aparte, lo ya hecho para consultar. Los ítems quitados
+ * por el mesero no se muestran.
  */
-export function kitchenBoard(orders: readonly Order[]): Record<KitchenColumn, Order[]> {
+export function kitchenBoard(orders: readonly Order[]): KitchenView {
   const arrival = (o: Order) => o.confirmedAt ?? o.createdAt;
-  const board: Record<KitchenColumn, Order[]> = { confirmado: [], en_preparacion: [], listo: [] };
-  for (const order of orders) {
-    if (
-      order.status === "confirmado" ||
-      order.status === "en_preparacion" ||
-      order.status === "listo"
-    ) {
-      board[order.status].push({ ...order, items: order.items.filter((i) => !i.removed) });
-    }
-  }
-  for (const col of KITCHEN_COLUMNS)
-    board[col].sort((a, b) => arrival(a).localeCompare(arrival(b)));
-  return board;
+  const visible = (o: Order): Order => ({ ...o, items: o.items.filter((i) => !i.removed) });
+  const queue = orders
+    .filter((o) => IN_QUEUE.has(o.status))
+    .sort((a, b) => arrival(a).localeCompare(arrival(b)))
+    .map((o) => ({ order: visible(o), additional: isAdditionalRound(o, orders) }));
+  const done = orders
+    .filter((o) => o.status === "listo")
+    .sort((a, b) => (b.readyAt ?? "").localeCompare(a.readyAt ?? ""))
+    .slice(0, KITCHEN_DONE_LIMIT)
+    .map(visible);
+  return { queue, done };
+}
+
+export type KitchenDensity = "grande" | "media" | "compacta" | "minima";
+
+/**
+ * Cuánto detalle y cuántas columnas usa la cola según cuántos pedidos hay, para que todos
+ * quepan en la pantalla sin desplazarse. Con pocos pedidos, letra grande; con muchos, tarjetas
+ * más densas en más columnas (sin esconder ningún dato).
+ */
+export function kitchenLayout(count: number): { density: KitchenDensity; columns: number } {
+  if (count <= 3) return { density: "grande", columns: Math.max(1, count) };
+  if (count <= 6) return { density: "media", columns: 3 };
+  if (count <= 12) return { density: "compacta", columns: 4 };
+  return { density: "minima", columns: 5 };
 }
 
 export type KitchenTimeLevel = "normal" | "lento" | "atrasado";
@@ -45,11 +94,9 @@ export function kitchenTimeLevel(
   return "normal";
 }
 
-/** Siguiente paso que puede dar la cocina con un toque. */
+/** Único paso de la cocina: marcar listo lo que está en la cola. */
 export function kitchenNextStatus(status: OrderStatus): OrderStatus | null {
-  if (status === "confirmado") return "en_preparacion";
-  if (status === "en_preparacion") return "listo";
-  return null;
+  return IN_QUEUE.has(status) ? "listo" : null;
 }
 
 /* ——— Línea de tiempo del cliente (US-29) ——— */

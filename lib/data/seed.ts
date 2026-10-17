@@ -1,11 +1,20 @@
+import type { AuditEntry } from "@/lib/domain/audit";
 import type { StaffUser } from "@/lib/domain/access";
 import { createClock, type DemoClock } from "@/lib/domain/clock";
 import type {
   Alert,
   CashShift,
   Category,
+  CreditAccount,
+  CreditPayment,
   Dish,
   DishRating,
+  Invoice,
+  InventoryItem,
+  InventoryMove,
+  Preparation,
+  StockCount,
+  Recipe,
   Order,
   Payment,
   Reservation,
@@ -17,10 +26,21 @@ import type {
   TimeSlot,
   Waiter,
 } from "@/lib/domain/types";
-import { CATEGORIES, DISHES, RESTAURANT, STAFF, TABLES, TIME_SLOTS, WAITERS } from "./catalog";
+import {
+  CATEGORIES,
+  DISHES,
+  INVENTORY,
+  PREPARATIONS,
+  RECIPES,
+  RESTAURANT,
+  STAFF,
+  TABLES,
+  TIME_SLOTS,
+  WAITERS,
+} from "./catalog";
 import { getHistory, seedAlerts, type HistoryCatalog } from "./history";
 
-export const DATA_VERSION = 7;
+export const DATA_VERSION = 10;
 
 export interface DemoSettings {
   /** Franja forzada desde el panel de demo; null = según la hora real. */
@@ -55,6 +75,24 @@ export interface AppData {
   dishRatings: DishRating[];
   serviceRatings: ServiceRating[];
   alerts: Alert[];
+  /** Personas con cuenta a crédito. */
+  creditAccounts: CreditAccount[];
+  /** Abonos a las deudas de esas personas. */
+  creditPayments: CreditPayment[];
+  /** Registro de acciones del personal: quién hizo qué y quién lo autorizó. */
+  audit: AuditEntry[];
+  /** Productos con existencias (bebidas y productos terminados). */
+  inventory: InventoryItem[];
+  /** Movimientos de inventario: entradas, salidas, ajustes y ventas. */
+  inventoryMoves: InventoryMove[];
+  /** Recetas de los platos: qué ingredientes gasta cada unidad. */
+  recipes: Recipe[];
+  /** Preparaciones por lote: lo que gasta cada lote y cuántas porciones rinde. */
+  preparations: Preparation[];
+  /** Conteos físicos del inventario y cierres del día; solo se agregan. */
+  stockCounts: StockCount[];
+  /** Facturas (comprobantes) de las cuentas saldadas; solo se agregan. */
+  invoices: Invoice[];
   demo: DemoSettings;
 }
 
@@ -90,6 +128,15 @@ export function createSeedState(now: number): AppData {
     dishRatings: [],
     serviceRatings: [],
     alerts: seedAlerts(history, WAITERS),
+    creditAccounts: [],
+    creditPayments: [],
+    audit: [],
+    inventory: clone(INVENTORY),
+    inventoryMoves: [],
+    recipes: clone(RECIPES),
+    preparations: clone(PREPARATIONS),
+    stockCounts: [],
+    invoices: [],
     demo: { slotOverride: null, clock: createClock(seedEpoch) },
   };
 }

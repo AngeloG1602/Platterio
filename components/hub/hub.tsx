@@ -10,6 +10,7 @@ import {
   ConciergeBell,
   KeyRound,
   Landmark,
+  Package,
   LayoutDashboard,
   Monitor,
   Palette,
@@ -152,6 +153,14 @@ export function Hub() {
             description="Tablero oscuro y de letra grande: confirmados, en preparación y listos, en orden de llegada."
             href="/cocina"
             dark
+          />
+          <RoleCard
+            icon={Package}
+            device={Tablet}
+            deviceLabel="Tablet o celular"
+            title="Despensa"
+            description="Carga las entradas, salidas y ajustes del inventario. Las gaseosas bajan solas al confirmar cada pedido."
+            href="/inventario"
           />
           <RoleCard
             icon={Landmark}

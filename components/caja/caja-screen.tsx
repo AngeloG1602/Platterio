@@ -4,6 +4,10 @@ import { useState } from "react";
 import { RoleGate, SessionButton } from "@/components/access/role-gate";
 import { RestaurantMark, PlatterioLogo } from "@/components/brand/logos";
 import { CashPanel } from "./cash-panel";
+import { OrdersHistory } from "@/components/admin/orders-history";
+import { InventoryPanel } from "@/components/inventory/inventory-panel";
+import { InvoicesPanel } from "@/components/invoices/invoices-panel";
+import { CreditTab } from "./credit-accounts";
 import { ReservationsBoard } from "./reservations-board";
 import { DeliveryBoard, useDeliveryArrivalNotice, useNewDeliveryCount } from "./delivery-board";
 import { DemoPanel } from "@/components/demo/demo-panel";
@@ -21,9 +25,19 @@ import {
 } from "@/lib/data";
 import { formatTime, plural } from "@/lib/domain/format";
 
-const SALON_TABS: Tab[] = ["salon", "caja", "mesas"];
+const SALON_TABS: Tab[] = ["salon", "caja", "credito", "mesas"];
 
-type Tab = "salon" | "domicilios" | "reservas" | "caja" | "mesas" | "equipo";
+type Tab =
+  | "salon"
+  | "domicilios"
+  | "reservas"
+  | "caja"
+  | "credito"
+  | "pedidos"
+  | "facturas"
+  | "inventario"
+  | "mesas"
+  | "equipo";
 
 /**
  * Caja: para el encargado (y el administrador). Ve y opera todo el salón y administra al
@@ -43,6 +57,7 @@ export function CajaScreen() {
 function Caja() {
   const restaurant = useRestaurant();
   const hasSalon = useFeature("salon");
+  const hasInventory = useFeature("inventario");
   const now = useNow(1000);
   const [chosen, setTab] = useState<Tab>("salon");
   const tab: Tab = !hasSalon && SALON_TABS.includes(chosen) ? "domicilios" : chosen;
@@ -84,9 +99,13 @@ function Caja() {
             ...(hasSalon
               ? [
                   { value: "caja" as Tab, label: "Caja" },
+                  { value: "credito" as Tab, label: "Crédito" },
                   { value: "mesas" as Tab, label: "Mesas y meseros" },
                 ]
               : []),
+            { value: "pedidos", label: "Pedidos" },
+            { value: "facturas" as Tab, label: "Facturas" },
+            ...(hasInventory ? [{ value: "inventario" as Tab, label: "Inventario" }] : []),
             { value: "equipo", label: "Equipo" },
           ]}
         />
@@ -108,6 +127,22 @@ function Caja() {
       {tab === "domicilios" && <DeliveryBoard />}
       {tab === "reservas" && <ReservationsBoard />}
       {tab === "caja" && <CashPanel />}
+      {tab === "credito" && <CreditTab />}
+      {tab === "pedidos" && (
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
+          <OrdersHistory />
+        </main>
+      )}
+      {tab === "facturas" && (
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
+          <InvoicesPanel />
+        </main>
+      )}
+      {tab === "inventario" && (
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-5 pb-16 sm:px-6">
+          <InventoryPanel />
+        </main>
+      )}
       {tab === "mesas" && (
         <main className="mx-auto max-w-6xl px-4 pt-5 pb-16 sm:px-6">
           <TableAssignments onTeam={() => setTab("equipo")} />

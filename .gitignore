@@ -6,3 +6,13 @@ next-env.d.ts
 .env*.local
 .DS_Store
 .vercel
+
+# Video: modelos de voz, archivos intermedios y salidas pesadas
+/video/.modelos/
+/video/render/tmp-*/
+/video/render/*.wav
+/video/render/sfx-*.json
+/video/salida/
+/video/voz/voz.wav
+/video/captura/png/
+__pycache__/

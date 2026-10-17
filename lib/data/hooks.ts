@@ -1,5 +1,8 @@
 "use client";
 
+import type { CreditAccount, CreditPayment } from "@/lib/domain/types";
+import { movedTableFor } from "@/lib/domain/tableAccess";
+import type { AuditEntry } from "@/lib/domain/audit";
 import { planAllows, resolvePlan, type Feature } from "@/lib/domain/pricing";
 import { deliveryItems } from "@/lib/domain/delivery";
 import { useEffect, useMemo, useState } from "react";
@@ -13,7 +16,20 @@ import { consolidateTicket } from "@/lib/domain/ticket";
 import { tableOverview } from "@/lib/domain/waiter";
 import { kitchenBoard } from "@/lib/domain/kitchen";
 import { ratableDishes, waiterForTable } from "@/lib/domain/feedback";
-import type { Allergen, Order, TableSession, TimeSlot } from "@/lib/domain/types";
+import { isDishSoldOut, isSoldOut, soldTodayFn, type StockView } from "@/lib/domain/inventory";
+import type {
+  Allergen,
+  Dish,
+  InventoryItem,
+  InventoryMove,
+  Invoice,
+  Order,
+  Preparation,
+  Recipe,
+  StockCount,
+  TableSession,
+  TimeSlot,
+} from "@/lib/domain/types";
 import { DEFAULT_RESERVATIONS } from "@/lib/domain/reservations";
 import { useDeviceStore } from "./device";
 import { getHistory, type History } from "./history";
@@ -55,6 +71,68 @@ export function useCurrentStaff() {
   return useAppStore((s) => s.staff.find((u) => u.id === staffId && u.active));
 }
 export const useAlerts = () => useAppStore((s) => s.alerts);
+
+const NO_ACCOUNTS: CreditAccount[] = [];
+const NO_REPAYMENTS: CreditPayment[] = [];
+/** Personas con cuenta a crédito. */
+export const useCreditAccounts = () => useAppStore((s) => s.creditAccounts ?? NO_ACCOUNTS);
+/** Abonos a las deudas de esas personas. */
+export const useCreditPayments = () => useAppStore((s) => s.creditPayments ?? NO_REPAYMENTS);
+
+const NO_INVOICES: Invoice[] = [];
+/** Facturas de las cuentas saldadas. */
+export const useInvoices = () => useAppStore((s) => s.invoices ?? NO_INVOICES);
+
+const NO_ITEMS: InventoryItem[] = [];
+const NO_MOVES: InventoryMove[] = [];
+/** Productos con existencias. */
+export const useInventory = () => useAppStore((s) => s.inventory ?? NO_ITEMS);
+/** Movimientos de inventario (el más reciente al final). */
+export const useInventoryMoves = () => useAppStore((s) => s.inventoryMoves ?? NO_MOVES);
+const NO_COUNTS: StockCount[] = [];
+/** Conteos físicos del inventario (el más reciente al final). */
+export const useStockCounts = () => useAppStore((s) => s.stockCounts ?? NO_COUNTS);
+
+const NO_PREPS: Preparation[] = [];
+/** Preparaciones por lote. */
+export const usePreparations = () => useAppStore((s) => s.preparations ?? NO_PREPS);
+
+const NO_RECIPES: Recipe[] = [];
+/** Recetas de los platos. */
+export const useRecipes = () => useAppStore((s) => s.recipes ?? NO_RECIPES);
+
+/** Productos, recetas y lo vendido hoy, para saber qué se puede pedir todavía. */
+export function useStockView(): StockView {
+  const items = useInventory();
+  const recipes = useRecipes();
+  const orders = useOrders();
+  const now = useNow(60_000);
+  return useMemo(
+    () => ({ items, recipes, sold: soldTodayFn(orders, now) }),
+    [items, recipes, orders, now],
+  );
+}
+
+/** ¿Esta opción de plato está agotada? Solo cuenta si el negocio tiene la función de inventario. */
+export function useSoldOut() {
+  const stock = useStockView();
+  const enabled = useFeature("inventario");
+  return useMemo(
+    () => (dishId: string, variantId: string) => enabled && isSoldOut(stock, dishId, variantId),
+    [stock, enabled],
+  );
+}
+
+/** ¿Se agotaron todas las opciones de este plato? (para marcarlo en la carta) */
+export function useDishSoldOut(dish: Dish) {
+  const stock = useStockView();
+  const enabled = useFeature("inventario");
+  return enabled && isDishSoldOut(stock, dish);
+}
+
+const NO_AUDIT: AuditEntry[] = [];
+/** Registro de acciones del personal (el más reciente al final). */
+export const useAuditLog = () => useAppStore((s) => s.audit ?? NO_AUDIT);
 export const useDemoSettings = () => useAppStore((s) => s.demo);
 export const useDevice = () => useDeviceStore();
 export const useConnectedTabs = () => usePresenceStore((s) => Object.keys(s.peers).length + 1);
@@ -127,6 +205,19 @@ export function useMyDiner(tableId: string | undefined) {
   const deviceId = useDeviceStore((s) => s.deviceId);
   const diner = session?.diners.find((d) => d.deviceId === deviceId);
   return { session, diner };
+}
+
+/**
+ * Si el personal pasó la sesión de este dispositivo a otra mesa, el número de la mesa nueva
+ * (para llevar al cliente allí sin que escanee ni escriba otro PIN).
+ */
+export function useMovedTable(tableId: string | undefined): number | null {
+  const deviceId = useDeviceStore((s) => s.deviceId);
+  return useAppStore((s) => {
+    if (!tableId) return null;
+    const to = movedTableFor(s.sessions, deviceId, tableId);
+    return (to && s.tables.find((t) => t.id === to)?.number) || null;
+  });
 }
 
 export function useDish(id: string) {

@@ -122,7 +122,7 @@ check(
 );
 await carlos.getByRole("button", { name: /Confirmar y enviar a cocina/ }).click();
 
-// 5. Pestaña D: cocina; en preparación y listo; mesero entrega
+// 5. Pestaña D: cocina (cola única, un solo botón); mesero entrega
 const cocina = await tab("Cocina", 1280, 800);
 await cocina.goto(`${BASE}/cocina`);
 await entrarComo(cocina, "Cocina");
@@ -132,13 +132,17 @@ check(
     getComputedStyle(document.documentElement).getPropertyValue("--bg").trim().toLowerCase(),
   )) === "#0e0d0c",
 );
-await cocina.getByRole("button", { name: "Empezar a preparar" }).click();
+check(
+  "5. Cocina no tiene paso de empezar: solo el botón Listo",
+  (await cocina.getByRole("button", { name: /Empezar a preparar/ }).count()) === 0 &&
+    (await visible(cocina.getByRole("button", { name: "Listo", exact: true }))),
+);
 await ana.waitForTimeout(300);
 check(
-  "5. La línea de tiempo avanza a En preparación",
+  "5. Al confirmar el mesero, el cliente ya ve En preparación",
   (await ana.locator('[aria-current="step"]').innerText()).startsWith("En preparación"),
 );
-await cocina.getByRole("button", { name: "Marcar listo" }).click();
+await cocina.getByRole("button", { name: "Listo", exact: true }).click();
 await carlos.waitForTimeout(300);
 check(
   "5. El mesero recibe el aviso de listo",
@@ -197,7 +201,7 @@ await admin.getByLabel("Subir fotos del plato").setInputFiles({
     "base64",
   ),
 });
-await admin.getByText("Principal").waitFor();
+await admin.getByText("Principal", { exact: true }).waitFor();
 await admin.getByRole("button", { name: /^Almuerzo/ }).click();
 await admin.getByRole("switch", { name: "Destacado por la casa" }).click();
 await admin.getByRole("button", { name: "Crear plato" }).click();
@@ -518,8 +522,7 @@ await caja.getByRole("button", { name: "Confirmar" }).click();
 check("14. El cliente ve el pedido confirmado", await visible(casa.getByText(/está confirmado/)));
 const dom = cocina.locator('article[aria-label^="Domicilio D-"]');
 check("14. Cocina recibe el domicilio con su código", await visible(dom));
-await dom.getByRole("button", { name: /Empezar a preparar/ }).click();
-await dom.getByRole("button", { name: /Marcar listo/ }).click();
+await dom.getByRole("button", { name: "Listo", exact: true }).click();
 await caja.getByRole("button", { name: "Agregar domiciliario" }).click();
 await caja.getByLabel("Nombre del nuevo domiciliario").fill("Mateo");
 await caja.getByLabel("Celular del nuevo domiciliario").fill("300 777 8899");
@@ -1112,6 +1115,821 @@ await admin.goto(`${BASE}/admin`);
 check(
   "23. En el plan Completo el panel sí muestra Calificaciones",
   await visible(admin.getByRole("link", { name: "Calificaciones" })),
+);
+
+// 24. Cocina ágil: cola única, adicional en rojo y vista de hechos
+const elena = await tab("Elena");
+await joinTable(elena, 4, "Elena");
+await addDish(elena, 4, "pollo-crispy");
+await elena.goto(`${BASE}/mesa/4/carrito`);
+await elena.getByRole("button", { name: "Enviar pedido" }).click();
+await elena.getByRole("button", { name: /Sí, enviar/ }).click();
+await elena.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 4 · Ronda 1/ })
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+const r1 = cocina.locator('article[aria-label="Mesa 4, ronda 1"]');
+check("24. El pedido confirmado entra a la cola de cocina sin adicional", await visible(r1));
+await addDish(elena, 4, "aros-de-cebolla");
+await elena.goto(`${BASE}/mesa/4/carrito`);
+await elena.getByRole("button", { name: "Enviar pedido" }).click();
+await elena.getByRole("button", { name: /Sí, enviar/ }).click();
+await elena.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 4 · Ronda 2/ })
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+const r2 = cocina.locator('article[aria-label="Mesa 4, ronda 2, adicional"]');
+check("24. La ronda adicional de una mesa con pedidos se marca como adicional", await visible(r2));
+check(
+  "24. El adicional lleva el aviso en rojo con su etiqueta",
+  await visible(r2.getByText(/Adicional/)),
+);
+check(
+  "24. El adicional no salta la fila: va después de la primera ronda",
+  (
+    await cocina
+      .locator("main ol > li")
+      .evaluateAll((lis) =>
+        lis.map((li) => li.querySelector("article")?.getAttribute("aria-label") ?? ""),
+      )
+  ).findIndex((l) => l.startsWith("Mesa 4, ronda 2")) >
+    (
+      await cocina
+        .locator("main ol > li")
+        .evaluateAll((lis) =>
+          lis.map((li) => li.querySelector("article")?.getAttribute("aria-label") ?? ""),
+        )
+    ).findIndex((l) => l.startsWith("Mesa 4, ronda 1")),
+);
+await r1.getByRole("button", { name: "Listo", exact: true }).click();
+await cocina.getByRole("radio", { name: /^Hechos/ }).click();
+check(
+  "24. Lo marcado como listo pasa a la vista de hechos",
+  await visible(cocina.getByRole("main", { name: "Pedidos ya hechos" }).getByText("Mesa 4")),
+);
+await cocina.getByRole("radio", { name: /^Por hacer/ }).click();
+check("24. Se vuelve a la cola de por hacer", await visible(r2));
+await elena.close();
+
+// 25. Cobro obligatorio: una mesa con saldo no se libera; al pagarse por completo se libera sola
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+if (await visible(caja.getByRole("button", { name: "Cerrar caja" }), 1500)) {
+  await caja.getByRole("button", { name: "Cerrar caja" }).click();
+  await caja.getByLabel("Efectivo contado").fill("1000");
+  await caja.getByRole("button", { name: "Cerrar caja" }).last().click();
+  await caja.getByLabel("Nota").fill("Cierre para probar el cobro obligatorio");
+  await caja.getByRole("button", { name: "Cerrar caja" }).last().click();
+}
+check("25. La caja está cerrada", await visible(caja.getByText("La caja está cerrada")));
+const gael = await tab("Gael");
+await joinTable(gael, 6, "Gael");
+await addDish(gael, 6, "limonada-de-coco");
+await gael.goto(`${BASE}/mesa/6/carrito`);
+await gael.getByRole("button", { name: "Enviar pedido" }).click();
+await gael.getByRole("button", { name: /Sí, enviar/ }).click();
+await gael.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 6 · Ronda \d+/ })
+  .last()
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+await cocina
+  .locator('article[aria-label^="Mesa 6, ronda"]')
+  .last()
+  .getByRole("button", { name: "Listo", exact: true })
+  .click();
+await daniela
+  .locator("article")
+  .filter({ hasText: /Mesa 6/ })
+  .getByRole("button", { name: "Marcar entregado" })
+  .last()
+  .click();
+check(
+  "25. Al entregar con la caja cerrada, el mesero ve que queda por cobrar",
+  await visible(daniela.getByText(/La Mesa 6 queda por cobrar/)),
+);
+await daniela.getByRole("button", { name: /^Mesa 6:/ }).click();
+await daniela.getByRole("button", { name: "Liberar mesa" }).click();
+check(
+  "25. No se puede liberar una mesa con saldo, y dice cuánto falta",
+  (await visible(daniela.getByText(/La mesa tiene \$[\d.]+ por cobrar/))) &&
+    (await daniela.getByRole("button", { name: "Sí, liberar" }).isDisabled()),
+);
+await daniela.getByRole("button", { name: "Cancelar", exact: true }).click();
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+check(
+  "25. Caja muestra las mesas por cobrar aunque esté cerrada, con el aviso",
+  (await visible(caja.getByText(/mesas? por cobrar y la caja está cerrada/))) &&
+    (await visible(caja.getByText("Mesa 6", { exact: true }))),
+);
+await caja.getByRole("button", { name: "Abrir caja" }).click();
+await caja.getByRole("button", { name: /Cobrar.*Mesa 6/ }).click();
+await caja.getByRole("button", { name: "Registrar pago" }).click();
+check(
+  "25. Al pagarse por completo, la mesa se libera sola",
+  await visible(gael.getByText(/La mesa se liberó/)),
+);
+await gael.close();
+
+// 26. Auditoría: quién hizo qué, y quién lo autorizó
+await admin.goto(`${BASE}/admin/auditoria`);
+const audit = admin.getByRole("table", { name: "Acciones registradas" });
+check(
+  "26. La auditoría muestra quién confirmó un pedido",
+  await visible(audit.getByRole("row", { name: /Carlos.*Confirmó un pedido/ })),
+);
+check(
+  "26. La auditoría muestra al cocinero que marcó un pedido listo",
+  await visible(audit.getByRole("row", { name: /Cocina.*Marcó un pedido listo/ })),
+);
+check(
+  "26. La auditoría muestra el cobro con su valor y forma de pago",
+  await visible(audit.getByRole("row", { name: /Julián.*Registró un cobro.*efectivo/ })),
+);
+check(
+  "26. Las mesas liberadas al pagar quedan a nombre del Sistema",
+  await visible(audit.getByRole("row", { name: /Sistema.*La mesa se liberó al pagarse/ })),
+);
+check(
+  "26. La apertura y el cierre de caja quedan registrados",
+  (await visible(audit.getByRole("row", { name: /Abrió la caja/ }))) &&
+    (await visible(audit.getByRole("row", { name: /Cerró la caja/ }))),
+);
+await admin.getByLabel(/^Área/).selectOption("Caja");
+check(
+  "26. Filtrar por área deja solo esas acciones",
+  (await audit.getByRole("row", { name: /Confirmó un pedido/ }).count()) === 0 &&
+    (await visible(audit.getByRole("row", { name: /Registró un cobro/ }))),
+);
+await admin.getByLabel(/^Área/).selectOption("");
+await admin.getByLabel("Buscar").fill("mesa 6");
+check(
+  "26. La búsqueda encuentra las acciones de una mesa",
+  (await visible(audit.getByRole("row", { name: /Mesa 6/ }))) &&
+    (await audit.getByRole("row", { name: /Mesa 3/ }).count()) === 0,
+);
+check(
+  "26. Es de solo lectura: no hay botones para editar ni borrar",
+  (await admin.getByRole("button", { name: /Borrar|Eliminar|Editar/ }).count()) === 0,
+);
+await admin.goto(`${BASE}/admin`);
+
+// 27. Cambio de mesa: el cliente se cambia de sitio y el mesero pasa su sesión
+const hugo = await tab("Hugo");
+await joinTable(hugo, 6, "Hugo");
+await addDish(hugo, 6, "limonada-de-coco");
+await hugo.goto(`${BASE}/mesa/6/carrito`);
+await daniela.goto(`${BASE}/mesero`);
+await daniela.getByRole("button", { name: /^Mesa 6:/ }).click();
+await daniela.getByRole("button", { name: "Cambiar de mesa" }).click();
+const destino = daniela.getByLabel("Mesa nueva");
+const nuevaMesa = Number(
+  ((await destino.locator("option").nth(1).textContent()) ?? "").replace(/\D/g, ""),
+);
+await destino.selectOption({ index: 1 });
+await daniela.getByRole("button", { name: "Pasar a esa mesa" }).click();
+await hugo.waitForURL(`**/mesa/${nuevaMesa}/carrito`);
+check(
+  "27. El celular del cliente pasa solo a la mesa nueva, sin otro PIN",
+  (await visible(hugo.getByText(`Mesa ${nuevaMesa}`).first())) &&
+    (await visible(hugo.getByText("Limonada de coco").first())),
+);
+const visitante = await tab("Visitante");
+await visitante.goto(`${BASE}/mesa/6`);
+check(
+  "27. La mesa de origen queda libre para el siguiente cliente",
+  await visible(visitante.getByText("Pide al mesero que abra tu mesa.")),
+);
+await admin.goto(`${BASE}/admin/auditoria`);
+check(
+  "27. Queda registrado quién pasó la mesa, de cuál a cuál",
+  await visible(
+    admin.getByRole("table", { name: "Acciones registradas" }).getByRole("row", {
+      name: new RegExp(`Daniela.*Pasó una mesa a otra.*Mesa 6 → Mesa ${nuevaMesa}`),
+    }),
+  ),
+);
+await visitante.close();
+await hugo.close();
+
+// 28. Crédito y cortesía: la cuenta se cierra a nombre de una persona, con quién autorizó
+const ines = await tab("Inés");
+await joinTable(ines, 6, "Inés");
+await addDish(ines, 6, "pollo-crispy");
+await ines.goto(`${BASE}/mesa/6/carrito`);
+await ines.getByRole("button", { name: "Enviar pedido" }).click();
+await ines.getByRole("button", { name: /Sí, enviar/ }).click();
+await ines.waitForURL("**/pedido");
+await daniela.goto(`${BASE}/mesero`);
+await daniela
+  .getByRole("article", { name: /Mesa 6 · Ronda \d+/ })
+  .last()
+  .getByRole("button", { name: /Confirmar y enviar a cocina/ })
+  .click();
+await cocina
+  .locator('article[aria-label^="Mesa 6, ronda"]')
+  .last()
+  .getByRole("button", { name: "Listo", exact: true })
+  .click();
+await daniela
+  .locator("article")
+  .filter({ hasText: /Mesa 6/ })
+  .getByRole("button", { name: "Marcar entregado" })
+  .last()
+  .click();
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Caja", exact: true }).click();
+if (await visible(caja.getByRole("button", { name: "Abrir caja" }), 1500))
+  await caja.getByRole("button", { name: "Abrir caja" }).click();
+await caja.getByRole("button", { name: /Cobrar.*Mesa 6/ }).click();
+await caja.getByRole("radio", { name: "A crédito" }).click();
+await caja.getByRole("button", { name: "Cerrar a crédito" }).click();
+check(
+  "28. A crédito exige elegir a la persona",
+  await visible(caja.getByText("Elige a la persona a cuyo nombre queda el crédito")),
+);
+await caja.getByRole("button", { name: "Agregar persona" }).first().click();
+await caja.getByLabel("Nombre completo").fill("María Pérez");
+await caja.getByLabel(/^Cédula/).fill("1020304050");
+await caja.getByRole("button", { name: "Guardar" }).click();
+check(
+  "28. Se agrega a la persona y queda elegida",
+  await visible(caja.getByRole("combobox", { name: "Persona" }).filter({ hasText: "María Pérez" })),
+);
+await caja.getByLabel(/^Valor/).fill("10000");
+await caja.getByRole("button", { name: "Cerrar a crédito" }).click();
+check(
+  "28. Parte de la cuenta queda a crédito y el resto sigue por cobrar",
+  await visible(caja.getByText(/A crédito · María Pérez/)),
+);
+await caja.getByRole("radio", { name: "Cortesía" }).click();
+await caja.getByRole("button", { name: "Registrar cortesía" }).click();
+check(
+  "28. Con crédito y cortesía la cuenta queda saldada y la mesa se libera sola",
+  await visible(ines.getByText(/La mesa se liberó/)),
+);
+await caja.getByRole("radio", { name: "Crédito", exact: true }).click();
+check(
+  "28. La cuenta de la persona muestra lo que debe",
+  (await visible(caja.getByText("María Pérez"))) &&
+    (await visible(caja.getByText(/Debe\s*\$10\.000/))),
+);
+await caja.getByRole("button", { name: /Ver cuenta de María Pérez/ }).click();
+check(
+  "28. El estado de cuenta muestra el crédito con quién lo autorizó",
+  (await visible(caja.getByText(/Crédito · Mesa 6/).first())) &&
+    (await visible(caja.getByText(/autorizó Julián/).first())),
+);
+await caja.getByLabel("Forma de pago del abono").selectOption("nomina");
+await caja.getByRole("button", { name: "Registrar pago" }).click();
+check(
+  "28. El abono por descuento de nómina deja la deuda en cero",
+  (await visible(caja.getByText(/Abono · Descuento de nómina/))) &&
+    (await caja.getByRole("button", { name: "Registrar pago" }).count()) === 0,
+);
+await admin.goto(`${BASE}/admin/reportes`);
+check(
+  "28. El reporte separa crédito, abonos y cortesías del dinero cobrado",
+  (await visible(admin.getByText("Crédito otorgado"))) &&
+    (await visible(admin.getByText("Cortesías (gasto)"))),
+);
+await admin.goto(`${BASE}/admin/auditoria`);
+const tablaAuditoria = admin.getByRole("table", { name: "Acciones registradas" });
+check(
+  "28. La auditoría registra el crédito con la persona y quién autorizó",
+  await visible(
+    tablaAuditoria.getByRole("row", {
+      name: /Cerró una cuenta a crédito.*María Pérez.*Autorizó: Julián/,
+    }),
+    8000,
+  ),
+);
+check(
+  "28. La auditoría registra la cortesía con su motivo y quién autorizó",
+  await visible(
+    tablaAuditoria.getByRole("row", {
+      name: /Registró una cortesía.*Motivo: Dueño o familia.*Autorizó: Julián/,
+    }),
+    8000,
+  ),
+);
+await ines.close();
+
+// 29. Historial de pedidos y carga de trabajo
+await admin.goto(`${BASE}/admin/pedidos`);
+const tablaPedidos = admin.getByRole("table", { name: "Pedidos" });
+check(
+  "29. El historial lista los pedidos del día con su cuenta",
+  (await visible(tablaPedidos.getByRole("row").nth(1), 8000)) &&
+    (await visible(tablaPedidos.getByText(/Crédito|Cobrado|Cortesía/).first())),
+);
+const filasTodas = await tablaPedidos.getByRole("row").count();
+await admin.getByRole("radio", { name: "Últimos 10 min" }).click();
+check(
+  "29. «Últimos 10 min» muestra solo lo reciente",
+  (await visible(admin.getByText("Últimos 10 minutos"))) &&
+    (await tablaPedidos.getByRole("row").count()) <= filasTodas,
+);
+await admin.getByRole("radio", { name: "Última hora" }).click();
+await admin.getByRole("button", { name: "Agregar franja" }).click();
+await admin.getByRole("button", { name: "Lunes" }).click();
+check(
+  "29. Se pueden elegir días de la semana y franjas de horas",
+  (await admin.getByRole("button", { name: "Lunes" }).getAttribute("aria-pressed")) === "true" &&
+    (await visible(admin.getByRole("button", { name: /Quitar/ }).first())),
+);
+await admin.getByRole("button", { name: "Limpiar filtros" }).click();
+await admin.getByPlaceholder("Pedido, plato, persona…").fill("zzzz-no-existe");
+check(
+  "29. Sin coincidencias avisa que no hay pedidos",
+  await visible(admin.getByText("No hay pedidos con estos filtros.")),
+);
+await admin.getByRole("button", { name: "Limpiar filtros" }).click();
+check(
+  "29. El historial se puede descargar en CSV",
+  await visible(admin.getByRole("button", { name: /CSV/ })),
+);
+await admin.getByRole("radio", { name: "Carga de trabajo" }).click();
+check(
+  "29. La carga de trabajo muestra el día y la hora más movidos",
+  (await visible(admin.getByText("Día más movido"))) &&
+    (await visible(admin.getByText("Hora más movida"))),
+);
+await admin.getByRole("radio", { name: "Ventas" }).click();
+check(
+  "29. La carga de trabajo se puede medir en ventas",
+  await visible(admin.getByText("Total del periodo")),
+);
+await caja.goto(`${BASE}/caja`);
+await caja.getByRole("radio", { name: "Pedidos", exact: true }).click();
+check(
+  "29. Caja también consulta el historial de pedidos",
+  await visible(caja.getByRole("table", { name: "Pedidos" }), 8000),
+);
+
+// 30. Inventario y rol de despensa
+const tomarPedido5 = async () => {
+  const tomar = daniela.getByRole("button", { name: "Tomar pedido" });
+  if (!(await visible(tomar, 1500)))
+    await daniela.getByRole("button", { name: /^Mesa 5:/ }).click();
+  await tomar.click();
+};
+const rosa = await tab("Rosa", 1280, 900);
+await rosa.goto(`${BASE}/inventario`);
+await entrarComo(rosa, "Rosa");
+const existencias = rosa.getByRole("table", { name: "Existencias" });
+const filaGas = (nombre) => existencias.getByRole("row").filter({ hasText: nombre });
+check(
+  "30. La despensa entra con su PIN y ve las existencias",
+  (await visible(filaGas("Gaseosa 400 ml"))) && (await visible(filaGas("Gaseosa 1,5 L"))),
+);
+check(
+  "30. El producto con poco stock se marca",
+  await visible(filaGas("Gaseosa 1,5 L").getByText("Poco stock")),
+);
+await rosa.goto(`${BASE}/caja`);
+check(
+  "30. La despensa no entra a la caja",
+  await visible(rosa.getByText("Esta sección no es para tu usuario")),
+);
+await rosa.goto(`${BASE}/inventario`);
+await rosa.getByRole("button", { name: "Entrada de Gaseosa 1,5 L" }).click();
+await rosa.getByLabel("Cantidad que llega").fill("6");
+await rosa.getByRole("button", { name: "Registrar entrada" }).click();
+check(
+  "30. Una entrada suma a las existencias y quita el aviso",
+  await visible(filaGas("Gaseosa 1,5 L").getByText("Bien")),
+);
+await rosa.getByRole("button", { name: "Salida de Gaseosa 1,5 L" }).click();
+await rosa.getByLabel("Cantidad que sale").fill("99");
+await rosa.getByRole("button", { name: "Registrar salida" }).click();
+check(
+  "30. No se puede sacar más de lo que hay",
+  await visible(rosa.getByText(/Solo hay 10 botellas/)),
+);
+await rosa.getByRole("button", { name: "Cancelar" }).click();
+
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("gaseosa");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await rosa.reload();
+check(
+  "30. Al tomar el pedido el mesero, la gaseosa baja del inventario",
+  await visible(filaGas("Gaseosa 400 ml").getByText("23", { exact: true })),
+);
+await rosa.getByRole("radio", { name: "Movimientos" }).click();
+check(
+  "30. El movimiento queda con quién lo causó",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Movimientos" })
+      .getByRole("row")
+      .filter({ hasText: "Venta" })
+      .filter({ hasText: "Daniela" }),
+  ),
+);
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+
+for (const nombre of ["Gaseosa 400 ml", "Gaseosa 1,5 L"]) {
+  await rosa.getByRole("button", { name: `Ajustar ${nombre}` }).click();
+  await rosa.getByLabel("Cantidad contada").fill("0");
+  await rosa.getByRole("button", { name: "Guardar ajuste" }).click();
+}
+check("30. Con cero queda agotada", await visible(filaGas("Gaseosa 400 ml").getByText("Agotado")));
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("gaseosa");
+check(
+  "30. El mesero ve la gaseosa agotada y no la puede pedir",
+  (await visible(hoja.getByText("Agotado", { exact: true }))) &&
+    (await hoja.getByRole("button", { name: "Agregar uno" }).count()) === 0,
+);
+await daniela.keyboard.press("Escape");
+const cliente = await tab("Cliente", 390, 900);
+await cliente.goto(`${BASE}/domicilio`);
+check(
+  "30. La carta marca el plato agotado",
+  await visible(cliente.getByText("Agotado", { exact: true }).first()),
+);
+await admin.goto(`${BASE}/admin`);
+check(
+  "30. El resumen del administrador avisa lo que hay que reponer",
+  await visible(admin.getByText("Inventario por reponer")),
+);
+await admin.getByRole("link", { name: "Inventario", exact: true }).click();
+check(
+  "30. El administrador también ve y carga el inventario",
+  await visible(admin.getByRole("table", { name: "Existencias" })),
+);
+await admin.goto(`${BASE}/admin/auditoria`);
+check(
+  "30. La auditoría registra los movimientos de inventario",
+  await visible(
+    admin
+      .getByRole("table", { name: "Acciones registradas" })
+      .getByRole("row", { name: /Rosa.*Ajustó el inventario.*Gaseosa 400 ml/ }),
+    8000,
+  ),
+);
+await caja.goto(`${BASE}/caja`);
+check(
+  "30. El encargado tiene el inventario en la caja",
+  await visible(caja.getByRole("radio", { name: "Inventario" })),
+);
+
+// 31. Facturas guardadas y reimprimibles
+await caja.getByRole("radio", { name: "Facturas" }).click();
+const tablaFacturas = caja.getByRole("table", { name: "Facturas" });
+const filaMesa6 = tablaFacturas.getByRole("row").filter({ hasText: "Mesa 6" });
+check(
+  "31. Cada cuenta saldada deja su factura guardada",
+  (await visible(filaMesa6)) && (await visible(filaMesa6.getByText(/^F-\d{4}$/))),
+);
+check(
+  "31. La factura muestra a nombre de quién quedó el crédito",
+  await visible(filaMesa6.getByText(/A crédito · María Pérez/)),
+);
+await caja.getByPlaceholder("Número, mesa, cliente o plato…").fill("zzzz");
+check(
+  "31. Buscar sin coincidencias avisa que no hay facturas",
+  await visible(caja.getByText("No hay facturas con estos filtros.")),
+);
+await caja.getByPlaceholder("Número, mesa, cliente o plato…").fill("mesa 6");
+await filaMesa6.getByRole("button", { name: /^Ver/ }).first().click();
+const facturaDialog = caja.getByRole("dialog");
+check(
+  "31. La factura se puede abrir con sus platos, total y formas de pago",
+  (await visible(facturaDialog.getByRole("heading", { name: /^Factura F-\d{4}$/ }))) &&
+    (await visible(facturaDialog.getByText("Total", { exact: true }))) &&
+    (await visible(facturaDialog.getByText(/Cortesía/))),
+);
+await facturaDialog.getByRole("button", { name: "Imprimir" }).click();
+await caja.waitForTimeout(500);
+await facturaDialog.getByRole("button", { name: "Cerrar" }).click();
+await admin.goto(`${BASE}/admin/auditoria`);
+check(
+  "31. Reimprimir una factura queda en la auditoría",
+  await visible(
+    admin
+      .getByRole("table", { name: "Acciones registradas" })
+      .getByRole("row", { name: /Reimprimió una factura.*Mesa 6/ }),
+    8000,
+  ),
+);
+await admin.goto(`${BASE}/admin/facturas`);
+check(
+  "31. El administrador también consulta las facturas",
+  await visible(admin.getByRole("table", { name: "Facturas" })),
+);
+
+// 32. Inventario por receta
+await rosa.goto(`${BASE}/inventario`);
+check(
+  "32. Los ingredientes llevan decimales (kg)",
+  await visible(filaGas("Carne de res molida").getByText("kg")),
+);
+await rosa.getByRole("button", { name: "Entrada de Carne de res molida" }).click();
+await rosa.getByLabel("Cantidad que llega").fill("2,5");
+await rosa.getByRole("button", { name: "Registrar entrada" }).click();
+check(
+  "32. Una entrada acepta cantidades con coma",
+  await visible(rosa.getByText("Entrada de Carne de res molida registrada")),
+);
+await rosa.getByRole("radio", { name: "Recetas" }).click();
+const tablaRecetas = rosa.getByRole("table", { name: "Recetas" });
+check(
+  "32. La receta de la Clásica 27 muestra sus ingredientes y para cuántos platos alcanza",
+  (await visible(tablaRecetas.getByRole("row").filter({ hasText: "Clásica 27 · Sencilla" }))) &&
+    (await visible(tablaRecetas.getByText(/0,15 kg de Carne de res molida/).first())) &&
+    (await visible(tablaRecetas.getByText(/\d+ platos?/).first())),
+);
+await rosa.getByRole("button", { name: "Agregar receta" }).click();
+await rosa.getByRole("button", { name: "Guardar receta" }).click();
+check(
+  "32. La receta pide plato e ingredientes",
+  (await visible(rosa.getByText("Elige el plato"))) &&
+    (await visible(rosa.getByText("Agrega al menos un ingrediente"))),
+);
+await rosa.getByLabel("Plato", { exact: true }).selectOption("jugo-natural");
+await rosa.getByLabel("Opción del plato").selectOption("mora");
+await rosa
+  .getByLabel("Producto del ingrediente 1")
+  .selectOption({ label: "Agua en botella (botellas)" });
+await rosa.getByLabel("Cantidad del ingrediente 1").fill("1");
+await rosa.getByLabel("Tope diario de ventas").fill("1");
+await rosa.getByRole("button", { name: "Guardar receta" }).click();
+check(
+  "32. Se guarda la receta con su tope diario",
+  await visible(tablaRecetas.getByRole("row").filter({ hasText: "Jugo natural en agua · Mora" })),
+);
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("jugo natural");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("jugo natural");
+check(
+  "32. Al llegar al tope diario el plato queda agotado",
+  (await visible(hoja.getByText("Agotado", { exact: true }))) &&
+    (await hoja.getByRole("button", { name: "Agregar uno" }).count()) === 0,
+);
+await daniela.keyboard.press("Escape");
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+check(
+  "32. La venta por receta descontó el agua del inventario",
+  await visible(filaGas("Agua en botella").getByText("29", { exact: true })),
+);
+
+// 33. Preparaciones por lote y producción
+await rosa.getByRole("radio", { name: "Preparaciones" }).click();
+const tablaPreps = rosa.getByRole("table", { name: "Preparaciones" });
+const filaCalentado = tablaPreps.getByRole("row").filter({ hasText: "Calentado de la casa" });
+check(
+  "33. La preparación muestra lo que gasta un lote, lo que rinde y las porciones disponibles",
+  (await visible(filaCalentado.getByText(/1,2 kg de Fríjol rojo/))) &&
+    (await visible(filaCalentado.getByText("10 porciones"))) &&
+    (await visible(filaCalentado.getByText("10", { exact: true }))),
+);
+await rosa.getByRole("button", { name: "Producir Calentado de la casa" }).click();
+await rosa.getByLabel("Cantidad de lotes").fill("20");
+await rosa.getByRole("button", { name: "Registrar producción" }).click();
+check(
+  "33. No se puede producir si faltan ingredientes",
+  await visible(rosa.getByText(/No alcanza Fríjol rojo/)),
+);
+await rosa.getByLabel("Cantidad de lotes").fill("1");
+await rosa.getByRole("button", { name: "Registrar producción" }).click();
+check(
+  "33. Producir un lote suma las porciones",
+  await visible(filaCalentado.getByText("20", { exact: true })),
+);
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+check(
+  "33. Producir gastó los ingredientes del inventario",
+  (await visible(filaGas("Fríjol rojo").getByText("6,8", { exact: true }))) &&
+    (await visible(filaGas("Arroz blanco").getByText("10,5", { exact: true }))),
+);
+await rosa.getByRole("radio", { name: "Movimientos" }).click();
+check(
+  "33. La producción queda en los movimientos con quién y qué se produjo",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Movimientos" })
+      .getByRole("row")
+      .filter({ hasText: "Producción" })
+      .filter({ hasText: "1 × Calentado de la casa" })
+      .filter({ hasText: "Rosa" }),
+  ),
+);
+await rosa.getByRole("radio", { name: "Preparaciones" }).click();
+await rosa.getByRole("button", { name: "Agregar preparación" }).click();
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+check(
+  "33. La preparación pide nombre e ingredientes",
+  (await visible(rosa.getByText("Escribe el nombre de la preparación"))) &&
+    (await visible(rosa.getByText("Agrega al menos un ingrediente"))),
+);
+await rosa.getByLabel("Nombre", { exact: true }).fill("Hogao");
+await rosa.getByLabel("Unidad", { exact: true }).fill("litros");
+await rosa.getByLabel("Rinde por lote").fill("4");
+await rosa.getByLabel("Plato que la vende").selectOption("calentado-de-la-casa");
+await rosa.getByLabel("Producto del ingrediente 1").selectOption({ label: "Arroz blanco (kg)" });
+await rosa.getByLabel("Cantidad del ingrediente 1").fill("0,5");
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+check(
+  "33. Un plato ya vinculado a otra preparación no se puede repetir",
+  await visible(rosa.getByText(/ya está vinculado a ese plato/)),
+);
+await rosa.getByLabel("Plato que la vende").selectOption("");
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+const filaHogao = tablaPreps.getByRole("row").filter({ hasText: "Hogao" });
+check("33. Se guarda la nueva preparación", await visible(filaHogao));
+await rosa.getByRole("button", { name: "Producir Hogao" }).click();
+await rosa.getByRole("button", { name: "Registrar producción" }).click();
+check(
+  "33. Una preparación puede ser ingrediente de otra (sub-receta)",
+  await visible(filaHogao.getByText("4", { exact: true })),
+);
+await rosa.getByRole("button", { name: "Editar Calentado de la casa" }).click();
+await rosa.getByRole("button", { name: "Agregar ingrediente" }).click();
+await rosa
+  .getByLabel("Producto del ingrediente 3")
+  .selectOption({ label: "Hogao (litros) (litros)" });
+await rosa.getByLabel("Cantidad del ingrediente 3").fill("0,4");
+await rosa.getByRole("button", { name: "Guardar preparación" }).click();
+check(
+  "33. La preparación del calentado ahora gasta hogao",
+  await visible(filaCalentado.getByText(/0,4 litros de Hogao \(litros\)/)),
+);
+
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("calentado");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await rosa.getByRole("radio", { name: "Existencias" }).click();
+check(
+  "33. Cada pedido del plato por lote descuenta una porción, no ingredientes",
+  (await visible(filaGas("Calentado de la casa (porciones)").getByText("19", { exact: true }))) &&
+    (await visible(filaGas("Fríjol rojo").getByText("6,8", { exact: true }))),
+);
+await cocina.goto(`${BASE}/cocina`);
+await cocina.getByRole("button", { name: "Producción" }).click();
+check(
+  "33. La cocina puede registrar producción desde su tablero",
+  await visible(cocina.getByRole("button", { name: "Producir Calentado de la casa" })),
+);
+await cocina.keyboard.press("Escape");
+
+// 34. Costos, unidades de compra, carga masiva, conteo y cierre del día
+await rosa.goto(`${BASE}/inventario`);
+await rosa.getByRole("radio", { name: "Costos", exact: true }).click();
+const tablaCostos = rosa.getByRole("table", { name: "Costo por plato" });
+const filaClasica = tablaCostos.getByRole("row").filter({ hasText: "Clásica 27 · Sencilla" });
+check(
+  "34. El costo de la Clásica sale de su receta y muestra el margen",
+  (await visible(filaClasica.getByText("$3.900"))) &&
+    (await visible(filaClasica.getByText("83 %"))),
+);
+await rosa.getByRole("radio", { name: "Existencias", exact: true }).click();
+await rosa.getByRole("button", { name: "Entrada de Gaseosa 400 ml" }).click();
+await rosa.getByLabel("Cantidad en").selectOption({ label: "caja" });
+await rosa.getByLabel("Cantidad que llega").fill("2");
+await rosa.getByLabel("Precio pagado por todo").fill("90000");
+await rosa.getByRole("button", { name: "Registrar entrada" }).click();
+check(
+  "34. Una entrada en cajas suma las botellas que trae cada caja",
+  await visible(filaGas("Gaseosa 400 ml").getByText("48", { exact: true })),
+);
+
+await rosa.getByRole("button", { name: "Cargar desde archivo" }).click();
+await rosa
+  .getByLabel("O pega las filas aquí")
+  .fill(
+    "Producto;Unidad;Existencias;Avisar desde;Costo por unidad\nSal;kg;5;1;\nCarne de res molida;kg;1;1;1\nAceite;litros;abc;1;1",
+  );
+check(
+  "34. La vista previa marca lo nuevo, lo que ya existe y los errores",
+  (await visible(rosa.getByText("Nuevo", { exact: true }))) &&
+    (await visible(rosa.getByText("Ya existe", { exact: true }))) &&
+    (await visible(rosa.getByText(/Fila 4: Las existencias no son un número válido/))),
+);
+await rosa.getByRole("button", { name: "Cargar 1 producto" }).click();
+check(
+  "34. Se cargan solo los productos válidos",
+  await visible(filaGas("Sal").getByText("5", { exact: true })),
+);
+
+await rosa.getByRole("radio", { name: "Recetas", exact: true }).click();
+await rosa.getByRole("button", { name: "Cargar desde archivo" }).click();
+await rosa
+  .getByLabel("O pega las filas aquí")
+  .fill("Plato;Opción;Ingrediente;Cantidad\nLimonada de coco;;Sal;0,01\nPizza;;Sal;1");
+check(
+  "34. Las recetas del archivo avisan de los platos que no existen",
+  await visible(rosa.getByText(/no existe el plato «Pizza»/)),
+);
+await rosa.getByRole("button", { name: "Cargar 1 receta" }).click();
+check(
+  "34. Se carga la receta válida",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Recetas" })
+      .getByRole("row")
+      .filter({ hasText: "Limonada de coco" }),
+  ),
+);
+
+await rosa.getByRole("radio", { name: "Costos", exact: true }).click();
+check(
+  "34. Si falta el costo de un ingrediente lo dice en vez de mostrar una cifra engañosa",
+  await visible(
+    tablaCostos.getByRole("row").filter({ hasText: "Limonada de coco" }).getByText("Faltan costos"),
+  ),
+);
+await rosa.getByRole("radio", { name: "Conteo", exact: true }).click();
+const tablaConteo = rosa.getByRole("table", { name: "Conteo físico" });
+const filaCarne = () => tablaConteo.getByRole("row").filter({ hasText: "Carne de res molida" });
+const sistema = async () =>
+  Number.parseFloat(
+    (await filaCarne().locator("td").first().innerText()).replace(/[^\d,]/g, "").replace(",", "."),
+  );
+const coma = (n) => String(Math.round(n * 1000) / 1000).replace(".", ",");
+await rosa.getByLabel("Contado de Carne de res molida").fill(coma(await sistema()));
+await rosa.getByRole("button", { name: "Guardar conteo" }).click();
+check(
+  "34. Un conteo que cuadra lo dice",
+  await visible(rosa.getByText("Todo cuadra con lo que dice el sistema.")),
+);
+await tomarPedido5();
+hoja = daniela.getByRole("dialog").last();
+await hoja.getByLabel("Buscar plato o ingrediente").fill("clásica 27");
+await hoja.getByRole("button", { name: "Agregar uno" }).first().click();
+await hoja.getByRole("button", { name: /Enviar a cocina/ }).click();
+await rosa.reload();
+await rosa.getByRole("radio", { name: "Conteo", exact: true }).click();
+await rosa.getByLabel("Contado de Carne de res molida").fill(coma((await sistema()) - 0.1));
+check(
+  "34. Mientras se escribe, se ve la diferencia con el sistema",
+  await visible(filaCarne().getByText("-0,1", { exact: true })),
+);
+await rosa.getByRole("button", { name: "Guardar conteo" }).click();
+const tablaDesv = rosa.getByRole("table", { name: "Desviaciones" });
+check(
+  "34. Las desviaciones muestran lo que faltó frente a lo que se gastó",
+  await visible(
+    tablaDesv.getByRole("row").filter({ hasText: "Carne de res molida" }).getByText(/\d+ %/),
+  ),
+);
+check(
+  "34. Si la diferencia se repite, el sistema propone ajustar las recetas",
+  await visible(
+    rosa.getByText(/Carne de res molida se gastó \d+ % más de lo que dicen tus recetas/),
+  ),
+);
+await rosa.getByRole("button", { name: /Ajustar recetas \+\d+ %/ }).click();
+await rosa.getByRole("radio", { name: "Recetas", exact: true }).click();
+check(
+  "34. Al aceptar, las recetas suben sus cantidades",
+  await visible(
+    rosa
+      .getByRole("table", { name: "Recetas" })
+      .getByRole("row")
+      .filter({ hasText: "Clásica 27 · Sencilla" })
+      .getByText(/0,1[6-9]\d* kg de Carne de res molida/),
+  ),
+);
+
+await rosa.getByRole("radio", { name: "Conteo", exact: true }).click();
+await rosa.getByRole("radio", { name: "Cierre del día", exact: true }).click();
+await rosa.getByLabel("Contado de Calentado de la casa (porciones)").fill("5");
+await rosa.getByLabel("Dar de baja Calentado de la casa (porciones)").check();
+await rosa.getByRole("button", { name: "Guardar cierre" }).click();
+check(
+  "34. El cierre del día registra las sobras",
+  await visible(rosa.getByText("Cierre del día registrado")),
+);
+await rosa.getByRole("radio", { name: "Existencias", exact: true }).click();
+check(
+  "34. Lo que se dio de baja deja el plato agotado",
+  await visible(filaGas("Calentado de la casa (porciones)").getByText("Agotado")),
+);
+await rosa.getByRole("radio", { name: "Movimientos", exact: true }).click();
+check(
+  "34. El cierre y la baja quedan en los movimientos",
+  (await visible(rosa.getByRole("table", { name: "Movimientos" }).getByText("Cierre del día"))) &&
+    (await visible(rosa.getByRole("table", { name: "Movimientos" }).getByText("Sobró del día"))),
 );
 
 // Limpieza: hora automática

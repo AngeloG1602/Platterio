@@ -139,15 +139,8 @@ await cocina.goto(`${BASE}/cocina`);
 await entrarComo(cocina, "Cocina");
 await pause(cocina, 900);
 await shot(cocina, "s09-cocina");
-await cocina
-  .getByRole("button", { name: /Empezar a preparar/ })
-  .first()
-  .click();
 await pause(cocina);
-await cocina
-  .getByRole("button", { name: /Marcar listo/ })
-  .first()
-  .click();
+await cocina.getByRole("button", { name: "Listo", exact: true }).first().click();
 await pause(cocina, 700);
 await ana.reload();
 await pause(ana, 900);

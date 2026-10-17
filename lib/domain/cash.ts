@@ -1,6 +1,7 @@
 import { inPeriod, orderTotal, type Period } from "./analytics";
 import type {
   CashShift,
+  CreditPayment,
   Order,
   Payment,
   PaymentMethod,
@@ -64,6 +65,15 @@ export function sessionBalance(
   return { due, paid, pending: Math.max(0, due - paid) };
 }
 
+/** Lo que falta cobrar de una mesa (0 si no debe nada). Una mesa con saldo no se cierra ni se libera. */
+export function pendingOf(
+  orders: readonly Order[],
+  payments: readonly Payment[],
+  sessionId: string,
+): number {
+  return sessionBalance(orders, payments, sessionId).pending;
+}
+
 /* ——— Turno de caja ——— */
 
 export const openShiftOf = (shifts: readonly CashShift[]) => shifts.find((s) => !s.closedAt);
@@ -120,9 +130,26 @@ export function registerPayment(params: {
   };
 }
 
-/** Lo cobrado en el turno, por forma de pago, y el efectivo que debería haber en la caja. */
-export function shiftTotals(shift: CashShift, payments: readonly Payment[]) {
-  const own = payments.filter((p) => p.shiftId === shift.id);
+/** ¿Es dinero que entró a la caja? Los créditos y las cortesías no lo son (ver `credit.ts`). */
+export const isCashPayment = (p: Pick<Payment, "kind">) => !p.kind;
+
+/**
+ * Lo cobrado en el turno, por forma de pago, y el efectivo que debería haber en la caja. Cuenta
+ * los cobros y los abonos a crédito que entraron a la caja; no los créditos ni las cortesías, ni
+ * los abonos por descuento de nómina.
+ */
+export function shiftTotals(
+  shift: CashShift,
+  payments: readonly Payment[],
+  creditPayments: readonly CreditPayment[] = [],
+) {
+  const own: { method: PaymentMethod; amount: number }[] = [
+    ...payments.filter((p) => p.shiftId === shift.id && isCashPayment(p)),
+    ...creditPayments.filter(
+      (c): c is CreditPayment & { method: PaymentMethod } =>
+        c.shiftId === shift.id && c.method !== "nomina",
+    ),
+  ];
   const byMethod = emptyByMethod();
   for (const p of own) byMethod[p.method] += p.amount;
   const total = own.reduce((s, p) => s + p.amount, 0);
@@ -137,6 +164,7 @@ export function shiftTotals(shift: CashShift, payments: readonly Payment[]) {
 export function closeShift(params: {
   shift: CashShift;
   payments: readonly Payment[];
+  creditPayments?: readonly CreditPayment[];
   countedCash: number;
   note?: string;
   now: string;
@@ -146,7 +174,7 @@ export function closeShift(params: {
   if (shift.closedAt) return fail("Esta caja ya estaba cerrada");
   if (!Number.isInteger(countedCash) || countedCash < 0)
     return fail("Escribe el efectivo que contaste, en pesos");
-  const totals = shiftTotals(shift, params.payments);
+  const totals = shiftTotals(shift, params.payments, params.creditPayments);
   const difference = countedCash - totals.expectedCash;
   const note = params.note?.trim();
   if (difference !== 0 && !note) return fail("Hay diferencia: cuéntanos a qué se debe");
@@ -184,11 +212,20 @@ export function openTablesWithBalance(
 /* ——— Reportes ——— */
 
 /** Cobrado en el periodo por forma de pago. */
-export function paymentsByMethod(payments: readonly Payment[], period: Period) {
+export function paymentsByMethod(
+  payments: readonly Payment[],
+  period: Period,
+  creditPayments: readonly CreditPayment[] = [],
+) {
   const byMethod = emptyByMethod();
   let count = 0;
+  for (const c of creditPayments) {
+    if (c.method === "nomina" || !inPeriod(c.at, period)) continue;
+    byMethod[c.method] += c.amount;
+    count += 1;
+  }
   for (const p of payments) {
-    if (!inPeriod(p.at, period)) continue;
+    if (!isCashPayment(p) || !inPeriod(p.at, period)) continue;
     byMethod[p.method] += p.amount;
     count += 1;
   }

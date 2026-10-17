@@ -1,4 +1,5 @@
-import { localized } from "@/lib/i18n";
+import { localized, t } from "@/lib/i18n";
+import { useDishSoldOut } from "@/lib/data";
 import { AllergenList } from "@/components/ui/allergen";
 import { Price } from "@/components/ui/price";
 import { Spice } from "@/components/ui/spice";
@@ -22,6 +23,7 @@ export function DishCard({
   className?: string;
 }) {
   const { layout } = useMenuStyle();
+  const soldOut = useDishSoldOut(dish);
   const prices = dish.variants.map((v) => v.price);
   const price = (
     <Price value={Math.min(...prices)} from={new Set(prices).size > 1} className="text-[15px]" />
@@ -29,6 +31,11 @@ export function DishCard({
   const name = localized(dish);
   const meta = (
     <>
+      {soldOut && (
+        <span className="bg-danger-soft text-danger-ink rounded-full px-2.5 py-0.5 text-xs font-semibold">
+          {t("Agotado")}
+        </span>
+      )}
       <Spice level={dish.spiceLevel} />
       {rating && <RatingSummary average={rating.average} count={rating.count} compact />}
     </>

@@ -78,6 +78,7 @@ const RESERVED = new Set([
   "app",
   "caja",
   "cocina",
+  "inventario",
   "demo",
   "domicilio",
   "entrar",

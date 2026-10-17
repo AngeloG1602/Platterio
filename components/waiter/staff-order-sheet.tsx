@@ -7,7 +7,8 @@ import { Price } from "@/components/ui/price";
 import { QtyStepper } from "@/components/ui/qty-stepper";
 import { Sheet } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toaster";
-import { waiterActions } from "@/lib/data";
+import { useFeature, useStockView, waiterActions } from "@/lib/data";
+import { availableUnits } from "@/lib/domain/inventory";
 import { plural } from "@/lib/domain/format";
 import type { StaffLine } from "@/lib/domain/staffOrders";
 import { EMPTY_FILTERS, filterDishes, type MenuFilters } from "@/lib/domain/menu";
@@ -43,6 +44,8 @@ export function StaffOrderSheet({
   const [error, setError] = useState<string>();
   const [filters, setFilters] = useState<MenuFilters>(EMPTY_FILTERS);
   const visible = filterDishes(dishes, filters);
+  const stock = useStockView();
+  const stockOn = useFeature("inventario");
 
   const lines: StaffLine[] = Object.entries(drafts)
     .filter(([, d]) => d.qty > 0)
@@ -157,6 +160,9 @@ export function StaffOrderSheet({
                   const variant = dish.variants.find(
                     (v) => v.id === (d?.variantId ?? dish.variants[0]!.id),
                   );
+                  const left = stockOn
+                    ? availableUnits(stock, dish.id, d?.variantId ?? dish.variants[0]!.id)
+                    : undefined;
                   return (
                     <li key={dish.id} className="flex flex-col gap-2 py-3">
                       <div className="flex items-center gap-3">
@@ -164,13 +170,20 @@ export function StaffOrderSheet({
                           <p className="text-[16px] leading-snug font-semibold">{dish.name}</p>
                           <Price value={variant?.price ?? 0} className="text-ink-soft text-sm" />
                         </div>
-                        <QtyStepper
-                          size="sm"
-                          min={0}
-                          label={`Cantidad de ${dish.name}`}
-                          value={d?.qty ?? 0}
-                          onChange={(qty) => patch(dish, { qty })}
-                        />
+                        {left === 0 ? (
+                          <span className="bg-danger-soft text-danger-ink rounded-full px-3 py-1 text-sm font-semibold">
+                            Agotado
+                          </span>
+                        ) : (
+                          <QtyStepper
+                            size="sm"
+                            min={0}
+                            max={left === undefined ? 20 : Math.min(20, left)}
+                            label={`Cantidad de ${dish.name}`}
+                            value={d?.qty ?? 0}
+                            onChange={(qty) => patch(dish, { qty })}
+                          />
+                        )}
                       </div>
                       {(d?.qty ?? 0) > 0 && (
                         <div className="flex gap-2">

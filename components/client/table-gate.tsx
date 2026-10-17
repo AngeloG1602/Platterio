@@ -2,12 +2,12 @@
 
 import { QrCode } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
 import { toast } from "@/components/ui/toaster";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useHydrated, useMyDiner, useSeedEpoch, useTableByNumber } from "@/lib/data";
+import { useHydrated, useMovedTable, useMyDiner, useSeedEpoch, useTableByNumber } from "@/lib/data";
 import type { Diner, Table, TableSession } from "@/lib/domain/types";
 import { t } from "@/lib/i18n";
 import { useBusinessHref } from "@/components/providers/business-scope";
@@ -21,6 +21,8 @@ export interface TableContext {
 
 export type TableAccess =
   | { status: "loading" }
+  /** El personal lo pasó a otra mesa: se lo lleva solo, sin escanear ni pedir otro PIN. */
+  | { status: "moved"; to: number }
   | { status: "invalid" }
   | { status: "guest"; table: Table; session?: TableSession }
   | ({ status: "ready" } & TableContext);
@@ -32,8 +34,21 @@ export function useTableAccess(numero: string): TableAccess {
   const n = /^\d+$/.test(numero) ? Number(numero) : NaN;
   const table = useTableByNumber(n);
   const { session, diner } = useMyDiner(table?.id);
+  const moved = useMovedTable(table?.id);
+  const router = useRouter();
+  const pathname = usePathname();
+  const follow = Boolean(table && hydrated && (!session || !diner) && moved !== null);
+  useEffect(() => {
+    if (!follow || moved === null) return;
+    router.replace(pathname.replace(new RegExp(`/mesa/${numero}(?=/|$)`), `/mesa/${moved}`));
+    toast(t("Te pasamos a la Mesa {n}", { n: moved }), {
+      id: "mesa-cambiada",
+      description: t("Tu pedido y tu carrito siguen igual."),
+    });
+  }, [follow, moved, numero, pathname, router]);
   if (!hydrated) return { status: "loading" };
   if (!table) return { status: "invalid" };
+  if (follow && moved !== null) return { status: "moved", to: moved };
   if (!session || !diner) return { status: "guest", table, session };
   return { status: "ready", table, session, diner, base: href(`/mesa/${table.number}`) };
 }
@@ -135,7 +150,7 @@ export function TableViewGate({
   const href = useBusinessHref();
   useSessionEndNotice(access);
   if (access.status === "invalid") return <InvalidTable />;
-  if (access.status === "loading") return <>{fallback}</>;
+  if (access.status === "loading" || access.status === "moved") return <>{fallback}</>;
   if (access.status === "ready")
     return (
       <>{children({ table: access.table, base: access.base, member: access, sessionOpen: true })}</>

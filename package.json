@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "e2e": "node e2e/guion-demo.mjs",
     "e2e:a11y": "node e2e/accesibilidad.mjs",
+    "e2e:cocina": "node e2e/cocina-carga.mjs",
     "modelos:separar": "node scripts/modelos/separar-por-huesos.mjs"
   },
   "dependencies": {

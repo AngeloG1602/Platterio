@@ -1,0 +1,302 @@
+{
+ "total": 129.553,
+ "sitio": "platterio.vercel.app",
+ "escenas": [
+  {
+   "id": "gancho",
+   "inicio": 0.0,
+   "dur": 8.758,
+   "frases": [
+    {
+     "texto": "Hora pico.",
+     "inicio": 0.45,
+     "dur": 0.831
+    },
+    {
+     "texto": "Mesas llenas, comandas en papel, pedidos que se pierden…",
+     "inicio": 1.561,
+     "dur": 3.235
+    },
+    {
+     "texto": "y clientes que esperan, solo para poder pedir.",
+     "inicio": 5.076,
+     "dur": 2.532
+    }
+   ]
+  },
+  {
+   "id": "pregunta",
+   "inicio": 8.758,
+   "dur": 4.939,
+   "frases": [
+    {
+     "texto": "¿Y si todo tu restaurante trabajara conectado, de la mesa a la caja?",
+     "inicio": 9.208,
+     "dur": 3.939
+    }
+   ]
+  },
+  {
+   "id": "logo",
+   "inicio": 13.697,
+   "dur": 7.037,
+   "frases": [
+    {
+     "texto": "Te presentamos Platterio.",
+     "inicio": 14.147,
+     "dur": 1.466
+    },
+    {
+     "texto": "La plataforma que moderniza la operación de tu restaurante.",
+     "inicio": 15.893,
+     "dur": 3.491
+    }
+   ]
+  },
+  {
+   "id": "qr",
+   "inicio": 20.734,
+   "dur": 6.854,
+   "frases": [
+    {
+     "texto": "Tu cliente escanea el código QR de la mesa y abre tu carta en su celular.",
+     "inicio": 21.184,
+     "dur": 4.341
+    },
+    {
+     "texto": "Sin descargar nada.",
+     "inicio": 25.804,
+     "dur": 1.234
+    }
+   ]
+  },
+  {
+   "id": "carta",
+   "inicio": 27.588,
+   "dur": 7.539,
+   "frases": [
+    {
+     "texto": "Fotos, precios y alérgenos a la vista, en español o en inglés.",
+     "inicio": 28.038,
+     "dur": 3.661
+    },
+    {
+     "texto": "Si tiene una alergia, la carta se lo advierte.",
+     "inicio": 31.979,
+     "dur": 2.598
+    }
+   ]
+  },
+  {
+   "id": "tresde",
+   "inicio": 35.127,
+   "dur": 4.768,
+   "frases": [
+    {
+     "texto": "Y puede ver el plato en 3D, y personalizarlo, antes de pedirlo.",
+     "inicio": 35.577,
+     "dur": 3.768
+    }
+   ]
+  },
+  {
+   "id": "carrito",
+   "inicio": 39.895,
+   "dur": 5.935,
+   "frases": [
+    {
+     "texto": "Cada persona de la mesa agrega lo suyo, en un solo carrito compartido, en tiempo real.",
+     "inicio": 40.345,
+     "dur": 4.935
+    }
+   ]
+  },
+  {
+   "id": "mesero",
+   "inicio": 45.831,
+   "dur": 6.578,
+   "frases": [
+    {
+     "texto": "El pedido llega al instante a la tableta del mesero,",
+     "inicio": 46.281,
+     "dur": 2.915
+    },
+    {
+     "texto": "que lo revisa y lo confirma con un toque.",
+     "inicio": 49.476,
+     "dur": 2.383
+    }
+   ]
+  },
+  {
+   "id": "cocina",
+   "inicio": 52.408,
+   "dur": 7.71,
+   "frases": [
+    {
+     "texto": "La cocina lo recibe en orden, con las notas a la vista, y marca cuando está listo.",
+     "inicio": 52.858,
+     "dur": 4.622
+    },
+    {
+     "texto": "Menos gritos. Menos errores.",
+     "inicio": 57.76,
+     "dur": 1.808
+    }
+   ]
+  },
+  {
+   "id": "seguimiento",
+   "inicio": 60.118,
+   "dur": 7.451,
+   "frases": [
+    {
+     "texto": "Mientras tanto, tu cliente ve en su celular en qué va su pedido.",
+     "inicio": 60.568,
+     "dur": 3.598
+    },
+    {
+     "texto": "Y al final, califica la comida y el servicio.",
+     "inicio": 64.446,
+     "dur": 2.574
+    }
+   ]
+  },
+  {
+   "id": "caja",
+   "inicio": 67.57,
+   "dur": 7.452,
+   "frases": [
+    {
+     "texto": "En caja cobras cada mesa, en partes y con varias formas de pago.",
+     "inicio": 68.02,
+     "dur": 3.811
+    },
+    {
+     "texto": "Y cierras el turno con todo registrado.",
+     "inicio": 72.111,
+     "dur": 2.361
+    }
+   ]
+  },
+  {
+   "id": "dueno",
+   "inicio": 75.021,
+   "dur": 8.796,
+   "frases": [
+    {
+     "texto": "Y tú tienes el control desde tu panel:",
+     "inicio": 75.471,
+     "dur": 2.34
+    },
+    {
+     "texto": "ventas del día, platos más pedidos, el desempeño de tu equipo y lo que opinan tus clientes.",
+     "inicio": 78.091,
+     "dur": 5.176
+    }
+   ]
+  },
+  {
+   "id": "domicilios",
+   "inicio": 83.817,
+   "dur": 6.939,
+   "frases": [
+    {
+     "texto": "Recibe pedidos a domicilio, con aviso por WhatsApp,",
+     "inicio": 84.267,
+     "dur": 3.043
+    },
+    {
+     "texto": "y el contacto del domiciliario para tu cliente.",
+     "inicio": 87.59,
+     "dur": 2.616
+    }
+   ]
+  },
+  {
+   "id": "reservas",
+   "inicio": 90.757,
+   "dur": 6.368,
+   "frases": [
+    {
+     "texto": "Gestiona reservas y eventos,",
+     "inicio": 91.207,
+     "dur": 1.853
+    },
+    {
+     "texto": "e invita a tus clientes a dejarte una reseña en Google.",
+     "inicio": 93.34,
+     "dur": 3.235
+    }
+   ]
+  },
+  {
+   "id": "marca",
+   "inicio": 97.125,
+   "dur": 6.0,
+   "frases": [
+    {
+     "texto": "Todo con tu logo, tus colores y el estilo de carta que mejor va con tu negocio.",
+     "inicio": 97.575,
+     "dur": 4.535
+    }
+   ]
+  },
+  {
+   "id": "tiempo",
+   "inicio": 103.125,
+   "dur": 10.691,
+   "frases": [
+    {
+     "texto": "Hoy, un servicio más ágil.",
+     "inicio": 103.575,
+     "dur": 1.72
+    },
+    {
+     "texto": "Cada semana, reportes claros para decidir.",
+     "inicio": 105.575,
+     "dur": 2.616
+    },
+    {
+     "texto": "Y mes a mes, un restaurante que conoce a sus clientes y mejora cada día.",
+     "inicio": 108.471,
+     "dur": 4.195
+    }
+   ]
+  },
+  {
+   "id": "planes",
+   "inicio": 113.816,
+   "dur": 7.217,
+   "frases": [
+    {
+     "texto": "Hay dos planes, según tu negocio:",
+     "inicio": 114.266,
+     "dur": 1.955
+    },
+    {
+     "texto": "uno de carta digital y domicilios, y otro completo, con todo el salón.",
+     "inicio": 116.501,
+     "dur": 3.982
+    }
+   ]
+  },
+  {
+   "id": "cierre",
+   "inicio": 121.032,
+   "dur": 8.521,
+   "frases": [
+    {
+     "texto": "Pruébalo siete días gratis, con todo incluido.",
+     "inicio": 121.482,
+     "dur": 2.738
+    },
+    {
+     "texto": "Platterio. Tu restaurante, conectado.",
+     "inicio": 124.501,
+     "dur": 2.103
+    }
+   ]
+  }
+ ]
+}

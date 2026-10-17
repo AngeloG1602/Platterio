@@ -1,6 +1,36 @@
 "use client";
 
-import { canAddUser, type PlanId } from "@/lib/domain/pricing";
+import { releasePaidTables } from "./alert-watcher";
+import { recordAudit, tableName } from "./audit";
+import { ROLE_LABEL } from "@/lib/domain/access";
+import { METHOD_LABEL } from "@/lib/domain/cash";
+import {
+  accountBalance,
+  buildAccount,
+  CREDIT_KIND_LABEL,
+  registerCourtesy,
+  registerCredit,
+  registerRepayment,
+  REPAYMENT_LABEL,
+  validateAccount,
+  type AccountDraft,
+  type AccountErrors,
+  type RepaymentMethod,
+} from "@/lib/domain/credit";
+import type { AuditAction } from "@/lib/domain/audit";
+import {
+  addPreparation,
+  produce,
+  removePreparation,
+  updatePreparation,
+  validatePreparation,
+  type PreparationDraft,
+  type PreparationErrors,
+} from "@/lib/domain/preparations";
+import { applyCalibration, applyCount, type CountInput } from "@/lib/domain/counts";
+import type { ItemRow, RecipeRow } from "@/lib/domain/importer";
+import { buildInvoice, invoiceCode, invoiceFor } from "@/lib/domain/invoice";
+import { canAddUser, planAllows, type PlanId } from "@/lib/domain/pricing";
 import { setClockScale, virtualNow } from "@/lib/domain/clock";
 import { isValidHex } from "@/lib/domain/color";
 import { addToCart, cartCount, removeCartItem, updateCartItem } from "@/lib/domain/cart";
@@ -37,11 +67,37 @@ import {
   type OrderEdit,
   type StaffLine,
 } from "@/lib/domain/staffOrders";
-import type { Order, OrderStatus } from "@/lib/domain/types";
+import type {
+  InventoryItem,
+  InventoryMove,
+  Order,
+  OrderStatus,
+  StockCount,
+} from "@/lib/domain/types";
+import {
+  addItem as addInventoryItem,
+  availableUnits,
+  registerMove,
+  soldTodayFn,
+  syncOrderStock,
+  type StockView,
+  updateItem as updateInventoryItem,
+  validateItem,
+  fmtQty,
+  emptyItemDraft,
+  type ItemDraft,
+  type RecipeDraft,
+  type RecipeErrors,
+  saveRecipe,
+  validateRecipe,
+  type ManualKind,
+} from "@/lib/domain/inventory";
+import { placeLabel } from "@/lib/domain/delivery";
 import { effectiveSlot } from "@/lib/domain/timeSlots";
 import { findOpenSession, joinTable, updateDinerRestrictions } from "@/lib/domain/session";
 import {
   cancelSession,
+  transferSession,
   openSession,
   requestOpen,
   resolveCalls,
@@ -103,7 +159,7 @@ import {
 } from "@/lib/domain/delivery";
 import type { DeliveryConfig } from "@/lib/domain/types";
 import { useDeliveryClient, type DeliveryClientState } from "./delivery-store";
-import { isCurrency } from "@/lib/domain/format";
+import { formatMoney, isCurrency } from "@/lib/domain/format";
 import { enabledLangs } from "@/lib/i18n";
 import { customizationSpecFor } from "./customization-specs";
 import {
@@ -120,6 +176,15 @@ import { useAppStore } from "./store";
 /** Capa de escritura que usan las pantallas. */
 
 /** Hora actual de la demo en ISO (respeta el tiempo acelerado). */
+/** Lo que ve el inventario del estado actual: productos, recetas y lo vendido hoy. */
+function stockViewOf(state: ReturnType<typeof useAppStore.getState>): StockView {
+  return {
+    items: state.inventory ?? [],
+    recipes: state.recipes ?? [],
+    sold: soldTodayFn(state.orders, virtualNow(state.demo.clock, Date.now())),
+  };
+}
+
 export function nowIso(): string {
   return new Date(virtualNow(useAppStore.getState().demo.clock, Date.now())).toISOString();
 }
@@ -360,6 +425,15 @@ export const cartActions = {
     if (!dish?.active) return { ok: false, error: "Este plato ya no está disponible" };
     if (!dish.variants.some((v) => v.id === item.variantId))
       return { ok: false, error: "Elige una opción válida" };
+    const left = availableUnits(stockViewOf(state), item.dishId, item.variantId);
+    if (left !== undefined) {
+      const inCart = session.cart
+        .filter((c) => c.dishId === item.dishId && c.variantId === item.variantId)
+        .reduce((n, c) => n + c.qty, 0);
+      if (left <= 0) return { ok: false, error: `${dish.name} se agotó.` };
+      if (inCart + item.qty > left)
+        return { ok: false, error: `De ${dish.name} solo quedan ${left}.` };
+    }
     const { customization, ...base } = item;
     let custom: CartCustomization | undefined;
     if (customization) {
@@ -501,8 +575,47 @@ export const demoDinerActions = {
 
 /* ——— Estados del pedido ——— */
 
-function replaceOrder(order: Order) {
-  useAppStore.setState((s) => ({ orders: s.orders.map((o) => (o.id === order.id ? order : o)) }));
+/** Guarda la ronda y deja el inventario al día con su nuevo estado, todo en un solo cambio. */
+function replaceOrder(order: Order): ActionResult {
+  const state = useAppStore.getState();
+  const stock = stockSync(state, order);
+  if (!stock.ok) return stock;
+  useAppStore.setState((s) => ({
+    orders: s.orders.map((o) => (o.id === order.id ? order : o)),
+    ...stock.patch,
+  }));
+  return { ok: true };
+}
+
+/**
+ * Qué cambia en el inventario cuando la ronda queda así. Sin el plan con inventario, o si el
+ * negocio no tiene productos, no hay nada que mover.
+ */
+function stockSync(
+  state: ReturnType<typeof useAppStore.getState>,
+  order: Order,
+):
+  | { ok: true; patch: { inventory?: InventoryItem[]; inventoryMoves?: InventoryMove[] } }
+  | { ok: false; error: string } {
+  const items = state.inventory ?? [];
+  if (!planAllows(state.restaurant.plan, "inventario") || items.length === 0)
+    return { ok: true, patch: {} };
+  const r = syncOrderStock(
+    { items, moves: state.inventoryMoves ?? [], recipes: state.recipes ?? [] },
+    order,
+    currentStaff()?.name ?? "Pedido",
+    nowIso(),
+    state.orders,
+    (id) => state.dishes.find((d) => d.id === id)?.name ?? "ese plato",
+  );
+  if (!r.ok) return r;
+  return { ok: true, patch: { inventory: r.value.items, inventoryMoves: r.value.moves } };
+}
+
+/** "Mesa 3 · Ronda 1" o "Domicilio D-XXXX · Ronda 1": sobre qué pedido se hizo algo. */
+function orderTarget(order: Order): string {
+  const s = useAppStore.getState();
+  return `${placeLabel(order, s.tables, s.sessions)} · Ronda ${order.round}`;
 }
 
 /** Única puerta de escritura para cambiar el estado de un pedido (usa la máquina de estados). */
@@ -511,7 +624,15 @@ function moveOrder(orderId: string, to: OrderStatus, actor: Actor, reason?: stri
   if (!order) return { ok: false, error: "No encontramos ese pedido" };
   const result = transitionOrder(order, to, actor, nowIso(), reason);
   if (!result.ok) return result;
-  replaceOrder(result.order);
+  const saved = replaceOrder(result.order);
+  if (!saved.ok) return saved;
+  const action: Partial<Record<OrderStatus, AuditAction>> = {
+    confirmado: "pedido.confirmar",
+    rechazado: "pedido.rechazar",
+    entregado: "pedido.entregar",
+    listo: "cocina.listo",
+  };
+  if (action[to]) recordAudit(action[to]!, orderTarget(order), { reason });
   return { ok: true };
 }
 
@@ -568,14 +689,20 @@ export const teamActions = {
     const r = addStaff(useAppStore.getState(), input, actor.role);
     if (!r.ok) return r;
     useAppStore.setState(r.value);
+    recordAudit("equipo.crear", `${input.name.trim()} (${ROLE_LABEL[input.role].toLowerCase()})`);
     return { ok: true };
   },
   update(userId: string, patch: { name?: string; pin?: string }): ActionResult {
     const actor = currentStaff();
     if (!actor) return { ok: false, error: "Entra con tu PIN para continuar" };
+    const before = useAppStore.getState().staff.find((u) => u.id === userId);
     const r = updateStaff(useAppStore.getState(), userId, patch, actor.role);
     if (!r.ok) return r;
     useAppStore.setState(r.value);
+    const changed = [patch.name !== undefined && "nombre", patch.pin !== undefined && "PIN"].filter(
+      Boolean,
+    );
+    recordAudit("equipo.editar", before?.name ?? "Usuario", { detail: changed.join(" y ") });
     return { ok: true };
   },
   setActive(userId: string, active: boolean): ActionResult & { released?: string[] } {
@@ -584,6 +711,10 @@ export const teamActions = {
     const r = setStaffActive(useAppStore.getState(), userId, active, actor);
     if (!r.ok) return r;
     useAppStore.setState({ staff: r.value.staff, waiters: r.value.waiters });
+    const person = r.value.staff.find((u) => u.id === userId);
+    recordAudit(active ? "equipo.activar" : "equipo.desactivar", person?.name ?? "Usuario", {
+      detail: r.value.released?.length ? "Se liberaron sus mesas" : undefined,
+    });
     return { ok: true, released: r.value.released };
   },
 };
@@ -615,7 +746,12 @@ export const waiterActions = {
       const dish = state.dishes.find((d) => d.id === item?.dishId);
       const result = adjustOrderItem(order, itemId, change, reason, dish);
       if (!result.ok) return result;
-      replaceOrder(result.order);
+      const saved = replaceOrder(result.order);
+      if (!saved.ok) return saved;
+      recordAudit("pedido.ajustar", orderTarget(order), {
+        detail: `${dish?.name ?? "Plato"} · ${change.type}`,
+        reason,
+      });
       return { ok: true };
     });
   },
@@ -659,12 +795,18 @@ export const waiterActions = {
       newId: () => newId("item"),
     });
     if (!r.ok) return r;
+    const stock = stockSync(state, r.order);
+    if (!stock.ok) return stock;
     const sid = session.id;
     useAppStore.setState((s) => ({
       sessions: sessions.map((x) => (x.id === sid ? { ...x, lastActivityAt: now } : x)),
       orders: [...s.orders, r.order],
       calls: openedPin ? resolveCalls(s.calls, tableId) : s.calls,
+      ...stock.patch,
     }));
+    recordAudit("pedido.crear", orderTarget(r.order), {
+      detail: `${r.order.items.reduce((n, i) => n + i.qty, 0)} platos`,
+    });
     return { ok: true, orderId: r.order.id, openedPin };
   },
   /** Edita una ronda en cualquier estado menos anulada; queda registrado quién, cuándo y por qué. */
@@ -685,7 +827,13 @@ export const waiterActions = {
         itemId: newId("item"),
       });
       if (!r.ok) return r;
-      replaceOrder(r.order);
+      const saved = replaceOrder(r.order);
+      if (!saved.ok) return saved;
+      const last = r.order.changes?.at(-1);
+      recordAudit("pedido.editar", orderTarget(order), {
+        detail: last ? `${last.dishName} · ${last.detail}` : edit.type,
+        reason,
+      });
       return { ok: true };
     });
   },
@@ -705,6 +853,7 @@ export const waiterActions = {
       sessions: r.value.sessions,
       calls: resolveCalls(state.calls, tableId),
     });
+    recordAudit("mesa.abrir", tableName(tableId));
     return { ok: true, pin: r.value.session.pin };
   },
   /** Cierra la mesa aunque tenga rondas sin entregar, que quedan rechazadas. */
@@ -714,12 +863,25 @@ export const waiterActions = {
     const state = useAppStore.getState();
     const session = findOpenSession(state.sessions, tableId);
     if (!session) return { ok: false, error: "La mesa ya estaba cerrada" };
-    const r = cancelSession(session, state.orders, nowIso());
+    const r = cancelSession(session, state.orders, state.payments, nowIso());
     if (!r.ok) return r;
+    // Las rondas que se rechazan devuelven al inventario lo que tenían descontado.
+    let stock: { inventory?: InventoryItem[]; inventoryMoves?: InventoryMove[] } = {};
+    for (const o of r.value.orders) {
+      const before = state.orders.find((x) => x.id === o.id);
+      if (!before || before.status === o.status) continue;
+      const synced = stockSync({ ...state, ...stock }, o);
+      if (synced.ok) stock = { ...stock, ...synced.patch };
+    }
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === session.id ? r.value.session : x)),
       orders: r.value.orders,
+      ...stock,
     }));
+    recordAudit("mesa.cancelar", tableName(tableId), {
+      detail:
+        r.value.rejected > 0 ? `${r.value.rejected} rondas sin entregar rechazadas` : undefined,
+    });
     return { ok: true, rejected: r.value.rejected };
   },
   /** Minutos sin actividad para que esta mesa se cierre sola (`null`: el del negocio). */
@@ -741,15 +903,44 @@ export const waiterActions = {
     const state = useAppStore.getState();
     const session = findOpenSession(state.sessions, tableId);
     if (!session) return { ok: false, error: "La mesa ya estaba libre" };
-    const result = releaseSession(session, state.orders, nowIso());
+    const result = releaseSession(session, state.orders, state.payments, nowIso());
     if (!result.ok) return result;
     replaceSession(session, result.session);
+    recordAudit("mesa.liberar", tableName(tableId));
+    return { ok: true };
+  },
+  /**
+   * Pasa la sesión de una mesa a otra libre (el cliente se cambió de sitio). Lo hace el mesero
+   * de la mesa, el encargado o el administrador; el cliente no. Los celulares siguen conectados.
+   */
+  transferTable(fromTableId: string, toTableId: string): ActionResult {
+    const check = checkWaiterTable(fromTableId);
+    if (!check.ok) return check;
+    const state = useAppStore.getState();
+    if (!state.tables.some((t) => t.id === toTableId))
+      return { ok: false, error: "No encontramos esa mesa" };
+    const r = transferSession({
+      sessions: state.sessions,
+      orders: state.orders,
+      payments: state.payments,
+      fromTableId,
+      toTableId,
+      now: nowIso(),
+      by: currentStaff()?.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({
+      sessions: r.value.sessions,
+      orders: r.value.orders,
+      payments: r.value.payments,
+      calls: resolveCalls(s.calls, toTableId),
+    }));
+    recordAudit("mesa.transferir", `${tableName(fromTableId)} → ${tableName(toTableId)}`);
     return { ok: true };
   },
 };
 
 export const kitchenActions = {
-  start: (orderId: string) => moveOrder(orderId, "en_preparacion", "cocina"),
   ready: (orderId: string) => moveOrder(orderId, "listo", "cocina"),
   /** La cocina vio los cambios que hizo el personal en la ronda. */
   acknowledgeChanges(orderId: string): ActionResult {
@@ -814,6 +1005,20 @@ export const deliveryClientActions = {
     const state = useAppStore.getState();
     const cart = useDeliveryClient.getState().cart;
     const nowMs = virtualNow(state.demo.clock, Date.now());
+    for (const line of cart) {
+      const left = availableUnits(stockViewOf(state), line.dishId, line.variantId);
+      const asked = cart
+        .filter((c) => c.dishId === line.dishId && c.variantId === line.variantId)
+        .reduce((n, c) => n + c.qty, 0);
+      if (left !== undefined && asked > left) {
+        const name = state.dishes.find((d) => d.id === line.dishId)?.name ?? "Un plato";
+        return {
+          ok: false,
+          error:
+            left <= 0 ? `${name} se agotó. Quítalo del pedido.` : `De ${name} solo quedan ${left}.`,
+        };
+      }
+    }
     const sessionId = newId("sesion");
     const orderId = newId("pedido");
     const r = placeDeliveryOrder({
@@ -898,6 +1103,9 @@ export const deliveryActions = {
     useAppStore.setState((s) => ({
       sessions: s.sessions.map((x) => (x.id === found.session.id ? r.session : x)),
     }));
+    recordAudit("domicilio.despachar", orderTarget(found.order), {
+      detail: `Domiciliario ${driver.trim()}`,
+    });
     return { ok: true };
   },
   /** Entregado al cliente (en su puerta o en el mostrador). */
@@ -932,6 +1140,48 @@ export const deliveryConfigActions = {
 
 /* ——— Caja: turnos y cobros ——— */
 
+/**
+ * Si la cuenta quedó saldada, genera y guarda su factura. Devuelve el id (o `undefined` si aún
+ * falta cobrar). Una cuenta tiene una sola factura.
+ */
+function issueInvoiceFor(sessionId: string, by: string): string | undefined {
+  const s = useAppStore.getState();
+  const session = s.sessions.find((x) => x.id === sessionId);
+  if (!session) return undefined;
+  const invoices = s.invoices ?? [];
+  const existing = invoiceFor(invoices, sessionId);
+  if (existing) return existing.id;
+  const owner = s.waiters.find((w) => w.tableIds.includes(session.tableId));
+  const invoice = buildInvoice({
+    session,
+    orders: s.orders,
+    payments: s.payments,
+    dishes: s.dishes,
+    accounts: s.creditAccounts ?? [],
+    invoices,
+    place: sessionPlace(session),
+    waiter: session.delivery ? undefined : owner?.name,
+    businessName: s.restaurant.name,
+    now: nowIso(),
+    by,
+  });
+  if (!invoice) return undefined;
+  useAppStore.setState((st) => ({ invoices: [...(st.invoices ?? []), invoice] }));
+  return invoice.id;
+}
+
+export const invoiceActions = {
+  /** Deja constancia de que se volvió a imprimir una factura. */
+  reprint(invoiceId: string): ActionResult {
+    const allowed = requirePermission("mesas.todas");
+    if (!allowed.ok) return allowed;
+    const invoice = (useAppStore.getState().invoices ?? []).find((i) => i.id === invoiceId);
+    if (!invoice) return { ok: false, error: "No encontramos esa factura" };
+    recordAudit("factura.reimprimir", `${invoiceCode(invoice.number)} · ${invoice.place}`);
+    return { ok: true };
+  },
+};
+
 export const cashActions = {
   openShift(openingFloat: number): ActionResult {
     const allowed = requirePermission("cobrar");
@@ -944,10 +1194,15 @@ export const cashActions = {
     });
     if (!r.ok) return r;
     useAppStore.setState((s) => ({ shifts: [...s.shifts, r.value] }));
+    recordAudit("caja.abrir", "Caja", { detail: `Fondo ${formatMoney(openingFloat)}` });
     return { ok: true };
   },
   /** Registra un pago contra la cuenta de una mesa abierta o de un pedido a domicilio. */
-  pay(sessionId: string, amount: number, method: PaymentMethod): ActionResult {
+  pay(
+    sessionId: string,
+    amount: number,
+    method: PaymentMethod,
+  ): ActionResult & { invoiceId?: string } {
     const allowed = requirePermission("cobrar");
     if (!allowed.ok) return allowed;
     const state = useAppStore.getState();
@@ -969,7 +1224,92 @@ export const cashActions = {
     if (!r.ok) return r;
     useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
     if (!session.closedAt) replaceSession(session, {});
-    return { ok: true };
+    const place = session.delivery
+      ? `${session.delivery.type === "recoger" ? "Recoger" : "Domicilio"} ${session.delivery.code}`
+      : tableName(session.tableId);
+    recordAudit("caja.cobrar", place, {
+      detail: `${formatMoney(amount)} · ${METHOD_LABEL[method].toLowerCase()}`,
+    });
+    const invoiceId = issueInvoiceFor(sessionId, allowed.actor!.name);
+    // Pagada por completo: la mesa se libera sola, sin esperar al mesero.
+    releasePaidTables();
+    return { ok: true, invoiceId };
+  },
+  /** Cierra (todo o parte de) la cuenta a crédito, a nombre de una persona de la lista. */
+  credit(
+    sessionId: string,
+    accountId: string,
+    amount: number,
+  ): ActionResult & { invoiceId?: string } {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const session = state.sessions.find((x) => x.id === sessionId);
+    if (!session || (session.closedAt && !session.delivery))
+      return { ok: false, error: "La mesa ya no está abierta" };
+    const account = (state.creditAccounts ?? []).find((a) => a.id === accountId);
+    const r = registerCredit({
+      shift: state.shifts.find((x) => !x.closedAt),
+      session,
+      orders: state.orders,
+      payments: state.payments,
+      creditPayments: state.creditPayments ?? [],
+      account,
+      amount,
+      now: nowIso(),
+      id: newId("pago"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
+    if (!session.closedAt) replaceSession(session, {});
+    recordAudit("credito.cargar", sessionPlace(session), {
+      detail: `${formatMoney(amount)} a nombre de ${account!.name}`,
+      authorizedBy: allowed.actor!.name,
+    });
+    const invoiceId = issueInvoiceFor(sessionId, allowed.actor!.name);
+    releasePaidTables();
+    return { ok: true, invoiceId };
+  },
+  /** Cierra (todo o parte de) la cuenta como cortesía: no se cobra y queda como gasto. */
+  courtesy(
+    sessionId: string,
+    amount: number,
+    reason: string,
+    accountId?: string,
+  ): ActionResult & { invoiceId?: string } {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const session = state.sessions.find((x) => x.id === sessionId);
+    if (!session || (session.closedAt && !session.delivery))
+      return { ok: false, error: "La mesa ya no está abierta" };
+    const account = accountId
+      ? (state.creditAccounts ?? []).find((a) => a.id === accountId)
+      : undefined;
+    const r = registerCourtesy({
+      shift: state.shifts.find((x) => !x.closedAt),
+      session,
+      orders: state.orders,
+      payments: state.payments,
+      amount,
+      reason,
+      account,
+      now: nowIso(),
+      id: newId("pago"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ payments: [...s.payments, r.value] }));
+    if (!session.closedAt) replaceSession(session, {});
+    recordAudit("cortesia.registrar", sessionPlace(session), {
+      detail: `${formatMoney(amount)}${account ? ` · ${account.name}` : ""}`,
+      reason,
+      authorizedBy: allowed.actor!.name,
+    });
+    const invoiceId = issueInvoiceFor(sessionId, allowed.actor!.name);
+    releasePaidTables();
+    return { ok: true, invoiceId };
   },
   closeShift(countedCash: number, note?: string): ActionResult {
     const allowed = requirePermission("cobrar");
@@ -980,6 +1320,7 @@ export const cashActions = {
     const r = closeShift({
       shift,
       payments: state.payments,
+      creditPayments: state.creditPayments ?? [],
       countedCash,
       note,
       now: nowIso(),
@@ -989,11 +1330,93 @@ export const cashActions = {
     useAppStore.setState((s) => ({
       shifts: s.shifts.map((x) => (x.id === shift.id ? r.value : x)),
     }));
+    const diff = r.value.summary?.difference ?? 0;
+    recordAudit("caja.cerrar", "Caja", {
+      detail: `Contó ${formatMoney(countedCash)}${diff !== 0 ? ` · diferencia ${formatMoney(diff)}` : " · cuadra"}`,
+      reason: note,
+    });
     return { ok: true };
   },
 };
 
 /* ——— Calificaciones (US-30, US-31, US-34) ——— */
+
+/* ——— Crédito y cortesías ——— */
+
+/** Nombre del lugar de una cuenta: "Mesa 3" o "Domicilio D-XXXX". */
+function sessionPlace(session: { tableId: string; delivery?: { type: string; code: string } }) {
+  return session.delivery
+    ? `${session.delivery.type === "recoger" ? "Recoger" : "Domicilio"} ${session.delivery.code}`
+    : tableName(session.tableId);
+}
+
+export const creditActions = {
+  /** Agrega o edita a una persona con cuenta a crédito. La administran caja y el administrador. */
+  saveAccount(
+    draft: AccountDraft,
+    editingId?: string,
+  ): { ok: true; id: string } | { ok: false; errors: AccountErrors } {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return { ok: false, errors: { name: allowed.error } };
+    const state = useAppStore.getState();
+    const accounts = state.creditAccounts ?? [];
+    const errors = validateAccount(draft, accounts, editingId);
+    if (Object.keys(errors).length > 0) return { ok: false, errors };
+    const built = buildAccount(draft, { id: editingId ?? newId("cuenta"), now: nowIso() });
+    const previous = accounts.find((a) => a.id === editingId);
+    const account = previous
+      ? { ...built, active: previous.active, createdAt: previous.createdAt }
+      : built;
+    useAppStore.setState((s) => ({
+      creditAccounts: previous
+        ? (s.creditAccounts ?? []).map((a) => (a.id === account.id ? account : a))
+        : [...(s.creditAccounts ?? []), account],
+    }));
+    recordAudit(previous ? "credito.persona_editar" : "credito.persona_crear", account.name, {
+      detail: CREDIT_KIND_LABEL[account.kind],
+    });
+    return { ok: true, id: account.id };
+  },
+  /** Una persona desactivada no puede recibir más crédito, pero conserva su historial. */
+  setAccountActive(accountId: string, active: boolean): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const account = (useAppStore.getState().creditAccounts ?? []).find((a) => a.id === accountId);
+    if (!account) return { ok: false, error: "No encontramos a esa persona" };
+    useAppStore.setState((s) => ({
+      creditAccounts: (s.creditAccounts ?? []).map((a) =>
+        a.id === accountId ? { ...a, active } : a,
+      ),
+    }));
+    recordAudit("credito.persona_editar", account.name, {
+      detail: active ? "La activó" : "La desactivó",
+    });
+    return { ok: true };
+  },
+  /** Recibe un abono a la deuda de una persona (en caja o por descuento de nómina). */
+  repay(accountId: string, amount: number, method: RepaymentMethod): ActionResult {
+    const allowed = requirePermission("cobrar");
+    if (!allowed.ok) return allowed;
+    const state = useAppStore.getState();
+    const account = (state.creditAccounts ?? []).find((a) => a.id === accountId);
+    const r = registerRepayment({
+      account,
+      shift: state.shifts.find((x) => !x.closedAt),
+      debt: account ? accountBalance(account.id, state.payments, state.creditPayments ?? []) : 0,
+      amount,
+      method,
+      now: nowIso(),
+      id: newId("abono"),
+      by: allowed.actor!.name,
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((s) => ({ creditPayments: [...(s.creditPayments ?? []), r.value] }));
+    recordAudit("credito.abonar", account!.name, {
+      detail: `${formatMoney(amount)} · ${REPAYMENT_LABEL[method].toLowerCase()}`,
+    });
+    return { ok: true };
+  },
+};
 
 export const feedbackActions = {
   rateDishes(
@@ -1042,6 +1465,284 @@ export const feedbackActions = {
       alerts: result.alert ? [...s.alerts, result.alert] : s.alerts,
     }));
     return { ok: true, lowAlert: Boolean(result.alert) };
+  },
+};
+
+export const inventoryActions = {
+  /** Agrega un producto. Lo hacen despensa, encargado y administrador. */
+  addItem(draft: ItemDraft): ActionResult & { errors?: Partial<Record<keyof ItemDraft, string>> } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const errors = validateItem(draft, s.inventory ?? []);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa los datos", errors };
+    const r = addInventoryItem(
+      { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
+      draft,
+      allowed.actor!.name,
+      nowIso(),
+      newId("mov"),
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, inventoryMoves: r.value.moves });
+    recordAudit("inventario.crear", r.value.item.name, {
+      detail: `${r.value.item.qty} ${r.value.item.unit}`,
+    });
+    return { ok: true };
+  },
+  updateItem(
+    itemId: string,
+    draft: ItemDraft,
+  ): ActionResult & { errors?: Partial<Record<keyof ItemDraft, string>> } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const errors = validateItem({ ...draft, qty: "0" }, s.inventory ?? [], itemId);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa los datos", errors };
+    const r = updateInventoryItem(
+      { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
+      itemId,
+      draft,
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items });
+    recordAudit("inventario.editar", draft.name.trim());
+    return { ok: true };
+  },
+  /** Crea o cambia la receta de un plato. */
+  saveRecipe(draft: RecipeDraft, id?: string): ActionResult & { errors?: RecipeErrors } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const errors = validateRecipe(
+      draft,
+      s.inventory ?? [],
+      s.recipes ?? [],
+      id,
+      (s.preparations ?? []).map((p) => p.outputItemId),
+    );
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa la receta", errors };
+    useAppStore.setState({ recipes: saveRecipe(s.recipes ?? [], draft, id ?? newId("receta")) });
+    const dish = s.dishes.find((d) => d.id === draft.dishId);
+    recordAudit("inventario.receta", dish?.name ?? draft.dishId, {
+      detail: `${draft.lines.filter((l) => l.itemId).length} ingredientes${draft.dailyMax ? ` · máximo ${draft.dailyMax} al día` : ""}`,
+    });
+    return { ok: true };
+  },
+  /** Crea o cambia una preparación por lote (y su producto de porciones). */
+  savePreparation(
+    draft: PreparationDraft,
+    id?: string,
+  ): ActionResult & { errors?: PreparationErrors } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const prep = {
+      items: s.inventory ?? [],
+      moves: s.inventoryMoves ?? [],
+      preparations: s.preparations ?? [],
+    };
+    const errors = validatePreparation(draft, prep.items, prep.preparations, s.recipes ?? [], id);
+    if (Object.keys(errors).length > 0) return { ok: false, error: "Revisa los datos", errors };
+    const r = id
+      ? updatePreparation(prep, id, draft, s.recipes ?? [])
+      : addPreparation(prep, draft, s.recipes ?? [], nowIso());
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, preparations: r.value.preparations });
+    recordAudit("inventario.preparacion", draft.name.trim(), {
+      detail: `Rinde ${draft.yield} ${draft.unit.trim() || "porciones"} · ${draft.lines.filter((l) => l.itemId).length} ingredientes`,
+    });
+    return { ok: true };
+  },
+  removePreparation(id: string): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const prep = (s.preparations ?? []).find((p) => p.id === id);
+    const r = removePreparation(
+      {
+        items: s.inventory ?? [],
+        moves: s.inventoryMoves ?? [],
+        preparations: s.preparations ?? [],
+      },
+      id,
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ preparations: r.value.preparations });
+    recordAudit("inventario.preparacion_quitar", prep?.name ?? id);
+    return { ok: true };
+  },
+  /** Registra la producción de lotes: gasta ingredientes y suma porciones. */
+  produce(preparationId: string, batches: number): ActionResult {
+    const allowed = requirePermission("produccion");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const prep = (s.preparations ?? []).find((p) => p.id === preparationId);
+    const r = produce(
+      {
+        items: s.inventory ?? [],
+        moves: s.inventoryMoves ?? [],
+        preparations: s.preparations ?? [],
+      },
+      { preparationId, batches },
+      allowed.actor!.name,
+      nowIso(),
+      newId("prod"),
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, inventoryMoves: r.value.moves });
+    recordAudit("inventario.producir", prep?.name ?? preparationId, {
+      detail: `${fmtQty(batches)} lotes · ${fmtQty((prep?.yield ?? 0) * batches)} porciones`,
+    });
+    return { ok: true };
+  },
+  /** Registra un conteo físico (o el cierre del día): cada diferencia queda como un ajuste. */
+  saveCount(
+    lines: CountInput[],
+    scope: StockCount["scope"],
+  ): ActionResult & { differences?: number } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const r = applyCount({ items: s.inventory ?? [], moves: s.inventoryMoves ?? [] }, lines, {
+      scope,
+      by: allowed.actor!.name,
+      now: nowIso(),
+      id: newId("conteo"),
+    });
+    if (!r.ok) return r;
+    useAppStore.setState((st) => ({
+      inventory: r.value.state.items,
+      inventoryMoves: r.value.state.moves,
+      stockCounts: [...(st.stockCounts ?? []), r.value.count],
+    }));
+    const differences = r.value.count.lines.filter((l) => l.diff !== 0).length;
+    recordAudit("inventario.conteo", scope === "cierre" ? "Cierre del día" : "Conteo físico", {
+      detail: `${r.value.count.lines.length} productos · ${differences} con diferencia`,
+    });
+    return { ok: true, differences };
+  },
+  /** Aplica la sugerencia de un conteo: cambia las cantidades de las recetas que usan el producto. */
+  calibrate(itemId: string, percent: number): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const item = (s.inventory ?? []).find((i) => i.id === itemId);
+    if (!item) return { ok: false, error: "Ese producto no existe" };
+    const r = applyCalibration(s.recipes ?? [], s.preparations ?? [], itemId, percent);
+    useAppStore.setState({ recipes: r.recipes, preparations: r.preparations });
+    recordAudit("inventario.calibrar", item.name, {
+      detail: `${percent > 0 ? "+" : ""}${Math.round(percent * 100)} % en las recetas`,
+    });
+    return { ok: true };
+  },
+  /** Crea los productos de un archivo (los que ya existen se omiten). */
+  importItems(rows: ItemRow[]): ActionResult & { created?: number } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    let state = { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] };
+    let created = 0;
+    for (const row of rows) {
+      if (row.error || row.existing) continue;
+      const r = addInventoryItem(
+        state,
+        {
+          ...emptyItemDraft(),
+          name: row.name,
+          unit: row.unit,
+          qty: fmtQty(row.qty),
+          threshold: fmtQty(row.threshold),
+          cost: row.cost === undefined ? "" : fmtQty(row.cost),
+          purchaseUnit: row.purchase?.unit ?? "",
+          purchaseFactor: row.purchase ? fmtQty(row.purchase.factor) : "",
+        },
+        allowed.actor!.name,
+        nowIso(),
+        newId("mov"),
+      );
+      if (!r.ok) return { ok: false, error: `${row.name}: ${r.error}` };
+      state = { items: r.value.items, moves: r.value.moves };
+      created++;
+    }
+    if (created === 0) return { ok: false, error: "No hay productos nuevos para cargar" };
+    useAppStore.setState({ inventory: state.items, inventoryMoves: state.moves });
+    recordAudit("inventario.importar", "Productos", { detail: `${created} productos nuevos` });
+    return { ok: true, created };
+  },
+  /** Guarda las recetas de un archivo (reemplaza las del mismo plato y opción). */
+  importRecipes(rows: RecipeRow[]): ActionResult & { saved?: number } {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const outputs = (s.preparations ?? []).map((p) => p.outputItemId);
+    let recipes = s.recipes ?? [];
+    let saved = 0;
+    for (const row of rows) {
+      if (row.error) continue;
+      const existing = recipes.find(
+        (r) => r.dishId === row.dishId && (r.variantId ?? "") === (row.variantId ?? ""),
+      );
+      const draft: RecipeDraft = {
+        dishId: row.dishId,
+        variantId: row.variantId ?? "",
+        lines: row.ingredients.map((i) => ({ itemId: i.itemId, qty: fmtQty(i.qty) })),
+        dailyMax: row.dailyMax === undefined ? "" : String(row.dailyMax),
+      };
+      const errors = validateRecipe(draft, s.inventory ?? [], recipes, existing?.id, outputs);
+      const first = Object.values(errors)[0];
+      if (first) return { ok: false, error: `${row.dishName}: ${first}` };
+      recipes = saveRecipe(recipes, draft, existing?.id ?? newId("receta"));
+      saved++;
+    }
+    if (saved === 0) return { ok: false, error: "No hay recetas válidas para cargar" };
+    useAppStore.setState({ recipes });
+    recordAudit("inventario.importar", "Recetas", { detail: `${saved} recetas` });
+    return { ok: true, saved };
+  },
+  removeRecipe(id: string): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const recipe = (s.recipes ?? []).find((r) => r.id === id);
+    if (!recipe) return { ok: false, error: "Esa receta no existe" };
+    useAppStore.setState({ recipes: (s.recipes ?? []).filter((r) => r.id !== id) });
+    recordAudit(
+      "inventario.receta_quitar",
+      s.dishes.find((d) => d.id === recipe.dishId)?.name ?? recipe.dishId,
+    );
+    return { ok: true };
+  },
+  /** Entrada, salida o ajuste manual. En el ajuste, `amount` es lo realmente contado. */
+  move(
+    itemId: string,
+    kind: ManualKind,
+    amount: number,
+    reason: string,
+    totalPrice?: number,
+  ): ActionResult {
+    const allowed = requirePermission("inventario");
+    if (!allowed.ok) return allowed;
+    const s = useAppStore.getState();
+    const item = (s.inventory ?? []).find((i) => i.id === itemId);
+    const r = registerMove(
+      { items: s.inventory ?? [], moves: s.inventoryMoves ?? [] },
+      { itemId, kind, amount, reason, totalPrice },
+      allowed.actor!.name,
+      nowIso(),
+      newId("mov"),
+    );
+    if (!r.ok) return r;
+    useAppStore.setState({ inventory: r.value.items, inventoryMoves: r.value.moves });
+    const last = r.value.moves.at(-1)!;
+    recordAudit(`inventario.${kind}` as AuditAction, item?.name ?? itemId, {
+      detail:
+        kind === "ajuste"
+          ? `${item?.qty} → ${last.balance} ${item?.unit ?? ""}`.trim()
+          : `${Math.abs(last.delta)} ${item?.unit ?? ""}`.trim(),
+      reason,
+    });
+    return { ok: true };
   },
 };
 

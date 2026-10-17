@@ -1,6 +1,15 @@
 "use client";
 
-import { Ban, Banknote, DoorOpen, KeyRound, NotebookPen, Pencil, Timer } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Ban,
+  Banknote,
+  DoorOpen,
+  KeyRound,
+  NotebookPen,
+  Pencil,
+  Timer,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,11 +26,14 @@ import {
   useCurrentStaff,
   useLivePayments,
   useRestaurant,
+  useSessions,
+  useTables,
   waiterActions,
 } from "@/lib/data";
+import { unpaidMessage } from "@/lib/domain/tableAccess";
 import { can } from "@/lib/domain/access";
 import { cartCount } from "@/lib/domain/cart";
-import { formatMoney, formatTime, plural } from "@/lib/domain/format";
+import { formatTime, plural } from "@/lib/domain/format";
 import { consolidateTicket } from "@/lib/domain/ticket";
 import type { Dish } from "@/lib/domain/types";
 import type { TableOverview } from "@/lib/domain/waiter";
@@ -43,6 +55,10 @@ export function TableSheet({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [taking, setTaking] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [target, setTarget] = useState("");
+  const allTables = useTables();
+  const allSessions = useSessions();
   const payments = useLivePayments();
   const [editingId, setEditingId] = useState<string | null>(null);
   const staff = useCurrentStaff();
@@ -58,6 +74,10 @@ export function TableSheet({
   const open = orders.filter((o) => o.status !== "entregado" && o.status !== "rechazado");
   const unsent = session ? cartCount(session.cart) : 0;
   const balance = session ? sessionBalance(orders, payments, session.id) : null;
+  // Mesas libres a las que se puede pasar la sesión.
+  const freeTables = allTables
+    .filter((t) => t.id !== table.id && !allSessions.some((s) => s.tableId === t.id && !s.closedAt))
+    .sort((a, b) => a.number - b.number);
 
   return (
     <>
@@ -104,6 +124,9 @@ export function TableSheet({
                   <Banknote aria-hidden /> Cobrar
                 </Button>
               )}
+              <Button variant="secondary" block onClick={() => setMoving(true)}>
+                <ArrowRightLeft aria-hidden /> Cambiar de mesa
+              </Button>
               {open.length > 0 && (
                 <p className="text-muted text-center text-[13px]">
                   Para liberarla, primero entrega o rechaza{" "}
@@ -241,12 +264,60 @@ export function TableSheet({
         }
       />
       <Dialog
+        open={moving}
+        onOpenChange={(o) => {
+          setMoving(o);
+          if (!o) setTarget("");
+        }}
+        title={`Cambiar la Mesa ${table.number} de sitio`}
+        description="Pasa a esta mesa a los clientes con todo lo que pidieron. Sus celulares siguen conectados, sin escanear otra vez. La mesa de ahora queda libre."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMoving(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="ink"
+              disabled={!target}
+              onClick={() => {
+                const to = allTables.find((t) => t.id === target);
+                const r = waiterActions.transferTable(table.id, target);
+                setMoving(false);
+                setTarget("");
+                if (!r.ok)
+                  return toast.error("No se pudo cambiar de mesa", { description: r.error });
+                toast.success(`Mesa ${table.number} pasó a la Mesa ${to?.number}`);
+                onClose();
+              }}
+            >
+              Pasar a esa mesa
+            </Button>
+          </>
+        }
+      >
+        {freeTables.length === 0 ? (
+          <p className="text-muted text-[15px]">No hay mesas libres en este momento.</p>
+        ) : (
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            Mesa nueva
+            <Select value={target} onChange={(e) => setTarget(e.target.value)}>
+              <option value="">Elige una mesa libre</option>
+              {freeTables.map((t) => (
+                <option key={t.id} value={t.id}>
+                  Mesa {t.number}
+                </option>
+              ))}
+            </Select>
+          </label>
+        )}
+      </Dialog>
+      <Dialog
         open={confirmRelease}
         onOpenChange={setConfirmRelease}
         title={`¿Liberar la Mesa ${table.number}?`}
         description={
-          canCharge && balance && balance.pending > 0
-            ? `Ojo: todavía falta cobrar ${formatMoney(balance.pending)}. Se cierra la sesión de la mesa igual y queda marcada como sin cobro.`
+          balance && balance.pending > 0
+            ? unpaidMessage(balance.pending)
             : "Se cierra la sesión de la mesa. El próximo escaneo del QR abre una sesión nueva."
         }
         footer={
@@ -256,6 +327,7 @@ export function TableSheet({
             </Button>
             <Button
               variant="ink"
+              disabled={Boolean(balance && balance.pending > 0)}
               onClick={() => {
                 const r = waiterActions.releaseTable(table.id);
                 setConfirmRelease(false);
